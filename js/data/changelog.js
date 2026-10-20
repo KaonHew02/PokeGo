@@ -6,6 +6,10 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
+  { d: '2026-10-20', title: ['Nace PokéGo', 'PokéGo is born'], new: [
+    ['PokéGo es una versión aparte basada en PokéSurvivor, de JPTER78. Las novedades de abajo son las de PokéSurvivor.',
+     'PokéGo is a separate version based on PokéSurvivor by JPTER78. The news below is from PokéSurvivor.']
+  ] },
   { d: '2026-10-19', title: ['38 ataques nuevos', '38 new moves'], new: [
     ['38 ataques nuevos: ahora todos los tipos tienen 5 o más (Roca, Lucha, Dragón y Hada tenían sólo 2). Entre ellos Hiperrayo, Rayo Solar, Magnitud, Torbellino, Onda Trueno, Enfado, Carantoña, Golpe Bajo... cada uno con su evolución.',
      '38 new moves: every type now has 5 or more (Rock, Fighting, Dragon and Fairy had only 2). Among them Hyper Beam, Solar Beam, Magnitude, Whirlpool, Thunder Wave, Outrage, Play Rough, Sucker Punch... each with its evolution.'],

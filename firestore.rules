@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Reglas de seguridad de PokéSurvivor.
+// Reglas de seguridad de PokéGo.
 //   saves/{uid}            partida: sólo su dueño
 //   names/{apodo}          reserva de apodos únicos (en minúsculas)
 //   profiles/{uid}         apodo público de cada jugador

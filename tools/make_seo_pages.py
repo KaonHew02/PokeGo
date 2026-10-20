@@ -8,7 +8,8 @@
 import json, os, re, datetime, html
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
-SITE = 'https://pokesurvivor.com/'
+UPSTREAM = 'https://github.com/JPTER78/pokesurvivor'   # el juego original en el que se basa PokéGo
+SITE = 'https://pokego.example/'   # cámbialo por tu dominio cuando publiques el juego
 TODAY = datetime.date.today().isoformat()
 D = json.load(open(os.path.join(ROOT, 'tools', 'cache', 'gamedata.json'), encoding='utf-8'))
 DEX = D['dex']; BY = {p['dex']: p for p in DEX}
@@ -46,19 +47,19 @@ def tbadge(t, lang): return f'<i class="ty" style="background:{TC.get(t, "#888")
 LEG = set(D['legends'])
 
 # ---------------- rutas ----------------
-PAGES = ['home', 'guide', 'pokedex', 'legends', 'shinies', 'types', 'moves', 'items', 'achievements', 'news', 'support']
+PAGES = ['home', 'guide', 'pokedex', 'legends', 'shinies', 'types', 'moves', 'items', 'achievements', 'news']
 PATH = {
     'es': {'home': '', 'guide': 'guia/', 'pokedex': 'pokedex/', 'legends': 'legendarios/', 'shinies': 'shinies/', 'types': 'tipos/',
-           'moves': 'movimientos/', 'items': 'objetos/', 'achievements': 'logros/', 'news': 'novedades/', 'support': 'apoyar/'},
+           'moves': 'movimientos/', 'items': 'objetos/', 'achievements': 'logros/', 'news': 'novedades/'},
     'en': {'home': 'en/', 'guide': 'en/guide/', 'pokedex': 'en/pokedex/', 'legends': 'en/legendaries/', 'shinies': 'en/shinies/', 'types': 'en/types/',
-           'moves': 'en/moves/', 'items': 'en/items/', 'achievements': 'en/achievements/', 'news': 'en/news/', 'support': 'en/support/'},
+           'moves': 'en/moves/', 'items': 'en/items/', 'achievements': 'en/achievements/', 'news': 'en/news/'},
 }
 NAV = {'es': [('guide', 'Guía'), ('pokedex', 'Pokédex'), ('legends', 'Legendarios'), ('moves', 'Movimientos'), ('types', 'Tipos')],
        'en': [('guide', 'Guide'), ('pokedex', 'Pokédex'), ('legends', 'Legendaries'), ('moves', 'Moves'), ('types', 'Types')]}
 FOOT = {'es': [('guide', 'Guía'), ('pokedex', 'Pokédex'), ('legends', 'Legendarios y arenas'), ('shinies', 'Shinies'), ('types', 'Tabla de tipos'),
-               ('moves', 'Movimientos'), ('items', 'Objetos'), ('achievements', 'Logros'), ('news', 'Novedades'), ('support', 'Apoyar el proyecto')],
+               ('moves', 'Movimientos'), ('items', 'Objetos'), ('achievements', 'Logros'), ('news', 'Novedades')],
         'en': [('guide', 'Guide'), ('pokedex', 'Pokédex'), ('legends', 'Legendaries & arenas'), ('shinies', 'Shinies'), ('types', 'Type chart'),
-               ('moves', 'Moves'), ('items', 'Items'), ('achievements', 'Achievements'), ('news', 'News'), ('support', 'Support the project')]}
+               ('moves', 'Moves'), ('items', 'Items'), ('achievements', 'Achievements'), ('news', 'News')]}
 
 def rel(frm, to):
     """Ruta relativa entre dos páginas (las dos son carpetas)."""
@@ -75,18 +76,20 @@ def page(pid, lang, title, desc, body, ld=None):
     foot = ' · '.join(f'<a href="{rel(me, PATH[lang][p])}">{esc(t)}</a>' for p, t in FOOT[lang])
     play = 'Jugar gratis' if lang == 'es' else 'Play free'
     switch = f'<a class="lang" hreflang="{other}" href="{rel(me, PATH[other][pid])}">{"English" if lang == "es" else "Español"}</a>'
-    legal = ('PokéSurvivor es un juego de fans <b>gratuito y sin ánimo de lucro</b>, sin anuncios ni compras (sólo donaciones voluntarias para los servidores). No está afiliado a Nintendo, Creatures, '
+    legal = ('PokéGo es un juego de fans <b>gratuito y sin ánimo de lucro</b>, sin anuncios ni compras. No está afiliado a Nintendo, Creatures, '
              'GAME FREAK ni The Pokémon Company; Pokémon y sus personajes son propiedad de sus respectivos dueños. Sprites de PMD SpriteCollab '
              '(CC BY-NC 4.0) · datos de PokéAPI · música y sonidos originales. No tiene ninguna criptomoneda ni token oficial: '
              'cualquiera que use su nombre es de terceros y no nos hacemos cargo de compras ni inversiones. '
-             '<b>La única web oficial es pokesurvivor.com</b> y el juego es y será gratis: si alguien te pide pagar, no somos nosotros. '
+             'El juego es y será gratis: si alguien te pide pagar, no somos nosotros. '
              'Código bajo PolyForm Noncommercial 1.0.0 (hasta el 14-10-2026, MIT).') if lang == 'es' else (
-             'PokéSurvivor is a <b>free, non-profit</b> fan game with no ads or purchases (only voluntary donations for the servers). It is not affiliated with Nintendo, Creatures, GAME FREAK '
+             'PokéGo is a <b>free, non-profit</b> fan game with no ads or purchases. It is not affiliated with Nintendo, Creatures, GAME FREAK '
              'or The Pokémon Company; Pokémon and its characters are owned by their respective owners. Sprites from PMD SpriteCollab (CC BY-NC 4.0) '
              '· data from PokéAPI · original music and sounds. It has no official cryptocurrency or token: any using its name '
              'belongs to third parties and we take no responsibility for purchases or investments. '
-             '<b>The only official website is pokesurvivor.com</b> and the game is and always will be free: if anyone asks you to pay, it isn\'t us. '
+             'The game is and always will be free: if anyone asks you to pay, it isn\'t us. '
              'Code under PolyForm Noncommercial 1.0.0 (MIT up to 14-10-2026).')
+    based = (f'Basado en <a href="{UPSTREAM}">PokéSurvivor</a>, de JPTER78.' if lang == 'es'
+             else f'Based on <a href="{UPSTREAM}">PokéSurvivor</a> by JPTER78.')
     ldj = ('<script type="application/ld+json">\n' + json.dumps(ld, ensure_ascii=False) + '\n</script>') if ld else ''
     return f'''<!doctype html>
 <html lang="{lang}">
@@ -98,7 +101,7 @@ def page(pid, lang, title, desc, body, ld=None):
 <link rel="canonical" href="{SITE}{me}">
 {alts}<meta name="theme-color" content="#0a1430">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="PokéSurvivor">
+<meta property="og:site_name" content="PokéGo">
 <meta property="og:locale" content="{'es_ES' if lang == 'es' else 'en_US'}">
 <meta property="og:url" content="{SITE}{me}">
 <meta property="og:title" content="{esc(title)}">
@@ -116,7 +119,7 @@ def page(pid, lang, title, desc, body, ld=None):
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="{rel(me, PATH[lang]['home'])}">PokéSurvivor</a>
+  <a class="brand" href="{rel(me, PATH[lang]['home'])}">PokéGo</a>
   <nav>{nav}{switch}<a class="play" href="{rel(me, PATH[lang]['home'])}">{play}</a></nav>
 </header>
 <main>
@@ -125,7 +128,7 @@ def page(pid, lang, title, desc, body, ld=None):
 <footer>
   <p>{foot}</p>
   <p>{legal}</p>
-  <p><a href="https://github.com/JPTER78/pokesurvivor">GitHub</a></p>
+  <p>{based}</p>
 </footer>
 </body>
 </html>
@@ -138,7 +141,7 @@ def write(pid, lang, html_):
 
 def crumbs(pid, lang, name):
     return {'@type': 'BreadcrumbList', 'itemListElement': [
-        {'@type': 'ListItem', 'position': 1, 'name': 'PokéSurvivor', 'item': SITE + PATH[lang]['home']},
+        {'@type': 'ListItem', 'position': 1, 'name': 'PokéGo', 'item': SITE + PATH[lang]['home']},
         {'@type': 'ListItem', 'position': 2, 'name': name, 'item': SITE + PATH[lang][pid]}]}
 
 def sprite(d, shiny=False, up='../', anim='Idle'):
@@ -156,7 +159,7 @@ def cta(pid, lang, text):
 # ================= guía =================
 FAQ = {
  'es': [
-  ('¿PokéSurvivor es gratis?', 'Sí, totalmente. Es un juego de fans sin ánimo de lucro: no tiene anuncios ni compras. Si quieres, puedes apoyarlo con una donación voluntaria, que se usa sólo para los servidores y no da ventajas.'),
+  ('¿PokéGo es gratis?', 'Sí, totalmente. Es un juego de fans sin ánimo de lucro: no tiene anuncios ni compras.'),
   ('¿Hay que descargar algo?', 'No. Se juega en el navegador, en PC, tablet o móvil. Si quieres, puedes instalarlo como app con «Añadir a pantalla de inicio».'),
   ('¿Se puede jugar en el móvil?', 'Sí, en horizontal. Pon el dedo en cualquier parte de la pantalla y arrastra para moverte (el joystick aparece donde tocas), toca un ataque para cambiarlo y el botón de arriba a la derecha para pausar.'),
   ('¿Está en inglés?', 'Sí: el juego sale en español o en inglés según el idioma de tu navegador, y se puede cambiar en Ajustes.'),
@@ -167,7 +170,7 @@ FAQ = {
   ('¿Se guarda mi progreso?', 'Con una cuenta (nombre y contraseña o Google) tu partida se guarda en la nube y la puedes seguir en cualquier dispositivo. Como invitado se juega al momento, pero no se guarda.'),
   ('¿Es un juego oficial de Pokémon?', 'No. Es un proyecto hecho por fans, gratuito y sin ánimo de lucro, sin relación con Nintendo, GAME FREAK ni The Pokémon Company.')],
  'en': [
-  ('Is PokéSurvivor free?', 'Yes, completely. It\'s a non-profit fan game with no ads or purchases. If you like, you can support it with a voluntary donation, which only pays for the servers and gives no advantages.'),
+  ('Is PokéGo free?', 'Yes, completely. It\'s a non-profit fan game with no ads or purchases.'),
   ('Do I need to download anything?', 'No. You play in your browser on PC, tablet or phone. If you like, you can install it as an app with “Add to Home Screen”.'),
   ('Can I play on my phone?', 'Yes, in landscape. Put your finger anywhere on the screen and drag to move (the joystick appears where you touch), tap a move to switch to it and the top-right button to pause.'),
   ('Is it in English?', 'Yes: the game shows up in English or Spanish depending on your browser language, and you can change it in Settings.'),
@@ -183,8 +186,8 @@ def guide(lang):
     lk = lambda p: rel(me, PATH[lang][p])
     if lang == 'es':
         body = f'''<article class="doc">
-<h1>Guía de PokéSurvivor</h1>
-<p class="lead">PokéSurvivor es un <b>juego de supervivencia con Pokémon</b> al estilo de Survivor.io o Vampire Survivors, gratis y en el
+<h1>Guía de PokéGo</h1>
+<p class="lead">PokéGo es un <b>juego de supervivencia con Pokémon</b> al estilo de Survivor.io o Vampire Survivors, gratis y en el
 navegador: eliges un compañero, te mueves por un mapa infinito y tus ataques salen solos mientras hordas de Pokémon salvajes intentan rodearte.
 ¿Cuánto aguantarás?</p>
 {cta(pid, lang, 'Jugar gratis ahora')}
@@ -219,14 +222,14 @@ navegador: eliges un compañero, te mueves por un mapa infinito y tus ataques sa
 </ol>
 <h2>Preguntas frecuentes</h2>
 {''.join(f'<h3>{esc(q)}</h3><p>{esc(a)}</p>' for q, a in FAQ[lang])}
-{cta(pid, lang, 'Jugar a PokéSurvivor')}
+{cta(pid, lang, 'Jugar a PokéGo')}
 </article>'''
-        title = 'Guía de PokéSurvivor: cómo jugar, trucos y preguntas frecuentes'
-        desc = f'Cómo se juega a PokéSurvivor en PC y móvil, sus características ({N} Pokémon, cooperativo, grietas legendarias, gacha), trucos y preguntas frecuentes.'
+        title = 'Guía de PokéGo: cómo jugar, trucos y preguntas frecuentes'
+        desc = f'Cómo se juega a PokéGo en PC y móvil, sus características ({N} Pokémon, cooperativo, grietas legendarias, gacha), trucos y preguntas frecuentes.'
     else:
         body = f'''<article class="doc">
-<h1>PokéSurvivor guide</h1>
-<p class="lead">PokéSurvivor is a free <b>Pokémon survival game</b> in the style of Survivor.io and Vampire Survivors that you play in your
+<h1>PokéGo guide</h1>
+<p class="lead">PokéGo is a free <b>Pokémon survival game</b> in the style of Survivor.io and Vampire Survivors that you play in your
 browser: pick a partner, roam an endless map and your moves fire on their own while hordes of wild Pokémon try to surround you.
 How long can you last?</p>
 {cta(pid, lang, 'Play free now')}
@@ -261,10 +264,10 @@ How long can you last?</p>
 </ol>
 <h2>Frequently asked questions</h2>
 {''.join(f'<h3>{esc(q)}</h3><p>{esc(a)}</p>' for q, a in FAQ[lang])}
-{cta(pid, lang, 'Play PokéSurvivor')}
+{cta(pid, lang, 'Play PokéGo')}
 </article>'''
-        title = 'PokéSurvivor guide: how to play, tips and FAQ'
-        desc = f'How to play PokéSurvivor on PC and mobile, its features ({N} Pokémon, online co-op, legendary rifts, gacha), tips and frequently asked questions.'
+        title = 'PokéGo guide: how to play, tips and FAQ'
+        desc = f'How to play PokéGo on PC and mobile, its features ({N} Pokémon, online co-op, legendary rifts, gacha), tips and frequently asked questions.'
     ld = {'@context': 'https://schema.org', '@graph': [
         {'@type': 'FAQPage', 'inLanguage': lang, 'mainEntity': [{'@type': 'Question', 'name': q, 'acceptedAnswer': {'@type': 'Answer', 'text': a}} for q, a in FAQ[lang]]},
         crumbs(pid, lang, 'Guía' if lang == 'es' else 'Guide')]}
@@ -288,15 +291,15 @@ def pokedex(lang):
         secs.append(f'<section id="{gn.lower()}"><h2>{gn} <small>{head}</small></h2><ul class="dexgrid">{"".join(dexcard(e, lang, up) for e in mons)}</ul></section>')
     gens = ''.join(f'<a href="#{gen_name(g, lang).lower()}">{gen_name(g, lang)}</a>' for g in range(1, 10))
     if lang == 'es':
-        h1, lead, c = f'Pokédex de PokéSurvivor: los {N} Pokémon jugables', (f'Todos estos Pokémon pueden ser tu compañero en PokéSurvivor, el juego gratis de supervivencia con Pokémon para '
+        h1, lead, c = f'Pokédex de PokéGo: los {N} Pokémon jugables', (f'Todos estos Pokémon pueden ser tu compañero en PokéGo, el juego gratis de supervivencia con Pokémon para '
               f'navegador y móvil. Hay {N} de las 9 regiones; los consigues como compañero inicial o en el gacha (con tickets que se ganan jugando), y también '
               f'aparecen como enemigos salvajes, jefes y legendarios en las grietas.'), 'Elige tu compañero y juega gratis'
-        title, desc = f'Pokédex de PokéSurvivor: los {N} Pokémon jugables (9 regiones)', f'Lista completa de los {N} Pokémon que puedes usar en PokéSurvivor, de Kanto a Paldea, con sus tipos. Juego de Pokémon gratis en el navegador.'
+        title, desc = f'Pokédex de PokéGo: los {N} Pokémon jugables (9 regiones)', f'Lista completa de los {N} Pokémon que puedes usar en PokéGo, de Kanto a Paldea, con sus tipos. Juego de Pokémon gratis en el navegador.'
     else:
-        h1, lead, c = f'PokéSurvivor Pokédex: all {N} playable Pokémon', (f'Every one of these Pokémon can be your partner in PokéSurvivor, the free Pokémon survival game for your browser and phone. '
+        h1, lead, c = f'PokéGo Pokédex: all {N} playable Pokémon', (f'Every one of these Pokémon can be your partner in PokéGo, the free Pokémon survival game for your browser and phone. '
               f'There are {N} from all 9 regions; you get them as a starter or from the gacha (with tickets you earn by playing), and they also show up as wild '
               f'enemies, bosses and legendaries in rifts.'), 'Pick your partner and play free'
-        title, desc = f'PokéSurvivor Pokédex: all {N} playable Pokémon (9 regions)', f'The full list of the {N} Pokémon you can play in PokéSurvivor, from Kanto to Paldea, with their types. A free Pokémon game in your browser.'
+        title, desc = f'PokéGo Pokédex: all {N} playable Pokémon (9 regions)', f'The full list of the {N} Pokémon you can play in PokéGo, from Kanto to Paldea, with their types. A free Pokémon game in your browser.'
     body = f'<article class="doc wide"><h1>{esc(h1)}</h1><p class="lead">{esc(lead)}</p><nav class="gens">{gens}</nav>{"".join(secs)}{cta(pid, lang, c)}</article>'
     ld = {'@context': 'https://schema.org', '@graph': [{'@type': 'CollectionPage', 'name': h1, 'url': SITE + PATH[lang][pid], 'inLanguage': lang}, crumbs(pid, lang, 'Pokédex')]}
     write(pid, lang, page(pid, lang, title, desc, body, ld))
@@ -307,21 +310,21 @@ def legends(lang):
     cards = ''.join(dexcard(BY[d], lang, up) for d in sorted(LEG))
     ar = ''.join(f'<li>{tbadge(t, lang)} <b>{esc(L(lang, D["arenas"][t]))}</b></li>' for t in TYPES if t in D['arenas'])
     if lang == 'es':
-        h1 = 'Legendarios y grietas: las 18 arenas de PokéSurvivor'
+        h1 = 'Legendarios y grietas: las 18 arenas de PokéGo'
         intro = ('<p class="lead">De vez en cuando se abre una <b>grieta misteriosa</b> en el mapa. Si entras, te enfrentas a un <b>Pokémon legendario</b> '
                  'en una arena de su tipo, con su propio terreno y clima. Si ganas te llevas un <b>ticket ×10</b> para el gacha; si caes, vuelves al mapa sin premio. '
                  'En grupo, entráis todos juntos.</p>')
         h2a, h2b = '18 arenas, una por tipo', f'Los {len(LEG)} legendarios'
         tip = '<p>Los legendarios de dos tipos eligen uno al azar para la arena. El terreno cuenta: hay lava que quema, hielo que resbala, agua que frena…</p>'
-        title, desc, c = 'Legendarios y grietas de PokéSurvivor: las 18 arenas por tipo', f'Cómo funcionan las grietas de PokéSurvivor, las 18 arenas legendarias (una por tipo) y los {len(LEG)} Pokémon legendarios a los que te puedes enfrentar.', 'Busca una grieta: jugar gratis'
+        title, desc, c = 'Legendarios y grietas de PokéGo: las 18 arenas por tipo', f'Cómo funcionan las grietas de PokéGo, las 18 arenas legendarias (una por tipo) y los {len(LEG)} Pokémon legendarios a los que te puedes enfrentar.', 'Busca una grieta: jugar gratis'
     else:
-        h1 = 'Legendaries and rifts: PokéSurvivor\'s 18 arenas'
+        h1 = 'Legendaries and rifts: PokéGo\'s 18 arenas'
         intro = ('<p class="lead">Every now and then a <b>mysterious rift</b> opens on the map. Step inside and you face a <b>legendary Pokémon</b> in an arena '
                  'of its type, with its own terrain and weather. Win and you get a <b>×10 ticket</b> for the gacha; fall and you\'re sent back to the map with no reward. '
                  'In a group, you all go in together.</p>')
         h2a, h2b = '18 arenas, one per type', f'The {len(LEG)} legendaries'
         tip = '<p>Dual-type legendaries pick one of their types at random for the arena. Terrain matters: lava burns, ice is slippery, water slows you down…</p>'
-        title, desc, c = 'PokéSurvivor legendaries and rifts: the 18 type arenas', f'How rifts work in PokéSurvivor, the 18 legendary arenas (one per type) and the {len(LEG)} legendary Pokémon you can battle.', 'Find a rift: play free'
+        title, desc, c = 'PokéGo legendaries and rifts: the 18 type arenas', f'How rifts work in PokéGo, the 18 legendary arenas (one per type) and the {len(LEG)} legendary Pokémon you can battle.', 'Find a rift: play free'
     body = f'<article class="doc wide"><h1>{esc(h1)}</h1>{intro}<h2>{h2a}</h2><ul class="arenas">{ar}</ul>{tip}<h2>{h2b}</h2><ul class="dexgrid">{cards}</ul>{cta(pid, lang, c)}</article>'
     write(pid, lang, page(pid, lang, title, desc, body, {'@context': 'https://schema.org', '@graph': [crumbs(pid, lang, h1)]}))
 
@@ -332,27 +335,27 @@ def shinies(lang):
     pairs = ''.join(f'<li><span class="pair">{sprite(d, up=up)}{sprite(d, True, up=up)}</span><span class="nm">{esc(BY[d]["name"])}</span></li>'
                     for d in SHOW if META.get(d, {}).get('sh'))
     if lang == 'es':
-        h1 = 'Shinies en PokéSurvivor: cómo conseguirlos'
+        h1 = 'Shinies en PokéGo: cómo conseguirlos'
         body = f'''<article class="doc wide"><h1>{h1}</h1>
-<p class="lead">Los <b>shiny</b> son versiones de otro color, muy raras. En PokéSurvivor casi todos los {N} Pokémon tienen su forma shiny, con sprites de verdad.</p>
+<p class="lead">Los <b>shiny</b> son versiones de otro color, muy raras. En PokéGo casi todos los {N} Pokémon tienen su forma shiny, con sprites de verdad.</p>
 <h2>Cómo conseguirlos</h2>
 <ul><li><b>Salvajes:</b> cada Pokémon que aparece tiene <b>1 entre 4096</b> de salir shiny (como en los juegos clásicos). Lo verás brillar y saldrá un aviso: derrótalo y es tuyo.</li>
 <li><b>En el gacha:</b> cada tirada tiene <b>1 entre 100</b> de ser shiny.</li>
 <li>Un shiny repetido da el triple de Pokémonedas.</li>
 <li>Cuando tienes la forma shiny de tu compañero, puedes jugar con ella (se elige en la colección).</li></ul>
 <h2>Normal y shiny</h2><ul class="dexgrid pairs">{pairs}</ul>{cta(pid, lang, 'Sal a cazar shinies')}</article>'''
-        title, desc = 'Shinies en PokéSurvivor: probabilidades y cómo conseguirlos', 'Cómo conseguir Pokémon shiny en PokéSurvivor: 1 entre 4096 en estado salvaje y 1 entre 100 en el gacha. Galería de formas normales y shiny.'
+        title, desc = 'Shinies en PokéGo: probabilidades y cómo conseguirlos', 'Cómo conseguir Pokémon shiny en PokéGo: 1 entre 4096 en estado salvaje y 1 entre 100 en el gacha. Galería de formas normales y shiny.'
     else:
-        h1 = 'Shinies in PokéSurvivor: how to get them'
+        h1 = 'Shinies in PokéGo: how to get them'
         body = f'''<article class="doc wide"><h1>{h1}</h1>
-<p class="lead"><b>Shiny</b> Pokémon are rare, differently colored versions. In PokéSurvivor almost all {N} Pokémon have a shiny form, with real sprites.</p>
+<p class="lead"><b>Shiny</b> Pokémon are rare, differently colored versions. In PokéGo almost all {N} Pokémon have a shiny form, with real sprites.</p>
 <h2>How to get them</h2>
 <ul><li><b>In the wild:</b> every Pokémon that spawns has a <b>1 in 4096</b> chance of being shiny (just like the classic games). You'll see it sparkle and get an alert: defeat it and it's yours.</li>
 <li><b>From the gacha:</b> every pull has a <b>1 in 100</b> chance of being shiny.</li>
 <li>A duplicate shiny gives triple PokéCoins.</li>
 <li>Once you own your partner's shiny form, you can play with it (pick it in your collection).</li></ul>
 <h2>Normal and shiny</h2><ul class="dexgrid pairs">{pairs}</ul>{cta(pid, lang, 'Go shiny hunting')}</article>'''
-        title, desc = 'Shinies in PokéSurvivor: odds and how to get them', 'How to get shiny Pokémon in PokéSurvivor: 1 in 4096 in the wild and 1 in 100 from the gacha. A gallery of normal and shiny forms.'
+        title, desc = 'Shinies in PokéGo: odds and how to get them', 'How to get shiny Pokémon in PokéGo: 1 in 4096 in the wild and 1 in 100 from the gacha. A gallery of normal and shiny forms.'
     write(pid, lang, page(pid, lang, title, desc, body, {'@context': 'https://schema.org', '@graph': [crumbs(pid, lang, h1)]}))
 
 # ================= tabla de tipos =================
@@ -374,7 +377,7 @@ document.querySelectorAll('#chart td').forEach(td => {
 });
 </script>'''
     if lang == 'es':
-        h1 = 'Tabla de tipos de PokéSurvivor'
+        h1 = 'Tabla de tipos de PokéGo'
         intro = ('<p class="lead">La tabla de tipos de los juegos, pero <b>suavizada</b> para un survivor (sólo llevas un ataque activo y no puedes cambiar '
                  'de Pokémon): lo muy eficaz hace <b>×1,6</b>, lo poco eficaz <b>×0,6</b> y las inmunidades se quedan en <b>×0,3</b>. Con dos tipos se multiplican '
                  '(tope ×2,4). Vale en los dos sentidos: tus ataques contra los enemigos y los suyos contra ti.</p>'
@@ -382,16 +385,16 @@ document.querySelectorAll('#chart td').forEach(td => {
         wx = ('<h2>El clima también cuenta</h2><ul><li><b>Lluvia:</b> el Agua se potencia y el Fuego se debilita.</li><li><b>Sol abrasador:</b> el Fuego se potencia y el Agua se debilita.</li>'
               '<li><b>Tormenta de arena:</b> Roca, Tierra y Acero se potencian; el resto sufre.</li><li><b>Nevada:</b> el Hielo se potencia; el resto sufre y va más lento.</li>'
               '<li><b>Niebla:</b> Fantasma, Hada y Psíquico se potencian.</li></ul>')
-        title, desc, c = 'Tabla de tipos de PokéSurvivor (interactiva) y efectos del clima', 'Tabla de tipos interactiva de PokéSurvivor: multiplicadores ×1,6 / ×0,6 / ×0,3 para los 18 tipos y cómo afectan la lluvia, el sol, la arena, la nieve y la niebla.', 'Ponlo en práctica: jugar gratis'
+        title, desc, c = 'Tabla de tipos de PokéGo (interactiva) y efectos del clima', 'Tabla de tipos interactiva de PokéGo: multiplicadores ×1,6 / ×0,6 / ×0,3 para los 18 tipos y cómo afectan la lluvia, el sol, la arena, la nieve y la niebla.', 'Ponlo en práctica: jugar gratis'
     else:
-        h1 = 'PokéSurvivor type chart'
+        h1 = 'PokéGo type chart'
         intro = ('<p class="lead">The type chart from the main games, but <b>softened</b> for a survivor game (you only have one active move and can\'t swap Pokémon): '
                  'super effective deals <b>×1.6</b>, not very effective <b>×0.6</b>, and immunities become <b>×0.3</b>. Two types multiply (capped at ×2.4). '
                  'It works both ways: your attacks against enemies and theirs against you.</p><p>Rows: attacking type · columns: type of the Pokémon being hit.</p>')
         wx = ('<h2>Weather matters too</h2><ul><li><b>Rain:</b> Water is boosted and Fire is weakened.</li><li><b>Harsh sunlight:</b> Fire is boosted and Water is weakened.</li>'
               '<li><b>Sandstorm:</b> Rock, Ground and Steel are boosted; the rest suffer.</li><li><b>Snowfall:</b> Ice is boosted; the rest suffer and slow down.</li>'
               '<li><b>Fog:</b> Ghost, Fairy and Psychic are boosted.</li></ul>')
-        title, desc, c = 'PokéSurvivor type chart (interactive) and weather effects', 'Interactive PokéSurvivor type chart: ×1.6 / ×0.6 / ×0.3 multipliers for all 18 types, plus how rain, sun, sand, snow and fog change the fight.', 'Put it into practice: play free'
+        title, desc, c = 'PokéGo type chart (interactive) and weather effects', 'Interactive PokéGo type chart: ×1.6 / ×0.6 / ×0.3 multipliers for all 18 types, plus how rain, sun, sand, snow and fog change the fight.', 'Put it into practice: play free'
     body = f'<article class="doc wide"><h1>{h1}</h1>{intro}{table}{wx}{cta(pid, lang, c)}</article>{script}'
     write(pid, lang, page(pid, lang, title, desc, body, {'@context': 'https://schema.org', '@graph': [crumbs(pid, lang, h1)]}))
 
@@ -416,17 +419,17 @@ def moves_page(lang):
     nevo = sum(1 for m in D['moves'] if m['evo'])
     nm = len(D['moves'])
     if lang == 'es':
-        h1 = 'Movimientos de PokéSurvivor y sus evoluciones'
+        h1 = 'Movimientos de PokéGo y sus evoluciones'
         intro = (f'<p class="lead">Hay <b>{nm} movimientos</b> de los 18 tipos. Tu Pokémon ataca solo con el activo, y al subir de nivel eliges cartas '
                  f'para aprender otros o mejorarlos hasta el nivel 5. <b>{nevo} pueden evolucionar</b>: llévalos al nivel máximo, consigue la carta de mejora '
                  f'que indican (Potencia, Vigor, Reflejos…) y aparecerá una carta dorada de evolución.</p>')
-        title, desc, c = f'Movimientos de PokéSurvivor: los {nm} ataques y sus evoluciones', f'Lista de los {nm} movimientos de PokéSurvivor por tipo, qué hace cada uno y en qué evoluciona (Ascuas → Llamarada, Burbuja → Surf…).', 'Pruébalos: jugar gratis'
+        title, desc, c = f'Movimientos de PokéGo: los {nm} ataques y sus evoluciones', f'Lista de los {nm} movimientos de PokéGo por tipo, qué hace cada uno y en qué evoluciona (Ascuas → Llamarada, Burbuja → Surf…).', 'Pruébalos: jugar gratis'
     else:
-        h1 = 'PokéSurvivor moves and their evolutions'
+        h1 = 'PokéGo moves and their evolutions'
         intro = (f'<p class="lead">There are <b>{nm} moves</b> across all 18 types. Your Pokémon attacks on its own with the active one, and when you level up '
                  f'you pick cards to learn new moves or upgrade them up to level 5. <b>{nevo} of them can evolve</b>: max them out, get the upgrade card they ask for '
                  f'(Power, Vigor, Reflexes…) and a golden evolution card will appear.</p>')
-        title, desc, c = f'PokéSurvivor moves: all {nm} attacks and their evolutions', f'All {nm} PokéSurvivor moves by type, what each one does and what it evolves into (Ember → Fire Blast, Bubble → Surf…).', 'Try them: play free'
+        title, desc, c = f'PokéGo moves: all {nm} attacks and their evolutions', f'All {nm} PokéGo moves by type, what each one does and what it evolves into (Ember → Fire Blast, Bubble → Surf…).', 'Try them: play free'
     body = f'<article class="doc wide"><h1>{h1}</h1>{intro}<div class="tablewrap"><table class="list"><thead><tr>{th}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>{cta(pid, lang, c)}</article>'
     write(pid, lang, page(pid, lang, title, desc, body, {'@context': 'https://schema.org', '@graph': [crumbs(pid, lang, h1)]}))
 
@@ -436,15 +439,15 @@ def items_page(lang):
     rows = ''.join(f'<li><b>{esc(L(lang, i["name"]))}</b><span>{esc(L(lang, i["desc"]))}</span></li>' for i in D['items'])
     ni = len(D['items'])
     if lang == 'es':
-        h1 = 'Objetos equipables de PokéSurvivor'
+        h1 = 'Objetos equipables de PokéGo'
         intro = ('<p class="lead">Durante la partida puedes encontrar <b>objetos equipables</b> en los cofres y al derrotar a los jefes. Sólo puedes llevar <b>uno</b> '
                  'a la vez: si encuentras otro, eliges con cuál quedarte. Duran lo que dura la run.</p>')
-        title, desc, c = f'Objetos de PokéSurvivor: los {ni} objetos equipables', f'Los {ni} objetos equipables de PokéSurvivor (Restos, Cinta Elección, Banda Focus, Vidasfera…) y qué hace cada uno.', 'Encuéntralos: jugar gratis'
+        title, desc, c = f'Objetos de PokéGo: los {ni} objetos equipables', f'Los {ni} objetos equipables de PokéGo (Restos, Cinta Elección, Banda Focus, Vidasfera…) y qué hace cada uno.', 'Encuéntralos: jugar gratis'
     else:
-        h1 = 'PokéSurvivor held items'
+        h1 = 'PokéGo held items'
         intro = ('<p class="lead">During a run you can find <b>held items</b> in chests and by defeating bosses. You can only hold <b>one</b> at a time: '
                  'if you find another, you choose which one to keep. They last for the whole run.</p>')
-        title, desc, c = f'PokéSurvivor items: all {ni} held items', f'The {ni} held items in PokéSurvivor (Leftovers, Choice Band, Focus Sash, Life Orb…) and what each one does.', 'Find them: play free'
+        title, desc, c = f'PokéGo items: all {ni} held items', f'The {ni} held items in PokéGo (Leftovers, Choice Band, Focus Sash, Life Orb…) and what each one does.', 'Find them: play free'
     body = f'<article class="doc"><h1>{h1}</h1>{intro}<ul class="items">{rows}</ul>{cta(pid, lang, c)}</article>'
     write(pid, lang, page(pid, lang, title, desc, body, {'@context': 'https://schema.org', '@graph': [crumbs(pid, lang, h1)]}))
 
@@ -461,27 +464,27 @@ def ach_page(lang):
         secs.append(f'<h2>{esc(L(lang, cname))} <small>({len(items)})</small></h2><ul class="items ach">{li}</ul>')
     na = len(D['achievements'])
     if lang == 'es':
-        h1 = f'Los {na} logros de PokéSurvivor'
+        h1 = f'Los {na} logros de PokéGo'
         intro = ('<p class="lead">Cada logro da una <b>medalla</b>, un <b>premio</b> (tickets y monedas) y, los más difíciles, un <b>título</b> para tu perfil público. '
                  'Hay uno por cada legendario, por coleccionar Pokémon, por aguantar, por derrotar jefes, por evolucionar movimientos…</p>'
                  '<p>En cursiva, el título que desbloquea.</p>')
-        title, desc, c = f'Logros de PokéSurvivor: los {na} logros, medallas y títulos', f'Lista completa de los {na} logros de PokéSurvivor con sus medallas y títulos: colección, supervivencia, combate, grietas y legendarios.', 'Empieza a conseguirlos'
+        title, desc, c = f'Logros de PokéGo: los {na} logros, medallas y títulos', f'Lista completa de los {na} logros de PokéGo con sus medallas y títulos: colección, supervivencia, combate, grietas y legendarios.', 'Empieza a conseguirlos'
     else:
-        h1 = f'All {na} PokéSurvivor achievements'
+        h1 = f'All {na} PokéGo achievements'
         intro = ('<p class="lead">Every achievement gives you a <b>medal</b>, a <b>reward</b> (tickets and coins) and, for the hardest ones, a <b>title</b> for your public profile. '
                  'There\'s one for each legendary, for collecting Pokémon, surviving, defeating bosses, evolving moves…</p><p>In italics, the title it unlocks.</p>')
-        title, desc, c = f'PokéSurvivor achievements: all {na} achievements, medals and titles', f'The full list of the {na} PokéSurvivor achievements with their medals and titles: collection, survival, combat, rifts and legendaries.', 'Start unlocking them'
+        title, desc, c = f'PokéGo achievements: all {na} achievements, medals and titles', f'The full list of the {na} PokéGo achievements with their medals and titles: collection, survival, combat, rifts and legendaries.', 'Start unlocking them'
     body = f'<article class="doc wide"><h1>{h1}</h1>{intro}{"".join(secs)}{cta(pid, lang, c)}</article>'
     write(pid, lang, page(pid, lang, title, desc, body, {'@context': 'https://schema.org', '@graph': [crumbs(pid, lang, h1)]}))
 
 # ================= novedades =================
 NEWS = [
+ ('2026-10-20', ('Nace PokéGo', 'PokéGo is born'),
+  ('PokéGo es una versión aparte basada en PokéSurvivor, de JPTER78. Las novedades de abajo son las de PokéSurvivor.',
+   'PokéGo is a separate version based on PokéSurvivor by JPTER78. The news below is from PokéSurvivor.')),
  ('2026-10-14', ('Coloca los botones a tu gusto en el móvil', 'Place the buttons your way on mobile'),
   ('En Ajustes > Controles > Colocar los botones puedes arrastrar los ataques, la pausa y el joystick a donde quieras, y elegir un joystick fijo.',
    'In Settings > Controls > Place the buttons you can drag the attacks, the pause button and the joystick wherever you want, and choose a fixed joystick.')),
- ('2026-10-14', ('La única web oficial es pokesurvivor.com', 'The only official website is pokesurvivor.com'),
-  ('PokéSurvivor es y será gratis. Si alguna otra web te pide pagar por tickets, monedas o lo que sea, no somos nosotros: es una copia. Desde hoy el código del juego va bajo una licencia no comercial (PolyForm Noncommercial 1.0.0).',
-   'PokéSurvivor is and always will be free. If any other website asks you to pay for tickets, coins or anything else, it isn’t us: it is a copy. From today the game’s code is under a non-commercial license (PolyForm Noncommercial 1.0.0).')),
  ('2026-10-14', ('Recupera tu cuenta con Gmail', 'Recover your account with Gmail'),
   ('Si juegas con nombre y contraseña, ya puedes vincular tu Gmail: si olvidas la contraseña, entras con Google y es tu misma cuenta.',
    'If you play with a name and password, you can now link your Gmail: if you forget your password, sign in with Google and it is the same account.')),
@@ -514,10 +517,10 @@ def news(lang):
     pid = 'news'
     i = 0 if lang == 'es' else 1
     items = ''.join(f'<article class="news"><time datetime="{d}">{d}</time><h2>{esc(t[i])}</h2><p>{esc(x[i])}</p></article>' for d, t, x in NEWS)
-    h1 = 'Novedades de PokéSurvivor' if lang == 'es' else 'PokéSurvivor news'
+    h1 = 'Novedades de PokéGo' if lang == 'es' else 'PokéGo news'
     title = h1 + (' · actualizaciones del juego' if lang == 'es' else ' · game updates')
-    desc = ('Las últimas actualizaciones de PokéSurvivor: nuevas funciones, mejoras y arreglos.' if lang == 'es'
-            else 'The latest PokéSurvivor updates: new features, improvements and fixes.')
+    desc = ('Las últimas actualizaciones de PokéGo: nuevas funciones, mejoras y arreglos.' if lang == 'es'
+            else 'The latest PokéGo updates: new features, improvements and fixes.')
     body = f'<div class="doc"><h1>{h1}</h1>{items}{cta(pid, lang, "Jugar gratis" if lang == "es" else "Play free")}</div>'
     write(pid, lang, page(pid, lang, title, desc, body, {'@context': 'https://schema.org', '@graph': [crumbs(pid, lang, h1)]}))
 
@@ -530,11 +533,11 @@ def support(lang):
     kofi = f'https://ko-fi.com/{F["kofi"]}' if F['kofi'] else ''
     spons = f'https://github.com/sponsors/{F["sponsors"]}' if F['sponsors'] else ''
     if lang == 'es':
-        h1 = 'Apoyar PokéSurvivor'
+        h1 = 'Apoyar PokéGo'
         btns = ''.join(x for x in [f'<a class="btn" href="{kofi}" rel="noopener">Donar en Ko-fi</a>' if kofi else '',
                                    f'<a class="btn ghost" href="{spons}" rel="noopener">GitHub Sponsors</a>' if spons else ''])
         body = f"""<article class="doc"><h1>{h1}</h1>
-<p class="lead">PokéSurvivor es y será <b>gratis</b>: sin anuncios, sin compras y sin ventajas de pago. Si te gusta y quieres ayudar a que siga en línea,
+<p class="lead">PokéGo es y será <b>gratis</b>: sin anuncios, sin compras y sin ventajas de pago. Si te gusta y quieres ayudar a que siga en línea,
 puedes hacer una <b>donación voluntaria</b>. <b>Todo el dinero se usa para los servidores y el dominio</b>; lo que sobre se guarda para los meses siguientes.</p>
 <p>Donar no da ninguna ventaja dentro del juego: todos los jugadores juegan igual.</p>
 <h2>Qué cuesta mantenerlo</h2>
@@ -544,13 +547,13 @@ puedes hacer una <b>donación voluntaria</b>. <b>Todo el dinero se usa para los 
 <p>{btns or 'Muy pronto podrás donar desde aquí.'}</p>
 <p>También ayuda mucho, y gratis: compartir el juego con tus amigos, recomendarlo y avisar de fallos.</p>
 {cta(pid, lang, 'Volver al juego')}</article>"""
-        title, desc = 'Apoyar PokéSurvivor: donaciones para los servidores', 'PokéSurvivor es gratis y sin anuncios. Las donaciones voluntarias se usan sólo para los servidores y el dominio.'
+        title, desc = 'Apoyar PokéGo: donaciones para los servidores', 'PokéGo es gratis y sin anuncios. Las donaciones voluntarias se usan sólo para los servidores y el dominio.'
     else:
-        h1 = 'Support PokéSurvivor'
+        h1 = 'Support PokéGo'
         btns = ''.join(x for x in [f'<a class="btn" href="{kofi}" rel="noopener">Donate on Ko-fi</a>' if kofi else '',
                                    f'<a class="btn ghost" href="{spons}" rel="noopener">GitHub Sponsors</a>' if spons else ''])
         body = f"""<article class="doc"><h1>{h1}</h1>
-<p class="lead">PokéSurvivor is and will stay <b>free</b>: no ads, no purchases and no pay-to-win. If you enjoy it and want to help keep it online,
+<p class="lead">PokéGo is and will stay <b>free</b>: no ads, no purchases and no pay-to-win. If you enjoy it and want to help keep it online,
 you can make a <b>voluntary donation</b>. <b>All the money goes to the servers and the domain</b>; anything left over is saved for the following months.</p>
 <p>Donating gives no advantage in the game: everyone plays on equal terms.</p>
 <h2>What it costs to run</h2>
@@ -560,7 +563,7 @@ you can make a <b>voluntary donation</b>. <b>All the money goes to the servers a
 <p>{btns or 'You\'ll be able to donate from here very soon.'}</p>
 <p>Sharing the game with your friends, recommending it and reporting bugs helps a lot too, and it\'s free.</p>
 {cta(pid, lang, 'Back to the game')}</article>"""
-        title, desc = 'Support PokéSurvivor: donations for the servers', 'PokéSurvivor is free and ad-free. Voluntary donations only pay for the servers and the domain.'
+        title, desc = 'Support PokéGo: donations for the servers', 'PokéGo is free and ad-free. Voluntary donations only pay for the servers and the domain.'
     write(pid, lang, page(pid, lang, title, desc, body, {'@context': 'https://schema.org', '@graph': [crumbs(pid, lang, h1)]}))
 
 # ================= el juego en inglés (/en/) =================
@@ -582,16 +585,16 @@ def game_en():
     s = src.replace('<html lang="es">', '<html lang="en">')
     s = s.replace('<head>\n<meta charset="utf-8">', '<head>\n<meta charset="utf-8">\n<base href="../">', 1)
     rep = [
-        ('<title>PokéSurvivor – Juego Pokémon gratis online estilo Survivor.io</title>', '<title>PokéSurvivor – Free online Pokémon survival game (Survivor.io style)</title>'),
+        ('<title>PokéGo – Juego Pokémon gratis online estilo Survivor.io</title>', '<title>PokéGo – Free online Pokémon survival game (Survivor.io style)</title>'),
         ('content="Sobrevive a hordas de Pokémon con tu compañero en este fan game gratis para navegador y móvil: 966 Pokémon, shinies, legendarios y cooperativo con amigos. Sin descargas ni anuncios."',
          f'content="Survive hordes of Pokémon with your partner in this free fan game for browser and mobile: {N} Pokémon, shinies, legendaries and online co-op with friends. No downloads, no ads."'),
-        ('<link rel="canonical" href="https://pokesurvivor.com/">', '<link rel="canonical" href="https://pokesurvivor.com/en/">'),
+        (f'<link rel="canonical" href="{SITE}">', f'<link rel="canonical" href="{SITE}en/">'),
         ('<meta property="og:locale" content="es_ES">', '<meta property="og:locale" content="en_US">'),
-        ('<meta property="og:url" content="https://pokesurvivor.com/">', '<meta property="og:url" content="https://pokesurvivor.com/en/">'),
-        ('<meta property="og:title" content="PokéSurvivor – Sobrevive a las hordas Pokémon">', '<meta property="og:title" content="PokéSurvivor – Survive the Pokémon hordes">'),
+        (f'<meta property="og:url" content="{SITE}">', f'<meta property="og:url" content="{SITE}en/">'),
+        ('<meta property="og:title" content="PokéGo – Sobrevive a las hordas Pokémon">', '<meta property="og:title" content="PokéGo – Survive the Pokémon hordes">'),
         ('<meta property="og:description" content="Fan game gratis para navegador y móvil: 966 Pokémon, shinies, legendarios y cooperativo hasta 4 amigos. Sin descargas ni anuncios.">',
          f'<meta property="og:description" content="A free fan game for browser and mobile: {N} Pokémon, shinies, legendaries and co-op with up to 4 friends. No downloads, no ads.">'),
-        ('<meta name="twitter:title" content="PokéSurvivor – Sobrevive a las hordas Pokémon">', '<meta name="twitter:title" content="PokéSurvivor – Survive the Pokémon hordes">'),
+        ('<meta name="twitter:title" content="PokéGo – Sobrevive a las hordas Pokémon">', '<meta name="twitter:title" content="PokéGo – Survive the Pokémon hordes">'),
         ('<meta name="twitter:description" content="Fan game gratis para navegador y móvil, con cooperativo hasta 4. Sin descargas ni anuncios.">',
          '<meta name="twitter:description" content="A free fan game for browser and mobile, with co-op for up to 4. No downloads, no ads.">'),
         ('<p>Juego de supervivencia con Pokémon, gratis en el navegador y en el móvil.</p>', '<p>A Pokémon survival game, free in your browser and on mobile.</p>'),
@@ -611,15 +614,15 @@ def game_en():
 # ================= 404, robots y sitemap =================
 def extra():
     nf = '''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex"><title>404 · PokéSurvivor</title><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="48x48" href="/assets/icons/icon-48.png"><link rel="stylesheet" href="/css/pages.css"></head>
-<body><header class="top"><a class="brand" href="/">PokéSurvivor</a><nav><a href="/guia/">Guía</a><a href="/en/">English</a><a class="play" href="/">Jugar gratis</a></nav></header>
+<meta name="robots" content="noindex"><title>404 · PokéGo</title><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="48x48" href="/assets/icons/icon-48.png"><link rel="stylesheet" href="/css/pages.css"></head>
+<body><header class="top"><a class="brand" href="/">PokéGo</a><nav><a href="/guia/">Guía</a><a href="/en/">English</a><a class="play" href="/">Jugar gratis</a></nav></header>
 <main><article class="doc center"><h1>404 · Te has perdido en la mazmorra</h1><p class="lead">Esta página no existe. Pero las hordas siguen esperando…</p>
 <p class="lead" lang="en">This page doesn't exist. But the hordes are still waiting…</p>
 <p class="cta"><a class="btn" href="/">Volver al juego</a> <a class="btn ghost" href="/en/">Play in English</a></p></article></main></body></html>
 '''
     open(os.path.join(ROOT, '404.html'), 'w', encoding='utf-8').write(nf)
-    open(os.path.join(ROOT, 'robots.txt'), 'w', encoding='utf-8').write(f'# PokéSurvivor\nUser-agent: *\nAllow: /\nDisallow: /tools/\nDisallow: /docs/\nDisallow: /dev.html\n\nSitemap: {SITE}sitemap.xml\n')
-    PRI = {'home': '1.0', 'guide': '0.8', 'pokedex': '0.7', 'legends': '0.7', 'moves': '0.6', 'types': '0.6', 'shinies': '0.6', 'achievements': '0.5', 'items': '0.5', 'news': '0.5', 'support': '0.4'}
+    open(os.path.join(ROOT, 'robots.txt'), 'w', encoding='utf-8').write(f'# PokéGo\nUser-agent: *\nAllow: /\nDisallow: /tools/\nDisallow: /docs/\nDisallow: /dev.html\n\nSitemap: {SITE}sitemap.xml\n')
+    PRI = {'home': '1.0', 'guide': '0.8', 'pokedex': '0.7', 'legends': '0.7', 'moves': '0.6', 'types': '0.6', 'shinies': '0.6', 'achievements': '0.5', 'items': '0.5', 'news': '0.5'}
     urls = []
     for pid in PAGES:
         for lang in ('es', 'en'):
@@ -630,6 +633,6 @@ def extra():
         '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + ''.join(urls) + '</urlset>\n')
 
 for lang in ('es', 'en'):
-    guide(lang); pokedex(lang); legends(lang); shinies(lang); types_page(lang); moves_page(lang); items_page(lang); ach_page(lang); news(lang); support(lang)
+    guide(lang); pokedex(lang); legends(lang); shinies(lang); types_page(lang); moves_page(lang); items_page(lang); ach_page(lang); news(lang)
 game_en(); extra()
 print('ok:', 2 * (len(PAGES) - 1), 'páginas + en/ (juego en inglés), 404, robots, sitemap')

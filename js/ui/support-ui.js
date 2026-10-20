@@ -22,7 +22,7 @@ G.SupportUI = (() => {
   function open() {
     const rows = F.costs.map(([c, v]) => `<tr><td>${c}</td><td class="num">${val(v)}</td></tr>`).join('');
     $('sup-body').innerHTML = `
-      <p>PokéSurvivor es y será <b>gratis</b>, sin anuncios ni compras. Si quieres ayudar a que siga en línea, puedes hacer una
+      <p>PokéGo es y será <b>gratis</b>, sin anuncios ni compras. Si quieres ayudar a que siga en línea, puedes hacer una
       <b>donación voluntaria</b>: todo el dinero se usa para los <b>servidores y el dominio</b>, nada más.</p>
       <p class="sub">Donar no da ninguna ventaja en el juego.</p>
       <h3>Lo que cuesta mantenerlo</h3>

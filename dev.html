@@ -9,28 +9,28 @@
 <meta http-equiv="Content-Security-Policy" content="script-src 'self' file: https://www.gstatic.com https://apis.google.com https://*.firebaseio.com https://*.firebasedatabase.app; object-src 'none'; base-uri 'self'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PokéSurvivor – Juego Pokémon gratis online estilo Survivor.io</title>
+<title>PokéGo – Juego Pokémon gratis online estilo Survivor.io</title>
 <meta name="description" content="Sobrevive a hordas de Pokémon con tu compañero en este fan game gratis para navegador y móvil: 966 Pokémon, shinies, legendarios y cooperativo con amigos. Sin descargas ni anuncios.">
 <!-- seo:begin -->
-<link rel="canonical" href="https://pokesurvivor.com/">
+<link rel="canonical" href="https://pokego.example/">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="theme-color" content="#0a1430">
 <meta name="color-scheme" content="dark">
 <!-- Compartir en redes (WhatsApp, Discord, Twitter/X...) -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="PokéSurvivor">
+<meta property="og:site_name" content="PokéGo">
 <meta property="og:locale" content="es_ES">
-<meta property="og:url" content="https://pokesurvivor.com/">
-<meta property="og:title" content="PokéSurvivor – Sobrevive a las hordas Pokémon">
+<meta property="og:url" content="https://pokego.example/">
+<meta property="og:title" content="PokéGo – Sobrevive a las hordas Pokémon">
 <meta property="og:description" content="Fan game gratis para navegador y móvil: 966 Pokémon, shinies, legendarios y cooperativo hasta 4 amigos. Sin descargas ni anuncios.">
-<meta property="og:image" content="https://pokesurvivor.com/assets/og-image.jpg">
+<meta property="og:image" content="https://pokego.example/assets/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="PokéSurvivor: un Pokémon rodeado de hordas en un mapa pixel art">
+<meta property="og:image:alt" content="PokéGo: un Pokémon rodeado de hordas en un mapa pixel art">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="PokéSurvivor – Sobrevive a las hordas Pokémon">
+<meta name="twitter:title" content="PokéGo – Sobrevive a las hordas Pokémon">
 <meta name="twitter:description" content="Fan game gratis para navegador y móvil, con cooperativo hasta 4. Sin descargas ni anuncios.">
-<meta name="twitter:image" content="https://pokesurvivor.com/assets/og-image.jpg">
+<meta name="twitter:image" content="https://pokego.example/assets/og-image.jpg">
 <meta name="ps-pages" content="1">
 <!-- seo:end -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -43,7 +43,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PokéSurvivor">
+<meta name="apple-mobile-web-app-title" content="PokéGo">
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preload" href="assets/fonts/PixelifyPS-400.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="preload" href="assets/fonts/PixelifyPS-700.ttf" as="font" type="font/ttf" crossorigin>
@@ -55,18 +55,18 @@
   "@graph": [
     {
       "@type": "WebSite",
-      "@id": "https://pokesurvivor.com/#web",
-      "url": "https://pokesurvivor.com/",
-      "name": "PokéSurvivor",
+      "@id": "https://pokego.example/#web",
+      "url": "https://pokego.example/",
+      "name": "PokéGo",
       "inLanguage": "es"
     },
     {
       "@type": ["VideoGame", "WebApplication"],
-      "@id": "https://pokesurvivor.com/#juego",
-      "name": "PokéSurvivor",
-      "url": "https://pokesurvivor.com/",
+      "@id": "https://pokego.example/#juego",
+      "name": "PokéGo",
+      "url": "https://pokego.example/",
       "description": "Fan game gratuito de supervivencia (bullet heaven, estilo Survivor.io) con Pokémon: elige compañero, sobrevive a hordas, sube de nivel, evoluciona tus ataques, enfréntate a legendarios en grietas y juega en cooperativo con hasta 4 amigos.",
-      "image": "https://pokesurvivor.com/assets/og-image.jpg",
+      "image": "https://pokego.example/assets/og-image.jpg",
       "inLanguage": "es",
       "genre": ["Roguelike", "Bullet heaven", "Acción", "Supervivencia"],
       "gamePlatform": ["Navegador web", "PC", "Android", "iOS"],
@@ -76,7 +76,7 @@
       "numberOfPlayers": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 4 },
       "isAccessibleForFree": true,
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" },
-      "isPartOf": { "@id": "https://pokesurvivor.com/#web" }
+      "isPartOf": { "@id": "https://pokego.example/#web" }
     }
   ]
 }
@@ -90,17 +90,16 @@
 
 <canvas id="game"></canvas>
 <!-- En móvil se juega en horizontal -->
-<div id="rotate" class="hidden"><div class="box center"><div id="rotate-ico"></div><h2>Gira el móvil</h2><p class="sub">PokéSurvivor se juega en horizontal.</p></div></div>
+<div id="rotate" class="hidden"><div class="box center"><div id="rotate-ico"></div><h2>Gira el móvil</h2><p class="sub">PokéGo se juega en horizontal.</p></div></div>
 
 <!-- ====== Inicio: login / registro / invitado ====== -->
 <section id="scr-login" class="scr hidden">
   <div class="box" style="width:min(420px,100%)">
     <div class="logo">
-      <div class="t1">PokéSurvivor</div>
+      <div class="t1">PokéGo</div>
       <div class="t2">Mundo Misterioso</div>
     </div>
     <p class="login-tag">Sobrevive a las hordas con tu compañero Pokémon · gratis, en PC y móvil</p>
-    <p class="login-official">Web oficial: pokesurvivor.com · si alguien te pide pagar, no somos nosotros</p>
     <div class="tabs">
       <div class="tab on" data-tab="login">Entrar</div>
       <div class="tab" data-tab="register">Crear cuenta</div>
@@ -172,7 +171,7 @@
 <section id="scr-menu" class="scr hidden">
   <div class="menu-left">
     <div class="logo">
-      <div class="t1">PokéSurvivor<span class="splash">Folagor, Sekiam, PokeAlex: ¿un hueco?</span></div>
+      <div class="t1">PokéGo<span class="splash">Folagor, Sekiam, PokeAlex: ¿un hueco?</span></div>
       <div class="t2">Mundo Misterioso</div>
     </div>
     <div class="partner-card">
@@ -276,15 +275,13 @@
   <div class="box legal" style="width:min(640px,100%)">
     <div class="row between"><h2>Aviso legal</h2><button class="btn small ghost" id="legal-close">Cerrar</button></div>
     <h3>Proyecto de fan</h3>
-    <p><b>PokéSurvivor</b> es un juego hecho por fans, <b>gratuito y sin ánimo de lucro</b>.
-      No tiene anuncios ni compras. Se puede apoyar con donaciones voluntarias, que se usan sólo para pagar los servidores y el dominio, y que no dan ninguna ventaja en el juego.</p>
+    <p><b>PokéGo</b> es un juego hecho por fans, <b>gratuito y sin ánimo de lucro</b>.
+      No tiene anuncios ni compras.</p>
     <p>No está afiliado, patrocinado ni aprobado por Nintendo, Creatures Inc., GAME FREAK ni
       The Pokémon Company. Pokémon y todos los nombres y personajes relacionados son marcas y
       propiedad de sus respectivos dueños.</p>
-    <h3>Web oficial</h3>
-    <p>La única web oficial de PokéSurvivor es pokesurvivor.com. El juego es y será gratis: si alguien te pide pagar, no somos nosotros.</p>
     <h3>Criptomonedas</h3>
-    <p>PokéSurvivor no tiene ninguna criptomoneda, token ni NFT oficial, y su autor no ha creado ninguno. Cualquier token que use el nombre del juego lo han creado terceros: no nos hacemos cargo de ninguna compra, venta o inversión que hagas con ellos, y nada de lo que hay aquí es una recomendación de inversión.</p>
+    <p>PokéGo no tiene ninguna criptomoneda, token ni NFT oficial, y su autor no ha creado ninguno. Cualquier token que use el nombre del juego lo han creado terceros: no nos hacemos cargo de ninguna compra, venta o inversión que hagas con ellos, y nada de lo que hay aquí es una recomendación de inversión.</p>
     <h3>Contenido de terceros</h3>
     <p>Sprites de <a href="https://github.com/PMDCollab/SpriteCollab" target="_blank" rel="noopener">SpriteCollab</a>
       (CC BY-NC 4.0, créditos completos en CREDITS.md del repositorio). Datos de la Pokédex de
@@ -317,7 +314,7 @@
 </section>
 <div id="boot" class="boot">
   <div class="boot-in">
-    <h1>PokéSurvivor</h1>
+    <h1>PokéGo</h1>
     <p>Juego de supervivencia con Pokémon, gratis en el navegador y en el móvil.</p>
     <p class="boot-ld">Cargando…</p>
   </div>
@@ -325,7 +322,7 @@
 <script src="js/boot.js"></script>
 <div id="tap-start" class="tapstart hidden">
   <div class="boot-in">
-    <h1>PokéSurvivor</h1>
+    <h1>PokéGo</h1>
     <p>Sobrevive a las hordas con tu compañero Pokémon</p>
     <p class="tap-blink">Pulsa para empezar</p>
   </div>
@@ -333,8 +330,8 @@
 <noscript>
   <div class="boot noscript">
     <div class="boot-in">
-      <h1>PokéSurvivor</h1>
-      <p>PokéSurvivor necesita JavaScript para funcionar. Actívalo para jugar.</p>
+      <h1>PokéGo</h1>
+      <p>PokéGo necesita JavaScript para funcionar. Actívalo para jugar.</p>
       <p>Fan game gratuito de supervivencia con 966 Pokémon de las 9 regiones: elige tu compañero, sobrevive a las hordas, evoluciona tus ataques, enfréntate a legendarios y juega en cooperativo con hasta 4 amigos.</p>
       <!-- seo:begin --><p><a href="guia/">Guía del juego</a> · <a href="pokedex/">Pokédex: todos los Pokémon jugables</a></p><!-- seo:end -->
     </div>

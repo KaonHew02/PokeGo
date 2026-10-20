@@ -1,174 +1,89 @@
-# PokéSurvivor · Mundo Misterioso
+# PokéGo · Mystery Dungeon
 
-Bullet-heaven con Pokémon al estilo de Survivor.io y Megabonk, con sprites de
-*Pokémon Mundo Misterioso*, capa roguelike, **966 Pokémon de las 9 generaciones**,
-shinies y gacha por región. Música y efectos compuestos para el juego.
+A Pokémon "bullet heaven" survival game in the style of Survivor.io: pick a
+partner, survive endless hordes, level up and evolve your moves. It has 966
+Pokémon from all 9 generations with *Pokémon Mystery Dungeon* sprites, a
+roguelike upgrade layer, shinies, legendary rifts and a gacha. It's plain
+HTML, CSS and JavaScript on Canvas 2D: no install, and it plays offline.
 
-HTML + CSS + JavaScript vanilla sobre Canvas 2D. Sin build, sin dependencias y
-**todo local**: no necesita internet para jugar.
+PokéGo is based on **PokéSurvivor by JPTER78**
+(<https://github.com/JPTER78/pokesurvivor>), imported at upstream commit
+`018e986` (19 October 2026).
 
-> **Aviso sobre criptomonedas / Crypto disclaimer**
->
-> PokéSurvivor **no tiene ninguna criptomoneda, token ni NFT oficial**, y yo no
-> he creado ninguno. Cualquier token que use el nombre del juego lo han creado
-> terceros. **No me hago cargo de ninguna compra, venta o inversión** que hagas
-> con ellos y nada de lo que hay aquí es una recomendación de inversión. El
-> juego es gratis y lo seguirá siendo.
->
-> PokéSurvivor has **no official cryptocurrency, token or NFT**, and I have not
-> created any. Any token using the game's name was created by third parties.
-> **I take no responsibility for any purchase, sale or investment** you make
-> with them, and nothing here is investment advice. The game is free and will
-> stay free.
+## Play
 
-## Jugar
+- **Quickest:** double-click `index.html`. Your progress is saved in that browser.
+- **Recommended:** serve the folder and open it in a browser:
 
-Doble clic en `index.html`. Crea una cuenta o entra como invitado, haz el test
-de personalidad y a la mazmorra.
+  ```bash
+  python -m http.server 8123
+  ```
 
-| Tecla | Acción |
+  Then go to <http://localhost:8123>.
+
+| Key | Action |
 |---|---|
-| `W` `A` `S` `D` / flechas | Moverse |
-| `1` `2` `3` `4` | Elegir el movimiento activo |
-| `Q` / `E` | Ciclar movimientos |
-| `Esc` / `P` | Pausa |
+| `W` `A` `S` `D` / arrow keys | Move |
+| `1` `2` `3` `4` | Choose the active move |
+| `Q` / `E` | Cycle moves |
+| `Esc` / `P` | Pause |
 
-**En móvil o tablet** (en horizontal): pon el dedo en cualquier sitio y arrastra
-para moverte (el joystick aparece donde tocas), toca un ataque de abajo para
-cambiarlo y el botón de arriba a la derecha para pausar. Se puede instalar como
-app ("Añadir a pantalla de inicio"). En **Ajustes** hay sonido, calidad gráfica
-(con modo automático), números de daño, menos sacudidas, FPS y la cuenta.
+On a phone or tablet (landscape), drag anywhere to move, tap an attack at the
+bottom to switch to it, and use the top-right button to pause. The game can be
+played in English, Spanish, French, Italian, Brazilian Portuguese and Simplified
+or Traditional Chinese (Settings > Graphics > Language).
 
-El Pokémon ataca solo con el movimiento activo (o con todos los de un
-**vínculo**: cada legendario vencido deja fusionar movimientos para lanzarlos a
-la vez desde un solo hueco, hasta 4). Las rocas, cofres y la hierba
-alta se rompen; las paredes y los árboles bloquean los disparos enemigos; el
-agua frena y la lava quema (también a los enemigos).
+## Develop
 
-En el mapa hay **altares de poder**, **manantiales** que curan, **cofres con
-candado** (quédate a su lado unos segundos) y **trampas** que también dañan a
-los enemigos. A veces se abre una **grieta**: entra y lucharás contra un
-**legendario** en una arena aparte.
+1. Edit `dev.html` and the files in `js/`, `css/` and `tools/`. Don't edit
+   `index.html`: it's generated. To test without minifying, open
+   <http://localhost:8123/dev.html>.
+2. Rebuild:
 
-Hay **tabla de tipos** (un Rayo Burbuja le quita más a un Charmander) y,
-de vez en cuando, **climas** (sol, lluvia, arena, nieve, niebla) que potencian
-unos tipos y debilitan otros.
+   ```bash
+   node tools/build.js && node tools/export_data.js && python tools/make_seo_pages.py
+   ```
 
-Cada día hay **misiones** (y semanales) que dan tickets y monedas; los
-**logros** dan medallas y títulos, y tu **perfil** enseña tus 3 Pokémon
-favoritos, tus marcas y tus medallas. En las runs encuentras **objetos** (Restos,
-Cinta Elección...) y tus movimientos **evolucionan** al máximo nivel. Los
-enemigos tienen personalidad: curan, ponen escudos, llaman a su manada o atacan
-con aviso en el suelo.
+3. Run the tests:
 
-Las **mejoras** son de cada Pokémon. El **gacha** va con **tickets** que se
-ganan jugando (×1 de algunos Pokémon, ×10 de jefes y legendarios), y se tira
-en una tragaperras pixel art.
+   ```bash
+   node --test tests/i18n.test.cjs tests/net.test.cjs
+   ```
 
-Cada enemigo tiene 1/4096 de salir **shiny**: brilla, una flecha en el borde de
-la pantalla te dice dónde está, y si lo derrotas te lo quedas. En el gacha sale
-shiny 1 de cada 100 tiradas. En la colección eliges tu compañero en versión
-normal o shiny.
+The source language is Spanish and every on-screen string is a dictionary key.
+When you add or change Spanish text, add the English in `js/data/lang-en.js` and
+the other languages as a row in `js/data/lang-updates.js`.
+`node tools/build_langs.js --faltan` lists anything missing.
 
-La música suena tras el primer clic (los navegadores no dejan reproducir sonido
-antes). Volumen y silencio: botón del altavoz arriba a la derecha, o en la pausa.
+## How PokéGo differs from PokéSurvivor
 
-El guardado vive en el `localStorage` del navegador: si borras los datos del
-sitio, se pierde.
+- **Name:** PokéGo is used in the game, the web pages and all 7 languages. The
+  news screen keeps PokéSurvivor's history under its original name.
+- **Saves stay in the browser.** Cloud saves, accounts across devices, friends,
+  leaderboards and online co-op used the original author's Firebase project,
+  so they're off. To turn them on with your own project, follow
+  `docs/FIREBASE.md`, paste your config into `js/core/firebase-config.js` and
+  add your domain to `HOSTS` in `js/core/db.js`.
+- **No donation or contact links.** The Ko-fi/GitHub Sponsors buttons and pages
+  are gone, and so are the original author's contact email and page. To add
+  your own, set `kofi` in `js/data/funding.js` and `CONTACT` in `js/ui/ui.js`.
+- **Website address placeholder:** `https://pokego.example`. When you have a
+  domain, replace it in `dev.html` and in `SITE` in `tools/make_seo_pages.py`,
+  then rebuild.
+- **New link-preview image:** `assets/og-image.jpg`.
+- `docs/`, `infra/` and `GDD.md` are PokéSurvivor's notes (in Spanish). They
+  still describe its servers and domain.
 
-En `videos/` hay grabaciones del juego (con su música): un combate contra un
-jefe, la captura de un shiny salvaje y un shiny en el gacha.
+## License and credits
 
-## Guardado en la nube y publicación
+The code is licensed under **PolyForm Noncommercial 1.0.0**, inherited from
+PokéSurvivor (see `LICENSE` and `LICENSE-NONCOMMERCIAL.md`). You may use,
+change and share it, but not commercially: no selling it, no charging for it or
+for anything in it, and no ads.
 
-- **Base de datos (Firebase):** cuentas con nombre + contraseña o Google, y la
-  partida se sigue en cualquier ordenador. Pasos en [docs/FIREBASE.md](docs/FIREBASE.md).
-  Sin configurar, el juego guarda sólo en el navegador, como antes.
-- **Jugar con amigos (hasta 4) y ranking:** con cuenta en la nube, menú
-  **Amigos** (añadir por apodo, invitar a tu sala) y **Ranking** (tiempo
-  aguantado: solo o grupo, de hoy a histórico, amigos, por Pokémon).
-- **Publicar gratis en GitHub Pages:** [docs/PUBLICAR.md](docs/PUBLICAR.md).
-- Si se juega en dos ordenadores a la vez o sin conexión, las partidas se
-  **fusionan**: las colecciones se unen (nunca se pierde un Pokémon ni un
-  shiny), mejoras y estadísticas se quedan con el máximo, y monedas y
-  compañero con la versión más reciente. Los cambios de otro ordenador llegan
-  en directo.
+Required Notice: Copyright 2026 JPTER78 (https://github.com/JPTER78/pokesurvivor)
 
-## Licencia
-
-Código bajo [PolyForm Noncommercial 1.0.0](LICENSE-NONCOMMERCIAL.md) desde el
-14-10-2026: se puede usar, estudiar y modificar, pero **no con fines
-comerciales** (ni vender el juego ni cobrar nada dentro de él). Las versiones
-hasta el commit `b297089` se publicaron bajo MIT. Los sprites (CC BY-NC 4.0),
-la fuente (OFL) y las marcas de Pokémon tienen sus propias condiciones: ver
-[LICENSE](LICENSE) y [CREDITS.md](CREDITS.md). Proyecto de fan sin ánimo de
-lucro.
-
-**La única web oficial es [pokesurvivor.com](https://pokesurvivor.com).** El
-juego es y será gratis: si alguien te pide pagar, no somos nosotros.
-
-## Estructura
-
-```
-index.html              pantallas + orden de carga
-css/style.css           interfaz estilo Mundo Misterioso
-assets/pokemon/{dex}/   hojas de sprites PMD (Idle, Walk, Attack, Shoot, Charge, Hurt, Faint)
-assets/pokemon/{dex}/s/ las mismas en versión shiny
-assets/fonts/           Pixelify Sans (OFL) y su versión con números redibujados (tools/make_font.py)
-js/
-  net/      social (apodo, amigos, salas), net (WebRTC + relé),
-            coop (partida en grupo), ranking
-  core/     util, db (guardado), audio (sintetizador + efectos), input,
-            sprites (animador PMD), camera
-  data/     pokedex*, sprites-meta*, moves, starters (+ test), enemies,
-            upgrades, music (partituras)
-  world/    tiles (pixel art en código), world (terreno, objetos, colisiones)
-  entities/ player, enemy, projectile, pickup, fx
-  systems/  combat, spawner, levelup, gacha
-  ui/       icons (pixel art), ui, hud, login, test, menu, gacha-ui, run-ui,
-            social-ui, ranking-ui
-  game.js   flujo y bucle principal
-tools/      scripts que regeneran los ficheros marcados con *
-```
-
-`*` = generado. Para rehacerlos (necesita Python 3 + Pillow e internet, sólo esa vez):
-
-```
-python tools/fetch_sprites.py    # sprites normal y shiny + js/data/sprites-meta.js
-                                 # (~20 min; se puede cortar y relanzar: usa tools/cache/)
-python tools/fetch_pokedex.py    # js/data/pokedex.js
-python tools/fetch_credits.py    # CREDITS.md
-```
-
-## Notas de implementación
-
-- **Sprites PMD.** Columnas = fotogramas, filas = 8 direcciones (Down, DownRight,
-  Right, UpRight, Up, UpLeft, Left, DownLeft — verificado con los `-Offsets.png`).
-  Cada animación tiene su propio tamaño de fotograma, así que se alinean por el
-  **ancla al suelo** sacada del `-Shadow.png`; sin eso el sprite saltaría al atacar.
-- **Coordenadas.** `(x, y)` de una entidad son sus **pies**. Las colisiones
-  ocurren en el plano del suelo; los proyectiles vuelan en ese plano y se dibujan
-  elevados con su sombra debajo.
-- **Mundo.** Chunks de 16×16 tiles: los *datos* (terreno, objetos) son baratos y
-  se generan siempre; la *imagen* se hornea a resolución de arte escribiendo en un
-  `ImageData` (~4 ms por chunk en Chrome) y sólo para los visibles.
-- **Rendimiento.** Rejilla espacial de enemigos reconstruida cada frame. Con 420
-  enemigos, simulación + render completo ≈ 3 ms por frame en Chrome.
-- **Metadatos en `.js`, no `.json`**, porque `fetch()` está bloqueado en `file://`.
-- **Shiny.** Los shiny de SpriteCollab son el mismo dibujo con otra paleta; están
-  en `s/` y sólo 30 tienen geometría distinta (campo `sa` en los metadatos).
-  Las hojas se guardan como PNG con paleta exacta: misma imagen, la mitad de peso.
-- **Audio.** Sintetizador Web Audio con planificador anticipado (programa las
-  notas 150 ms por delante) y reverb por convolución con un impulso generado.
-  Las partituras están en `js/data/music.js` en un formato de texto propio.
-  Los efectos tienen separación mínima entre repeticiones y un tope de voces,
-  para que 400 enemigos golpeados a la vez no saturen.
-- **Iconos.** Mapas de caracteres convertidos a canvas y data URLs; siempre a
-  múltiplos enteros de su tamaño para que el píxel quede limpio.
-
-## Créditos y licencia
-
-Sprites de [SpriteCollab](https://github.com/PMDCollab/SpriteCollab) bajo
-**CC BY-NC 4.0** — uso **no comercial** y con atribución; la lista de artistas
-está en [`CREDITS.md`](CREDITS.md). Pokémon es propiedad de Nintendo, Creatures
-Inc. y GAME FREAK. Proyecto de fan sin ánimo de lucro.
+The sprites come from PMD SpriteCollab under CC BY-NC 4.0 (full credits in
+`CREDITS.md`), and the Pokédex data comes from PokéAPI. PokéGo is a non-profit
+fan project, not affiliated with Nintendo, Creatures, GAME FREAK or The Pokémon
+Company. Pokémon and all related names are the property of their owners.

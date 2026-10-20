@@ -111,7 +111,7 @@ G.LoginUI = (() => {
     const why = G.DB.localReason === 'file'
       ? 'Abierto desde un archivo: la partida sólo se guarda en este navegador. Para guardar en la nube, juega en la versión publicada.'
       : G.DB.localReason === 'host'
-        ? 'Esta no es la web oficial: la partida sólo se guarda en este navegador. El juego oficial y gratis está en pokesurvivor.com.'
+        ? 'Esta web no está autorizada para guardar en la nube: la partida sólo se guarda en este navegador.'
       : G.DB.localReason === 'config'
         ? 'Nube sin configurar: la partida sólo se guarda en este navegador.'
         : 'No se pudo conectar con la nube: la partida sólo se guarda en este navegador.';

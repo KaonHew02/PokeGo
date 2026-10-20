@@ -1,6 +1,6 @@
 {
-  "name": "PokéSurvivor",
-  "short_name": "PokéSurvivor",
+  "name": "PokéGo",
+  "short_name": "PokéGo",
   "description": "Fan game gratuito: sobrevive a las hordas con tu compañero Pokémon. Sin anuncios.",
   "lang": "es",
   "start_url": "./",

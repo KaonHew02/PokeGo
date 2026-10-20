@@ -1,8 +1,8 @@
-# PokéSurvivor
+# PokéGo
 User-agent: *
 Allow: /
 Disallow: /tools/
 Disallow: /docs/
 Disallow: /dev.html
 
-Sitemap: https://pokesurvivor.com/sitemap.xml
+Sitemap: https://pokego.example/sitemap.xml
