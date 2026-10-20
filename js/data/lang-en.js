@@ -759,5 +759,17 @@ G.I18n.add({
   'Tu mejor puesto: {x}': 'Your best rank: {x}',
   'Aún no estás en el top 50. Tu puesto está en Histórico.': 'You are not in the top 50 yet. Your rank is in All-time.',
   'Aún no tienes marca.': 'You do not have a record yet.',
-  'Folagor, Sekiam, PokeAlex: ¿un hueco?': 'Folagor, Sekiam, PokeAlex: room for one more?'
+  'Folagor, Sekiam, PokeAlex: ¿un hueco?': 'Folagor, Sekiam, PokeAlex: room for one more?',
+
+  // ---- PokéGo: objetos (rechazar / tirar) ----
+  // ---- fin objetos ----
+
+  // ---- PokéGo: copia de seguridad y Google Drive ----
+  // ---- fin copia ----
+
+  // ---- PokéGo: cooperativo con código de sala ----
+  // ---- fin cooperativo ----
+
+  // ---- PokéGo: mirar a un compañero al caer ----
+  // ---- fin mirar ----
 });
