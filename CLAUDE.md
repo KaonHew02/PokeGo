@@ -9,7 +9,7 @@ upstream commit 018e986). Code comments, docs and the source-language UI text ar
    - `build.js` writes `index.html`, `js/app.min.js`, `js/lang/*.js` and `version.json`.
      `js/core/updater.js` reloads players when `version.json` changes, so keep both.
    - `make_seo_pages.py` writes `en/`, the guide/data pages, `404.html`, `robots.txt` and `sitemap.xml`.
-3. `node --test tests/i18n.test.cjs tests/net.test.cjs` (all must pass).
+3. `node --test tests/i18n.test.cjs tests/net.test.cjs tests/items.test.cjs tests/save.test.cjs` (all must pass).
 4. Run locally: `python -m http.server 8123` → http://localhost:8123 (`/dev.html` for unminified code).
 
 ## Text and translations

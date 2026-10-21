@@ -6,6 +6,38 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
+  { d: '2026-10-21', title: ['Jugar en grupo con código de sala', 'Group play with room codes'], new: [
+    ['Jugar en grupo sin cuenta en la nube: crea una sala y pasa su código de 5 letras a tus amigos (hasta 4). Se abre desde Amigos en el menú principal, con «Crear sala» o «Unirse».',
+     'Play in a group without a cloud account: create a room and give its 5-letter code to your friends (up to 4). Open it from Friends in the main menu, with “Create room” or “Join”.'],
+    ['Cooperativo: al caer, la cámara sigue al compañero que tengas más cerca mientras esperas a que te levante. Cambia de compañero con Q / E, LB / RB o tocando las flechas o su nombre (tu Pokémon va el último), y al levantarte la cámara vuelve a ti.',
+     'Co-op: when you go down, the camera follows your nearest teammate while you wait for them to revive you. Switch teammate with Q / E, LB / RB or by tapping the arrows or their name (your own Pokémon comes last), and the camera comes back to you when you’re revived.'],
+    ['Ya puedes rechazar un objeto al encontrarlo, también el primero (antes se ponía solo), y tirar el que llevas desde la pausa con «Tirar objeto».',
+     'You can now refuse an item when you find it, including the first one (it used to equip itself), and drop the one you hold from the pause menu with "Drop item".'],
+    ['Copia de seguridad de la partida en Ajustes > Cuenta: descárgala en un archivo e impórtala en otro navegador o aparato. Al importarla se junta con la tuya y no pierdes nada de lo que ya tienes.',
+     'Save backup in Settings > Account: download your save as a file and import it in another browser or device. Importing combines it with yours, so you don\'t lose anything you already have.']
+  ], chg: [
+    ['Vidasfera: sigue dando un 30 % más de daño y quitando el 1 % de tu vida máxima por ataque, pero sólo con los ataques que lanzas contra enemigos. Las mejoras como Danza Espada o Acua Aro, y los ataques sin nadie a tiro, ya no te quitan vida.',
+     'Life Orb: it still gives 30% more damage and costs 1% of your max HP per attack, but only for attacks you use against enemies. Boosts like Swords Dance or Aqua Ring, and attacks with nobody in range, no longer cost HP.'],
+    ['Los objetos que encuentras cuentan para las misiones y los logros aunque no te los quedes, y los cofres y los jefes ya no te dan el objeto que ya llevas.',
+     'Items you find count for missions and achievements even if you don\'t keep them, and chests and bosses no longer give you the item you already hold.']
+  ], fix: [
+    ['Cooperativo: si el anfitrión empezaba otra partida mientras un compañero aún miraba el resumen, ese compañero se quedaba fuera y la partida se paraba en la primera subida de nivel. Ahora entra directamente.',
+     'Co-op: if the host started another run while a teammate was still looking at the summary, that teammate was left out and the run froze at the first level-up. Now they join straight away.'],
+    ['Cooperativo: en la sala, los invitados también ven si están conectados con el anfitrión (antes sólo lo veía el anfitrión).',
+     'Co-op: in the room, guests now also see whether they are connected to the host (before, only the host could see it).'],
+    ['Cooperativo: las salas de amigos conectan a la primera más a menudo (a veces se perdía parte de la negociación de la conexión).',
+     'Co-op: friend rooms connect on the first try more often (part of the connection setup was sometimes lost).'],
+    ['Cooperativo: un compañero que dejaba la partida se quedaba quieto en la pantalla de los demás invitados (y hasta podía levantarte). Ahora desaparece para todos.',
+     'Co-op: a teammate who left the game stayed frozen on the other guests’ screens (and could even revive you). Now they disappear for everyone.'],
+    ['Cooperativo: si un compañero no llegaba a entrar en la partida, las cartas de nivel se quedaban esperando a que eligiera para siempre. Ahora, si a los 10 segundos no ha entrado, la partida sigue sin él.',
+     'Co-op: if a teammate never made it into the game, the level-up cards waited forever for them to pick. Now, if they haven’t joined after 10 seconds, the game goes on without them.'],
+    ['Con «Apuntar a mano», la mira se quedaba en pantalla con tu Pokémon caído, y cambiar de ataque estando caído hacía sonidos y efectos sobre él. Ahora la mira se quita y 1-4 sólo dejan elegido el ataque para cuando te levanten.',
+     'With “Manual aim”, the crosshair stayed on screen while your Pokémon was down, and switching attacks while down played sounds and effects on it. Now the crosshair goes away and 1-4 just pick the attack for when you’re revived.'],
+    ['Si te llegaban dos objetos a la vez, o uno mientras elegías un vínculo, la partida se quedaba parada para siempre. Ahora salen uno detrás de otro.',
+     'If two items reached you at once, or one arrived while you were choosing a bond, the run froze for good. Now they come one after the other.'],
+    ['Al quitarte el Chaleco Asalto podías perder más reducción de daño de la que daba (si habías cogido muchas Corazas), y el Cascabel Concha seguía curando un poco después de cambiarlo.',
+     'Taking off the Assault Vest could remove more damage reduction than it gave (if you had picked many Armor cards), and the Shell Bell kept healing a little after you swapped it.']
+  ] },
   { d: '2026-10-20', title: ['Nace PokéGo', 'PokéGo is born'], new: [
     ['PokéGo es una versión aparte basada en PokéSurvivor, de JPTER78. Las novedades de abajo son las de PokéSurvivor.',
      'PokéGo is a separate version based on PokéSurvivor by JPTER78. The news below is from PokéSurvivor.']

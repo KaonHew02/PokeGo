@@ -47,7 +47,7 @@ or Traditional Chinese (Settings > Graphics > Language).
 3. Run the tests:
 
    ```bash
-   node --test tests/i18n.test.cjs tests/net.test.cjs
+   node --test tests/i18n.test.cjs tests/net.test.cjs tests/items.test.cjs tests/save.test.cjs
    ```
 
 The source language is Spanish and every on-screen string is a dictionary key.
@@ -70,6 +70,18 @@ the other languages as a row in `js/data/lang-updates.js`.
   your own, set `kofi` in `js/data/funding.js` and `CONTACT` in `js/ui/ui.js`.
 - **Website:** published on GitHub Pages at <https://kaonhew02.github.io/PokeGo/>
   (`dev.html` meta tags and `SITE` in `tools/make_seo_pages.py`).
+- **Group play with room codes:** Friends → "Jugar en grupo" creates a room with a
+  5-letter code; friends type it to join (up to 4), no account needed. The free
+  public PeerJS server only introduces the players (`js/vendor/peerjs.min.js`,
+  `js/net/coderoom.js`); the game itself runs directly between browsers.
+  Signed-in Firebase accounts can also invite friends from their list.
+- **Watch a teammate while down:** in co-op the camera follows the nearest living
+  teammate until you are revived (Q / E, LB / RB or the on-screen arrows switch).
+- **Refuse or drop items:** every item asks first ("No lo quiero"), and the pause
+  menu has "Tirar objeto". Life Orb only costs HP when you attack an enemy.
+- **Backup file:** Settings → Account → download / import your save. Google Drive
+  buttons exist (`js/core/gdrive.js`) but are off while `G.GOOGLE_CLIENT_ID` in
+  `js/core/google-config.js` is `null`.
 - **New link-preview image:** `assets/og-image.jpg`.
 - `docs/`, `infra/` and `GDD.md` are PokéSurvivor's notes (in Spanish). They
   still describe its servers and domain.

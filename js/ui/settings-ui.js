@@ -203,8 +203,9 @@ G.SettingsUI = (() => {
 
   function driveHtml() {
     if (!G.Drive.enabled) {
-      return section('Google Drive') + `<p class="note">${G.Drive.configured ? 'Google Drive sólo funciona con el juego abierto desde una web, no con doble clic.'
-        : 'Para usar Google Drive hay que configurarlo antes (ver docs/GOOGLE_DRIVE.md).'}</p>`;
+      // Sin ID de cliente (google-config.js) no sale nada: configurarlo es cosa de quien publica el juego.
+      return G.Drive.configured
+        ? section('Google Drive') + '<p class="note">Google Drive sólo funciona con el juego abierto desde una web, no con doble clic.</p>' : '';
     }
     const at = G.Drive.lastAt(), off = inRun() ? 'disabled' : '';
     return section('Google Drive', 'Guarda tu partida en tu propio Google Drive (carpeta PokéGo) y cárgala en otro aparato. Sólo se conecta cuando pulsas estos botones.')

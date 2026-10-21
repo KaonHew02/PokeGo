@@ -5,7 +5,9 @@ const path = require('node:path');
 const vm = require('node:vm');
 const root = path.join(__dirname, '..');
 const source = f => fs.readFileSync(path.join(root, f), 'utf8');
-const SCRIPTS = ['js/core/firebase-config.js', 'js/core/google-config.js', 'js/data/pokedex.js', 'js/core/db.js', 'js/core/gdrive.js'];
+// Sin firebase-config.js: estas pruebas son del modo local, tenga o no nube el juego publicado
+// (con la nube, DB.ready() esperaría al SDK de Firebase, que aquí no carga nunca).
+const SCRIPTS = ['js/core/google-config.js', 'js/data/pokedex.js', 'js/core/db.js', 'js/core/gdrive.js'];
 const CODE = SCRIPTS.map(f => [f, source(f)]);
 
 // Un navegador de mentira por "origen" (cada uno con su localStorage, como localhost y 127.0.0.1).
@@ -22,6 +24,7 @@ function browser(origin = 'http://localhost:8123') {
     document: { addEventListener() {}, createElement: () => ({ remove() {} }), head: { appendChild: el => scripts.push(el) } }
   };
   ctx.window = ctx;
+  ctx.G.FIREBASE_CONFIG = null;
   vm.createContext(ctx);
   for (const [f, code] of CODE) vm.runInContext(code, ctx, { filename: f });
   ctx.G.Game = { state: 'ui' };
