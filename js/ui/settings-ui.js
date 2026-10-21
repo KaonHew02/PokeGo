@@ -103,10 +103,12 @@ G.SettingsUI = (() => {
              <div><span class="padkey">A</span></div><span>pulsar (en los menús) · saltar la animación de Arceus</span>
              <div><span class="padkey">B</span></div><span>atrás / cerrar</span>
              <div><span class="padkey">Y</span></div><span>cambiar las cartas al subir de nivel</span>
+             <div><span class="padkey">X</span></div><span>modo automático (AUTO)</span>
              <div><span class="padkey">Stick der.</span></div><span>desplazar las listas · apuntar (si activas Apuntar a mano en Accesibilidad)</span>
            </div>`
         + section('En móvil o tablet')
         + `<p class="sub">Pon el dedo en cualquier parte y arrastra para moverte: el joystick aparece donde tocas. Toca un ataque de abajo para cambiarlo y el botón de arriba a la derecha para pausar. Se juega en horizontal.</p>`
+        + `<p class="sub">El botón AUTO, arriba a la derecha, hace que tu Pokémon se mueva y elija solo; si te mueves tú, mandas tú. Las partidas con AUTO no van al ranking.</p>`
         + `<div class="set-row"><div class="grow"><b>Tamaño del joystick</b><small>Cuánto hay que arrastrar el dedo.</small></div></div>`
         + choice('stick', [[0.8, 'Pequeño'], [1, 'Normal'], [1.25, 'Grande']])
         + `<div class="set-row"><div class="grow"><b>Colocar los botones</b><small>Pon los ataques, la pausa y el joystick (fijo, si quieres) donde quieras de la pantalla.</small></div>
@@ -117,6 +119,7 @@ G.SettingsUI = (() => {
              <div><kbd>1</kbd>–<kbd>4</kbd> o clic en el icono</div><span>elegir ataque</span>
              <div><kbd>Q</kbd> / <kbd>E</kbd></div><span>ataque anterior / siguiente</span>
              <div><kbd>Esc</kbd> o <kbd>P</kbd></div><span>pausa</span>
+             <div><kbd>T</kbd></div><span>modo automático (AUTO)</span>
              <div><kbd>1</kbd>–<kbd>3</kbd></div><span>elegir carta al subir de nivel</span>
            </div>`;
     } else if (tab === 'a11y') {

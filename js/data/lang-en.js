@@ -851,4 +851,23 @@ G.I18n.add({
   'Para cambiar un vínculo necesitas un movimiento suelto.': 'To change a bond you need a move that is not in a bond.',
   'Vínculo cambiado': 'Bond changed',
   // ---- fin cambiar vínculo ----
+
+  // ---- PokéGo: modo automático ----
+  'Modo automático': 'Auto mode',
+  'Modo automático activado': 'Auto mode on',
+  'Modo automático desactivado': 'Auto mode off',
+  'Modo automático: esta partida no irá al ranking': 'Auto mode: this run won’t go to the leaderboard',
+  'AUTO evoluciona {x}': 'AUTO evolves {x}',
+  'AUTO aprende {x}': 'AUTO learns {x}',
+  'AUTO mejora {x}': 'AUTO upgrades {x}',
+  'AUTO elige {x}': 'AUTO picks {x}',
+  'AUTO se queda con {x}': 'AUTO keeps {x}',
+  'AUTO se pone {x}': 'AUTO equips {x}',
+  'AUTO no se pone {x}': 'AUTO skips {x}',
+  'AUTO une {x}': 'AUTO bonds {x}',
+  'Has usado el modo automático: esta partida no va al ranking.': 'You used auto mode: this run doesn’t go to the leaderboard.',
+  'Un compañero ha usado el modo automático: esta partida no va al ranking.': 'A teammate used auto mode: this run doesn’t go to the leaderboard.',
+  'modo automático (AUTO)': 'auto mode (AUTO)',
+  'El botón AUTO, arriba a la derecha, hace que tu Pokémon se mueva y elija solo; si te mueves tú, mandas tú. Las partidas con AUTO no van al ranking.': 'The AUTO button, top right, makes your Pokémon move and choose by itself; if you move, you take over. Runs with AUTO don’t go to the leaderboard.',
+  // ---- fin auto ----
 });

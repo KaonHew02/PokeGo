@@ -151,6 +151,7 @@ G.Game = (() => {
     }
     G.Camera.x = pl.x; G.Camera.y = pl.y; G.Camera.shake = 0;
     specReset(); lastView = null;
+    G.Auto.reset();                // modo automático: de cero (si sigue encendido, esta partida ya no va al ranking)
     // Hojas de sprites locales: el compañero y los primeros enemigos.
     G.Sprites.preload([mon.dex], 8000, pl.shiny);
     G.Audio.music(G.BIOME_MUSIC[0]);
@@ -346,14 +347,16 @@ G.Game = (() => {
     // Ranking: en solitario cada uno lo suyo; en grupo lo sube el anfitrión.
     const mark = { t: Math.floor(time), lv: pl.level, kills: pl.kills };
     // Si la partida se ha tocado (ver clean()), no sube al ranking (sin avisar); lo demás, sí.
-    const ok = clean();
+    // Con el modo automático (tuyo o, si eres el anfitrión, de un compañero), tampoco (avisado).
+    const auto = G.Auto.used ? 'me' : G.Auto.mateUsed ? 'mate' : '';
+    const ok = clean() && !auto;
     const sent = ok && !coop ? G.Ranking.submitSolo(Object.assign(mark, { dex: pl.dex, shiny: pl.shiny }))
                : ok && wasHost ? G.Ranking.submitGroup(Object.assign(mark, { members: team })) : null;
     if (sent) sent.then(b => { if (b && b.some(p => p !== 'a')) G.DB.commit(true); }).catch(() => {});
 
     G.RunUI.showOver({
       dead, time, level: pl.level, kills: pl.kills, bosses: pl.bosses, coins, record, t1: pl.t1, t10: pl.t10, judge,
-      moves: pl.moves, caught,
+      moves: pl.moves, caught, auto,
       breakdown: Object.entries(parts).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(' · ') +
                  (mul > 1 ? ` · ×${mul.toFixed(2)} Fortuna` : '')
     }, () => { pl = null; G.Flow.afterRun(); });
@@ -595,6 +598,8 @@ G.Game = (() => {
     }
     if (G.Input.tap('escape') || G.Input.tap('keyp')) { togglePause(); return; }
     if (state !== 'playing' || !pl) return;
+    // T (X en el mando, o el botón AUTO del HUD): modo automático, también caído.
+    if (G.Input.tap('keyt')) G.Auto.toggle();
     // Caído: 1-4 dejan elegido el ataque para cuando te levanten (sin sonido ni
     // efectos). En grupo, Q / E / Tab (LB / RB / A en el mando) cambian a quién miras.
     if (pl.dead) {
@@ -720,6 +725,8 @@ G.Game = (() => {
 
     G.Pad.poll(real);
     handleKeys();
+    // Modo automático: elige las cartas, objetos y vínculos que haya abiertos (en tiempo real: el juego está parado).
+    G.Auto.frame(real);
 
     if (state === 'playing') update(dt);
     else if (pl && state !== 'ui') { G.FX.update(dt * 0.25); pl.anim.update(dt * 0.25); }
