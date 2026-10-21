@@ -721,6 +721,12 @@
     ["Vínculo cambiado", "Lien modifié", "Vincolo cambiato", "Vínculo trocado", "羁绊已更换", "羈絆已更換"],
     ["¿Te has equivocado al hacer un vínculo? En la pausa, «Cambiar vínculo» saca un movimiento del vínculo y pone en su lugar uno suelto (sin gastar vínculo).", "Tu t’es trompé de lien ? Dans la pause, « Changer le lien » retire une capacité du lien et met à sa place une capacité libre (sans dépenser de lien).", "Hai sbagliato un vincolo? Nella pausa, «Cambia vincolo» toglie una mossa dal vincolo e mette al suo posto una mossa libera (senza consumare vincoli).", "Errou um vínculo? Na pausa, «Trocar vínculo» tira um golpe do vínculo e coloca outro livre no lugar (sem gastar vínculo).", "羁绊结错了？在暂停菜单中，“更换羁绊”会把一个招式移出羁绊，并换上一个未结羁绊的招式（不消耗羁绊）。", "羈絆結錯了？在暫停選單中，「更換羈絆」會把一個招式移出羈絆，並換上一個未結羈絆的招式（不消耗羈絆）。"],
     // ---- fin cambiar vínculo ----
+
+    // ---- PokéGo: modo automático ----
+    // ---- fin auto ----
+
+    // ---- PokéGo: saltar animación del gacha ----
+    // ---- fin gacha ----
   ];
   languages.forEach((lang, i) => G.I18n.add(Object.fromEntries(rows.map(r => [r[0], r[i + 1]])), lang));
   G.I18n.add({

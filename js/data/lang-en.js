@@ -851,4 +851,10 @@ G.I18n.add({
   'Para cambiar un vínculo necesitas un movimiento suelto.': 'To change a bond you need a move that is not in a bond.',
   'Vínculo cambiado': 'Bond changed',
   // ---- fin cambiar vínculo ----
+
+  // ---- PokéGo: modo automático ----
+  // ---- fin auto ----
+
+  // ---- PokéGo: saltar animación del gacha ----
+  // ---- fin gacha ----
 });
