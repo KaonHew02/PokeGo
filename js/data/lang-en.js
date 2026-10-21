@@ -768,6 +768,35 @@ G.I18n.add({
   // ---- fin objetos ----
 
   // ---- PokéGo: copia de seguridad y Google Drive ----
+  'Copia de seguridad': 'Backup', 'Descargar partida': 'Download save', 'Compartir archivo': 'Share file', 'Importar partida': 'Import save',
+  'Descarga tu partida en un archivo y guárdalo donde quieras (por ejemplo, en Google Drive). Para recuperarla, impórtala aquí, en este u otro navegador.':
+    'Download your save as a file and keep it wherever you like (for example, in Google Drive). To get it back, import it here, in this or another browser.',
+  'Como invitado, descarga tu partida y luego impórtala al crear una cuenta.': 'As a guest, download your save and import it once you create an account.',
+  'Vuelve al menú para importar o usar Google Drive.': 'Go back to the menu to import or use Google Drive.',
+  'Ese archivo no es una partida de PokéGo.': 'That file is not a PokéGo save.',
+  'Ese archivo es de una versión más nueva del juego: actualiza antes de importarlo.': 'That file is from a newer version of the game: update before importing it.',
+  'Tu cuenta es nueva: se quedará con la partida de la copia.': 'Your account is new: it will take the save from the backup.',
+  '¿Importar esta partida? Se juntará con la tuya: no perderás nada de lo que ya tienes.': 'Import this save? It will be combined with yours: you will not lose anything you already have.',
+  'Trae {x} Pokémon que no tienes.': "It has {x} Pokémon you don't have.", 'Importar': 'Import',
+  'Partida importada: {x} Pokémon nuevos.': 'Save imported: {x} new Pokémon.', 'Partida importada: 1 Pokémon nuevo.': 'Save imported: 1 new Pokémon.',
+  'Partida importada.': 'Save imported.', 'Partida descargada': 'Save downloaded', 'No se pudo compartir el archivo.': 'Could not share the file.',
+  'Esto abre una ventana del navegador: púlsalo con el ratón, el teclado o la pantalla táctil.': 'This opens a browser window: press it with the mouse, the keyboard or the touchscreen.',
+  'Google Drive': 'Google Drive', 'Guardar en Google Drive': 'Save to Google Drive', 'Cargar de Google Drive': 'Load from Google Drive',
+  'Guarda tu partida en tu propio Google Drive (carpeta PokéGo) y cárgala en otro aparato. Sólo se conecta cuando pulsas estos botones.':
+    'Save your game to your own Google Drive (PokéGo folder) and load it on another device. It only connects when you press these buttons.',
+  'Última copia en Drive': 'Last copy in Drive', 'Conectando con Google Drive…': 'Connecting to Google Drive…', 'Partida guardada en Google Drive': 'Game saved to Google Drive',
+  'Para usar Google Drive hay que configurarlo antes (ver docs/GOOGLE_DRIVE.md).': 'Google Drive has to be set up first (see docs/GOOGLE_DRIVE.md).',
+  'Google Drive sólo funciona con el juego abierto desde una web, no con doble clic.': 'Google Drive only works when the game is opened from a website, not by double-clicking it.',
+  'No hay ninguna partida tuya en Google Drive.': 'There is no save of yours in Google Drive.',
+  'La copia de Google Drive está dañada: bórrala de tu Drive y vuelve a guardar.': 'The copy in Google Drive is damaged: delete it from your Drive and save again.',
+  'Google Drive no respondió. Vuelve a probar en un momento.': 'Google Drive did not respond. Try again in a moment.',
+  'Has cerrado la ventana de Google sin dar permiso.': 'You closed the Google window without giving permission.',
+  'La sesión de Google ha caducado: pulsa el botón otra vez.': 'Your Google session has expired: press the button again.',
+  'Hace falta dar permiso a PokéGo para guardar en tu Google Drive.': 'PokéGo needs your permission to save to your Google Drive.',
+  'No se pudo conectar con Google. Comprueba tu conexión o el bloqueador de anuncios.': 'Could not connect to Google. Check your connection or your ad blocker.',
+  'Google Drive rechazó la petición (mira docs/GOOGLE_DRIVE.md).': 'Google Drive rejected the request (see docs/GOOGLE_DRIVE.md).',
+  'Copia en Google Drive: sólo cuando pulsas Guardar en Google Drive o Cargar de Google Drive (Ajustes > Cuenta), el juego guarda tu partida como un archivo en tu propio Google Drive (carpeta PokéGo) o la lee de allí. Sólo puede ver los archivos que crea él mismo, y la copia no pasa por ningún otro sitio.':
+    'Google Drive backup: only when you press Save to Google Drive or Load from Google Drive (Settings > Account) does the game store your save as a file in your own Google Drive (PokéGo folder) or read it from there. It can only see the files it creates itself, and the copy goes nowhere else.',
   // ---- fin copia ----
 
   // ---- PokéGo: cooperativo con código de sala ----

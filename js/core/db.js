@@ -23,6 +23,9 @@
  *       ps.session       última cuenta con sesión iniciada
  *
  * El modo invitado juega con una partida en memoria que no se guarda.
+ *
+ * Copia de seguridad: exportSave() / importSave() (un archivo .json, o Google
+ * Drive con js/core/gdrive.js). Importar fusiona y no pierde nada.
  */
 G.DB = (() => {
   const K_ACC = 'ps.accounts', K_SES = 'ps.session', K_SAVE = 'ps.save.';
@@ -899,9 +902,75 @@ G.DB = (() => {
     return true;
   }
 
+  // ---------------- copia de seguridad (archivo y Google Drive) ----------------
+  /*
+   * La partida en un archivo (Ajustes > Cuenta, y G.Drive) para llevarla a otro
+   * navegador o aparato. Al importarla NUNCA se pierde lo que ya tienes: se
+   * fusiona con merge(). Sólo una cuenta recién creada (sin runs, con su inicial
+   * como mucho) se sustituye entera por la copia, para quedarse también con su
+   * compañero, perfil, pity...: merge() los coge de la versión más reciente.
+   * Monedas y tickets: si la copia es de otra cuenta (otro `created`), su libreta
+   * se junta en un solo apunte 'i:<created>' (ver adopt). Si no, dos cuentas del
+   * mismo navegador apuntan en el mismo aparato y al fusionar se pisarían.
+   */
+  const fresh = s => !(s.stats.runs > 0) && Object.keys(s.owned).length <= 1 && !Object.keys(s.shiny || {}).length;
+  const pack = s => ({ app: 'PokeGo', kind: 'save', v: VERSION, at: Date.now(), name: user, save: s });
+
+  /** La partida actual para guardarla en un archivo (también la del invitado). */
+  function exportSave() { return save ? pack(plain(fold(save))) : null; }
+
+  /** La libreta de otra cuenta, en un solo apunte suyo (sin lo nuestro que ya traía). */
+  function adopt(inc) {
+    const own = 'i:' + (save.created || 0).toString(36), tag = 'i:' + (inc.created || 0).toString(36);
+    const led = ledOf(inc, 'old'), out = {}, sum = {};
+    for (const dev in led) {
+      if (dev === own || dev === tag) continue;                    // lo nuestro: aquí está más nuevo
+      if (dev.startsWith('i:')) { out[dev] = led[dev]; continue; }  // otras cuentas que ya había juntado
+      for (const k in led[dev]) { const p = sum[k] = sum[k] || [0, 0]; p[0] += num(led[dev][k][0]); p[1] += num(led[dev][k][1]); }
+    }
+    out[tag] = sum;
+    inc.led = out;
+    for (const k in CUR) CUR[k][1](inc, Math.max(0, ledSum(out, k)));
+  }
+
+  /**
+   * Importa una copia de exportSave. Con opts.dry sólo calcula el resultado
+   * (en `data`, como otra copia) sin tocar la partida: lo usa G.Drive para subirlo.
+   * → { ok, why?: 'guest'|'run'|'bad'|'newer', mode: 'replace'|'merge', added, shiny, coins, data? }
+   */
+  function importSave(data, opts = {}) {
+    if (guest || !key || !save) return { ok: false, why: 'guest' };
+    // En plena partida no: al acabar se suman sus monedas a esta misma partida.
+    if (G.Game && G.Game.state && G.Game.state !== 'ui') return { ok: false, why: 'run' };
+    if (!isObj(data) || data.kind !== 'save' || (data.app && data.app !== 'PokeGo') || !isObj(data.save) || !isObj(data.save.owned)) return { ok: false, why: 'bad' };
+    if ((data.v | 0) > VERSION || (data.save.v | 0) > VERSION) return { ok: false, why: 'newer' };
+    const cur = plain(fold(save)), replace = fresh(cur);
+    let res;
+    try {
+      // Lo que no tenga la forma de una partida se tira (migrate pone lo de una nueva).
+      const inc = plain(data.save), base = newSave(user);
+      for (const k in base) if (k !== 'pity' && isObj(base[k]) && !isObj(inc[k])) delete inc[k];
+      for (const c of ['owned', 'shiny']) for (const d of Object.keys(inc[c] || {})) if (!isObj(inc[c][d])) delete inc[c][d];
+      for (const k in inc.stats || {}) inc.stats[k] = Number.isFinite(+inc.stats[k]) && +inc.stats[k] > 0 ? +inc.stats[k] : 0;
+      migrate(inc, user);
+      if (inc.created !== cur.created) adopt(inc);
+      res = replace ? inc : merge(cur, inc);
+      if (replace) for (const d in cur.owned) if (!res.owned[d]) res.owned[d] = cur.owned[d];   // el inicial del test, también
+      res.name = user; res.created = cur.created;      // sigue siendo esta cuenta (y sus misiones)
+      migrate(res, user);
+      if (!res.owned[res.partner]) { res.partner = res.owned[cur.partner] ? cur.partner : +Object.keys(res.owned)[0] || null; res.partnerShiny = false; }
+    } catch (e) { console.warn('[DB] copia no válida:', e.message); return { ok: false, why: 'bad' }; }
+    const n = c => Object.keys(res[c]).filter(d => !cur[c][d]).length;
+    const out = { ok: true, mode: replace ? 'replace' : 'merge', added: n('owned'), shiny: n('shiny'), coins: res.coins - cur.coins };
+    if (opts.dry) { out.data = pack(res); return out; }
+    applyInPlace(fold(res));
+    commit();
+    return out;
+  }
+
   return {
     ready, register, login, loginWithGoogle, playAsGuest, logout, commit, deleteAccount, flush: pushNow, saveNow,
-    owns, grant, ownsShiny, grantShiny, merge, setName, upgradesOf, isFav, setFav,
+    owns, grant, ownsShiny, grantShiny, merge, setName, upgradesOf, isFav, setFav, exportSave, importSave,
     onSync(fn) { listeners.add(fn); },
     onLeave(fn) { leaveHooks.push(fn); },
     /** Acceso de bajo nivel para los módulos de red (sólo en modo nube). */

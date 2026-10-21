@@ -4,9 +4,10 @@
 <head>
 <meta charset="utf-8">
 <!-- Seguridad (18-10-2026): sólo se ejecutan los scripts del juego, de Firebase
-     y de Google (inicio de sesión). Nada metido en la página (onerror=, etiquetas script
-     en un texto...) llega a ejecutarse aunque se colara. Ver js/boot.js. -->
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' file: https://www.gstatic.com https://apis.google.com https://*.firebaseio.com https://*.firebasedatabase.app; object-src 'none'; base-uri 'self'">
+     y de Google (inicio de sesión, y accounts.google.com para la copia en Google Drive).
+     Nada metido en la página (onerror=, etiquetas script en un texto...) llega a
+     ejecutarse aunque se colara. Ver js/boot.js. -->
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' file: https://www.gstatic.com https://apis.google.com https://accounts.google.com https://*.firebaseio.com https://*.firebasedatabase.app; object-src 'none'; base-uri 'self'">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>PokéGo – Juego Pokémon gratis online estilo Survivor.io</title>
@@ -299,6 +300,10 @@
       (nunca se enseña a otros jugadores).
       No usamos tus datos para nada más, ni los compartimos, ni hay publicidad ni seguimiento.
       Como invitado no se guarda nada fuera de tu navegador.</p>
+    <p>Copia en Google Drive: sólo cuando pulsas Guardar en Google Drive o Cargar de Google Drive
+      (Ajustes > Cuenta), el juego guarda tu partida como un archivo en tu propio Google Drive
+      (carpeta PokéGo) o la lee de allí. Sólo puede ver los archivos que crea él mismo, y la copia
+      no pasa por ningún otro sitio.</p>
     <p>Amigos y ranking: tu <b>apodo</b> es público para otros jugadores. Guardamos tu lista de
       amigos, si estás en línea y tus mejores tiempos (con tu apodo y tu Pokémon).</p>
     <p>Partidas en grupo: tu navegador se conecta <b>directamente</b> con el de tus compañeros
@@ -580,7 +585,9 @@
 <script defer src="js/data/sprites-meta.js"></script>
 <!-- núcleo -->
 <script defer src="js/core/firebase-config.js"></script>
+<script defer src="js/core/google-config.js"></script>
 <script defer src="js/core/db.js"></script>
+<script defer src="js/core/gdrive.js"></script>
 <script defer src="js/core/audio.js"></script>
 <script defer src="js/core/input.js"></script>
 <script defer src="js/core/touch.js"></script>
