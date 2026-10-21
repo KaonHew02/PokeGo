@@ -842,4 +842,13 @@ G.I18n.add({
   'Toca las flechas para cambiar de compañero': 'Tap the arrows to switch teammate',
   '{x} no ha podido entrar en la partida': '{x} couldn\'t join the game',
   // ---- fin mirar ----
+
+  // ---- PokéGo: cambiar vínculo ----
+  'Vínculos': 'Bonds',
+  'Cambiar vínculo': 'Change bond',
+  '¿Qué movimiento sacas del vínculo?': 'Which move do you take out of the bond?',
+  '¿Cuál pones en lugar de {x}?': 'Which one goes in place of {x}?',
+  'Para cambiar un vínculo necesitas un movimiento suelto.': 'To change a bond you need a move that is not in a bond.',
+  'Vínculo cambiado': 'Bond changed',
+  // ---- fin cambiar vínculo ----
 });

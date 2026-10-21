@@ -288,11 +288,60 @@ G.RunUI = (() => {
     }).join('');
     return `<h3>Tus ataques</h3>
       <table class="sum-moves"><tr><th></th><th></th><th class="num">Daño</th><th class="num">Por segundo</th></tr>${moves}</table>
+      ${bondsHtml(pl)}
       <h3>Tus estadísticas</h3><div class="sum-stats">${st}</div>
       <h3>Objeto y cartas</h3>
       <p class="sub">${it ? G.Icons.html(pl.item, 18) + ' <b>' + it.name + '</b>: ' + it.desc : 'Sin objeto.'}</p>
       ${it ? '<p><button id="pause-drop" class="btn small" type="button" data-sfx="none">Tirar objeto</button></p>' : ''}
       <div class="chips">${cards || '<span class="sub">Aún no has cogido cartas de mejora.</span>'}</div>`;
+  }
+
+  /*
+   * Cambiar un vínculo mal hecho desde la pausa (21-10-2026), en dos pasos y con
+   * botones (ratón, toque y mando): qué movimiento sale del vínculo y cuál de
+   * los sueltos entra en su lugar. Ver Player.swapBond.
+   */
+  let swap = null;                   // { g: índice del grupo, out: movimiento que sale }
+
+  function bondInfo(pl) {
+    return { groups: pl.slots.filter(s => s.length > 1), loose: pl.slots.filter(s => s.length === 1).map(s => s[0]) };
+  }
+
+  function bondsHtml(pl) {
+    const { groups, loose } = bondInfo(pl);
+    if (!groups.length) return '';
+    const nm = m => G.T(m.name, 'move');
+    const btn = (attr, label, gold) => `<button class="btn small${gold ? ' gold' : ''}" type="button" ${attr}>${label}</button>`;
+    const rows = groups.map((g, gi) => {
+      let h = `<p class="sub">${g.map(m => G.Icons.html('move:' + m.id, 16) + ' ' + nm(m)).join(' + ')}</p>`;
+      if (swap && swap.g === gi) {
+        h += (swap.out
+          ? `<p class="sub">${'¿Cuál pones en lugar de ' + nm(swap.out) + '?'}</p><div class="row wrap" style="gap:6px">${loose.map((m, i) => btn(`data-in="${i}"`, nm(m), true)).join('')}`
+          : `<p class="sub">¿Qué movimiento sacas del vínculo?</p><div class="row wrap" style="gap:6px">${g.map((m, i) => btn(`data-out="${i}"`, nm(m))).join('')}`)
+          + btn('data-swap-cancel', 'Cancelar') + '</div>';
+      } else if (loose.length) h += `<p>${btn(`data-swap="${gi}"`, 'Cambiar vínculo')}</p>`;
+      return h;
+    }).join('');
+    return '<h3>Vínculos</h3>' + rows + (loose.length ? '' : '<p class="sub">Para cambiar un vínculo necesitas un movimiento suelto.</p>');
+  }
+
+  /** Botones del resumen de la pausa (vuelve a pintarlo tras cada paso). */
+  function wireSum() {
+    wireDrop();
+    $('pause-sum').onclick = e => {
+      const b = e.target.closest('button'), pl = G.Game.player;
+      if (!b || b.id === 'pause-drop' || !pl) return;
+      const { groups, loose } = bondInfo(pl);
+      const g = swap && groups[swap.g];
+      if (b.dataset.swap != null) swap = { g: +b.dataset.swap, out: null };
+      else if (b.dataset.out != null && g) swap.out = g[+b.dataset.out] || null;
+      else if (b.dataset.in != null && g && swap.out) {
+        if (pl.swapBond(swap.out, loose[+b.dataset.in])) G.UI.toast('Vínculo cambiado', 1800);
+        swap = null;
+      } else swap = null;            // Cancelar (o la partida ha cambiado mientras tanto)
+      $('pause-sum').innerHTML = pauseSummary();
+      wireSum();
+    };
   }
 
   /*
@@ -315,13 +364,14 @@ G.RunUI = (() => {
       clearTimeout(armed);
       G.Game.dropItem();
       $('pause-sum').innerHTML = pauseSummary();
-      wireDrop();
+      wireSum();
     };
   }
 
   function showPause(coop = false) {
+    swap = null;
     $('pause-sum').innerHTML = pauseSummary();
-    wireDrop();
+    wireSum();
     G.UI.soundControls($('pause-sound'));
     $('pause-coop').classList.toggle('hidden', !coop);
     $('btn-quit').textContent = coop ? 'Salir de la partida' : 'Abandonar run';

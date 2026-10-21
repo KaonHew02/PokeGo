@@ -7,6 +7,8 @@
  */
 G.CHANGELOG = [
   { d: '2026-10-21', title: ['Jugar en grupo con código de sala', 'Group play with room codes'], new: [
+    ['¿Te has equivocado al hacer un vínculo? En la pausa, «Cambiar vínculo» saca un movimiento del vínculo y pone en su lugar uno suelto (sin gastar vínculo).',
+     'Made the wrong bond? In the pause menu, "Change bond" takes a move out of the bond and puts a free move in its place (without using up a bond).'],
     ['Jugar en grupo sin cuenta en la nube: crea una sala y pasa su código de 5 letras a tus amigos (hasta 4). Se abre desde Amigos en el menú principal, con «Crear sala» o «Unirse».',
      'Play in a group without a cloud account: create a room and give its 5-letter code to your friends (up to 4). Open it from Friends in the main menu, with “Create room” or “Join”.'],
     ['Cooperativo: al caer, la cámara sigue al compañero que tengas más cerca mientras esperas a que te levante. Cambia de compañero con Q / E, LB / RB o tocando las flechas o su nombre (tu Pokémon va el último), y al levantarte la cámara vuelve a ti.',

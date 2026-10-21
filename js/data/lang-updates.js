@@ -711,6 +711,16 @@
      "开启“手动瞄准”时，宝可梦倒下后准星仍会留在屏幕上，倒下时切换招式还会在它身上播放音效和特效。现在准星会消失，按 1-4 只会预选招式，等你被救起后使用。",
      "開啟「手動瞄準」時，寶可夢倒下後準星仍會留在螢幕上，倒下時切換招式還會在牠身上播放音效和特效。現在準星會消失，按 1-4 只會預選招式，等你被救起後使用。"],
     // ---- fin mirar ----
+
+    // ---- PokéGo: cambiar vínculo ----
+    ["Vínculos", "Liens", "Vincoli", "Vínculos", "羁绊", "羈絆"],
+    ["Cambiar vínculo", "Changer le lien", "Cambia vincolo", "Trocar vínculo", "更换羁绊", "更換羈絆"],
+    ["¿Qué movimiento sacas del vínculo?", "Quelle capacité retires-tu du lien ?", "Quale mossa togli dal vincolo?", "Qual golpe você tira do vínculo?", "要把哪个招式移出羁绊？", "要把哪個招式移出羈絆？"],
+    ["¿Cuál pones en lugar de {x}?", "Laquelle mets-tu à la place de {x} ?", "Quale metti al posto di {x}?", "Qual você coloca no lugar de {x}?", "用哪个招式替换{x}？", "用哪個招式替換{x}？"],
+    ["Para cambiar un vínculo necesitas un movimiento suelto.", "Pour changer un lien, il te faut une capacité hors lien.", "Per cambiare un vincolo ti serve una mossa non legata.", "Para trocar um vínculo você precisa de um golpe fora de vínculo.", "要更换羁绊，你需要一个未结成羁绊的招式。", "要更換羈絆，你需要一個未結成羈絆的招式。"],
+    ["Vínculo cambiado", "Lien modifié", "Vincolo cambiato", "Vínculo trocado", "羁绊已更换", "羈絆已更換"],
+    ["¿Te has equivocado al hacer un vínculo? En la pausa, «Cambiar vínculo» saca un movimiento del vínculo y pone en su lugar uno suelto (sin gastar vínculo).", "Tu t’es trompé de lien ? Dans la pause, « Changer le lien » retire une capacité du lien et met à sa place une capacité libre (sans dépenser de lien).", "Hai sbagliato un vincolo? Nella pausa, «Cambia vincolo» toglie una mossa dal vincolo e mette al suo posto una mossa libera (senza consumare vincoli).", "Errou um vínculo? Na pausa, «Trocar vínculo» tira um golpe do vínculo e coloca outro livre no lugar (sem gastar vínculo).", "羁绊结错了？在暂停菜单中，“更换羁绊”会把一个招式移出羁绊，并换上一个未结羁绊的招式（不消耗羁绊）。", "羈絆結錯了？在暫停選單中，「更換羈絆」會把一個招式移出羈絆，並換上一個未結羈絆的招式（不消耗羈絆）。"],
+    // ---- fin cambiar vínculo ----
   ];
   languages.forEach((lang, i) => G.I18n.add(Object.fromEntries(rows.map(r => [r[0], r[i + 1]])), lang));
   G.I18n.add({

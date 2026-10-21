@@ -209,6 +209,21 @@ G.Player = class Player {
     return target;
   }
 
+  /**
+   * Corrige un vínculo mal hecho (desde la pausa): `out`, de un grupo, cambia de
+   * sitio con `inn`, que estaba suelto. Los huecos no cambian y no gasta vínculo.
+   */
+  swapBond(out, inn) {
+    const group = this.slots.find(s => s.length > 1 && s.includes(out));
+    const loose = this.slots.find(s => s.length === 1 && s[0] === inn);
+    if (!group || !loose) return false;
+    group[group.indexOf(out)] = inn;
+    loose[0] = out;                    // el mismo hueco: el activo sigue siendo el mismo
+    this.arrange();
+    G.Projectiles.clearOrbs(this);
+    return true;
+  }
+
   /** Movimientos que se lanzan ahora (el grupo del hueco activo). */
   activeGroup() { return this.slots[this.active] || []; }
 
