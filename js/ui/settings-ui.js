@@ -2,6 +2,7 @@
  * Se abre por encima de lo que haya (menú o pausa) y al cerrar vuelve ahí.
  * Pestañas: Sonido · Gráficos · Controles · Accesibilidad · Cuenta · Acerca de.
  * Los ajustes son de este dispositivo (G.Settings / G.Audio en el navegador).
+ * En Cuenta, la copia de seguridad de la partida (archivo y Google Drive).
  */
 G.SettingsUI = (() => {
   const $ = G.UI.$;
@@ -31,7 +32,7 @@ G.SettingsUI = (() => {
     $('scr-settings').classList.remove('hidden');
     render();
   }
-  function close() { $('scr-settings').classList.add('hidden'); }
+  function close() { $('scr-settings').classList.add('hidden'); if (askEnd) askEnd(false); }
   const isOpen = () => !$('scr-settings').classList.contains('hidden');
 
   // ---------------- pantalla completa ----------------
@@ -150,7 +151,9 @@ G.SettingsUI = (() => {
                    offline: 'Sin conexión: se subirá al volver', local: 'Guardado sólo en este navegador', guest: 'Invitado: no se guarda' };
     if (G.DB.guest) {
       box.innerHTML = section('Cuenta', 'Estás jugando como <b>invitado</b>: tu progreso no se guarda al salir.')
-        + `<button class="btn gold" id="set-login">Crear cuenta o entrar</button>`;
+        + `<button class="btn gold" id="set-login">Crear cuenta o entrar</button>`
+        + section('Copia de seguridad', 'Como invitado, descarga tu partida y luego impórtala al crear una cuenta.')
+        + backupHtml(false);
       return;
     }
     const nick = G.Social.me ? G.Social.me.name : (G.DB.user || '');
@@ -162,7 +165,186 @@ G.SettingsUI = (() => {
       + `<div class="row wrap" style="gap:8px;margin-top:12px">
            <button class="btn" id="set-logout">Cerrar sesión</button>
            <button class="btn danger" id="set-delete">Borrar cuenta</button>
-         </div><p class="note" id="set-msg"></p>`;
+         </div><p class="note" id="set-msg"></p>`
+      + section('Copia de seguridad', 'Descarga tu partida en un archivo y guárdalo donde quieras (por ejemplo, en Google Drive). Para recuperarla, impórtala aquí, en este u otro navegador.')
+      + backupHtml(true) + driveHtml();
+    G.Drive.preload();       // el script de Google, ya: al pulsar, la ventana tiene que abrirse al momento
+  }
+
+  // ---------------- copia de seguridad (archivo y Google Drive) ----------------
+  const inRun = () => G.Game.state !== 'ui';
+  const RUN_MSG = 'Vuelve al menú para importar o usar Google Drive.';
+  // Lo que puede salir mal al importar o con Drive (why de G.DB.importSave y G.Drive).
+  const BK_ERR = {
+    bad: 'Ese archivo no es una partida de PokéGo.',
+    newer: 'Ese archivo es de una versión más nueva del juego: actualiza antes de importarlo.',
+    run: RUN_MSG, guest: 'Inicia sesión primero.',
+    none: 'No hay ninguna partida tuya en Google Drive.',
+    damaged: 'La copia de Google Drive está dañada: bórrala de tu Drive y vuelve a guardar.',
+    net: 'Google Drive no respondió. Vuelve a probar en un momento.',
+    closed: 'Has cerrado la ventana de Google sin dar permiso.',
+    blocked: 'El navegador bloqueó la ventana de Google. Permite las ventanas emergentes.',
+    expired: 'La sesión de Google ha caducado: pulsa el botón otra vez.',
+    denied: 'Hace falta dar permiso a PokéGo para guardar en tu Google Drive.',
+    load: 'No se pudo conectar con Google. Comprueba tu conexión o el bloqueador de anuncios.',
+    api: 'Google Drive rechazó la petición (mira docs/GOOGLE_DRIVE.md).'
+  };
+  const bkErr = r => G.UI.toast(BK_ERR[r.why] || BK_ERR.bad, 5000);
+
+  function backupHtml(full) {
+    const off = full && inRun() ? 'disabled' : '';
+    return `<div class="row wrap" style="gap:8px">
+        <button class="btn" id="set-export">Descargar partida</button>
+        ${shareFile('{}', 'x.json') ? '<button class="btn" id="set-share">Compartir archivo</button>' : ''}
+        ${full ? `<button class="btn" id="set-import" ${off}>Importar partida</button>` : ''}
+      </div>${full ? '<input type="file" id="set-import-file" accept=".json,.txt,application/json,text/plain" hidden>' : ''}
+      ${off ? `<p class="note">${RUN_MSG}</p>` : ''}`;
+  }
+
+  function driveHtml() {
+    if (!G.Drive.enabled) {
+      return section('Google Drive') + `<p class="note">${G.Drive.configured ? 'Google Drive sólo funciona con el juego abierto desde una web, no con doble clic.'
+        : 'Para usar Google Drive hay que configurarlo antes (ver docs/GOOGLE_DRIVE.md).'}</p>`;
+    }
+    const at = G.Drive.lastAt(), off = inRun() ? 'disabled' : '';
+    return section('Google Drive', 'Guarda tu partida en tu propio Google Drive (carpeta PokéGo) y cárgala en otro aparato. Sólo se conecta cuando pulsas estos botones.')
+      + `<div class="row wrap" style="gap:8px">
+           <button class="btn" id="set-drive-save" ${off}>Guardar en Google Drive</button>
+           <button class="btn" id="set-drive-load" ${off}>Cargar de Google Drive</button>
+         </div>`
+      + (at ? `<div class="set-row"><div class="grow"><b>Última copia en Drive</b></div><span translate="no">${esc(when(at))}</span></div>` : '')
+      + `<p class="note" id="set-drive-msg"></p>`;
+  }
+
+  const when = t => new Date(t).toLocaleString(G.I18n.locale, { dateStyle: 'medium', timeStyle: 'short' });
+
+  /** La partida como archivo: { json, name } (pokego-<nombre>-<fecha>.json). */
+  function backupFile() {
+    const d = G.DB.exportSave();
+    if (!d) return null;
+    const t = new Date(), p = n => String(n).padStart(2, '0');
+    const who = String(d.name || '').replace(/[^\p{L}\p{N}_-]/gu, '') || 'partida';
+    return { json: JSON.stringify(d), name: `pokego-${who}-${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}.json` };
+  }
+  // Compartir (en el móvil, "Guardar en Drive" desde el menú de compartir). Chrome no
+  // deja compartir .json: entonces va como .txt (Importar partida también los acepta).
+  function shareFile(json, name) {
+    if (!navigator.canShare || typeof File !== 'function') return null;
+    for (const [n, type] of [[name, 'application/json'], [name.replace(/\.json$/, '.txt'), 'text/plain']]) {
+      try { const f = new File([json], n, { type }); if (navigator.canShare({ files: [f] })) return f; } catch (e) { /* nada */ }
+    }
+    return null;
+  }
+  // El selector de archivos, compartir y la ventana de Google sólo se abren tras un clic,
+  // un toque o una tecla de verdad: el mando no cuenta (gamepad.js simula el clic).
+  function gesture() {
+    const u = navigator.userActivation;
+    if (!u || u.isActive) return true;
+    G.UI.toast('Esto abre una ventana del navegador: púlsalo con el ratón, el teclado o la pantalla táctil.', 4000);
+    return false;
+  }
+
+  /*
+   * Ventana "¿Seguro?" dentro del juego (no confirm(): con el mando no se puede
+   * contestar). Como confirmDelete (ui.js). "Cancelar" acaba en -back para que el
+   * botón B del mando lo pulse; Esc cierra Ajustes y, con ellos, esta ventana.
+   */
+  let askEnd = null;
+  function ask(title, html, yes) {
+    if (askEnd) askEnd(false);
+    return new Promise(done => {
+      const el = document.createElement('section');
+      el.className = 'scr dim';
+      el.style.zIndex = 70;
+      el.innerHTML = `<div class="box center" style="max-width:420px">
+        <h3>${esc(title)}</h3>${html}
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:center;flex-wrap:wrap">
+          <button class="btn ghost" id="set-ask-back">Cancelar</button>
+          <button class="btn gold" data-a="yes">${esc(yes)}</button>
+        </div></div>`;
+      document.body.appendChild(el);
+      const end = v => { if (askEnd !== end) return; askEnd = null; el.remove(); done(v); };
+      askEnd = end;
+      el.querySelector('#set-ask-back').onclick = () => end(false);
+      el.querySelector('[data-a=yes]').onclick = () => end(true);
+      setTimeout(() => { if (el.isConnected) el.querySelector('[data-a=yes]').focus(); }, 50);
+    });
+  }
+
+  /** Importa una copia (archivo o Drive) tras confirmarlo; después, al menú con la partida nueva. */
+  async function restore(data) {
+    const r = G.DB.importSave(data, { dry: true });
+    if (!r.ok) { bkErr(r); return; }
+    const at = data.at ? when(data.at) : '';
+    const ok = await ask('Importar partida',
+      `<p class="sub">${r.mode === 'replace' ? 'Tu cuenta es nueva: se quedará con la partida de la copia.'
+        : '¿Importar esta partida? Se juntará con la tuya: no perderás nada de lo que ya tienes.'}</p>
+       <p translate="no"><b class="gold">${esc(data.name || '')}</b>${at ? ' · ' + esc(at) : ''}</p>
+       ${r.added ? `<p class="sub">Trae ${r.added} Pokémon que no tienes.</p>` : ''}`, 'Importar');
+    if (!ok) return;
+    const res = G.DB.importSave(data);
+    if (!res.ok) { bkErr(res); return; }
+    close();
+    G.UI.toast(res.added > 1 ? `Partida importada: ${res.added} Pokémon nuevos.` : res.added ? 'Partida importada: 1 Pokémon nuevo.' : 'Partida importada.', 4000);
+    G.Flow.afterLogin();
+  }
+
+  function wireBackup() {
+    const ex = $('set-export');
+    if (ex) ex.onclick = () => {
+      const d = backupFile();
+      if (!d) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([d.json], { type: 'application/json' }));
+      a.download = d.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      G.UI.toast('Partida descargada');
+    };
+    const sh = $('set-share');
+    if (sh) sh.onclick = async () => {
+      const d = backupFile(), f = d && shareFile(d.json, d.name);
+      if (!f || !gesture()) return;
+      try { await navigator.share({ files: [f], title: 'PokéGo' }); }
+      catch (e) { if (!e || e.name !== 'AbortError') G.UI.toast('No se pudo compartir el archivo.'); }
+    };
+    const im = $('set-import'), file = $('set-import-file');
+    if (im) im.onclick = () => {
+      if (inRun()) { G.UI.toast(RUN_MSG); return; }
+      if (!gesture()) return;
+      file.value = '';
+      file.click();
+    };
+    if (file) file.onchange = async () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      let data = null;
+      try { if (f.size < 5e6) data = JSON.parse(await f.text()); } catch (e) { /* no es un JSON */ }
+      restore(data);
+    };
+    // Google Drive: el permiso se pide en el mismo clic (G.Drive.save/load, antes de esperar nada).
+    const ds = $('set-drive-save'), dl = $('set-drive-load');
+    const busy = on => {
+      for (const b of [ds, dl]) if (b) b.disabled = on;
+      const m = $('set-drive-msg'); if (m) m.textContent = on ? 'Conectando con Google Drive…' : '';
+    };
+    const drive = async (op, then) => {
+      if (inRun()) { G.UI.toast(RUN_MSG); return; }
+      if (G.Drive.needsPopup && !gesture()) return;
+      const p = G.Drive[op]();
+      busy(true);
+      const r = await p;
+      busy(false);
+      if (!r.ok) { bkErr(r); return; }
+      if (isOpen() && tab === 'acc') render();      // la fecha de la última copia
+      then(r);
+    };
+    if (ds) ds.onclick = () => drive('save', () => {
+      G.UI.toast('Partida guardada en Google Drive', 3000);
+      G.UI.refreshCoins();
+      if (G.UI.isOpen('scr-menu')) G.MenuUI.open();   // lo que traía la copia de Drive, ya en el menú
+    });
+    if (dl) dl.onclick = () => drive('load', r => restore(r.data));
   }
 
   function wire(box) {
@@ -187,6 +369,7 @@ G.SettingsUI = (() => {
       G.Audio.music(null);
       G.Flow.toLogin();
     };
+    wireBackup();
   }
 
   /** Cerrar sesión (si estás en una partida, se abandona). */
