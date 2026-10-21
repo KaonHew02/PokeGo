@@ -302,8 +302,9 @@ G.Events = (() => {
     const cam = G.Camera;
     if (lost) {
       const L = lost, to = L.state === 'wait' ? [L.x, L.y - 10] : [L.tx, L.ty];
+      const from = G.Game.view();      // desde lo que se ve (caído en grupo, el compañero al que miras)
       edgeArrow(ctx, w, h, cam, to[0], to[1], '#7dffb0', (L.state === 'wait' ? L.name : 'Marca') + ' · ' +
-                Math.round(G.U.dist(pl.x, pl.y, to[0], to[1]) / 32) + ' m', F);
+                Math.round(G.U.dist(from.x, from.y, to[0], to[1]) / 32) + ' m', F);
     }
     for (const e of G.EnemyMgr.all()) {
       if (e.behavior === 'thief' && !e.dead) edgeArrow(ctx, w, h, cam, e.x, e.y - 10, '#ffd23f', e.name, F);

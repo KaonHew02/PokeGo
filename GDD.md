@@ -45,7 +45,9 @@ Menú principal  (el mundo de fondo, con Pokémon salvajes paseando)
 - **Experiencia compartida**; al subir de nivel cada uno elige su carta y el
   juego **no sigue hasta que eligen todos**.
 - **Caer:** te quedas en el suelo; un compañero a tu lado 3 s te levanta con la
-  mitad de vida. Se acaba cuando caéis todos.
+  mitad de vida. Se acaba cuando caéis todos. Mientras esperas, la cámara sigue
+  a un compañero en pie (al caer, el más cercano); se cambia con Q / E, LB / RB,
+  las flechas ‹ › o tocando su nombre, y tu Pokémon va el último.
 - **Flechas** en el borde de la pantalla hacia los compañeros que no se ven
   (nombre y metros; roja si está caído).
 - Dificultad: ×(1 + 0,75·(n−1)) enemigos y ×(1 + 0,3·(n−1)) vida; la

@@ -154,7 +154,8 @@ G.HUD = (() => {
     if (rift) {
       const sx = (rift.x - cam.left()) * cam.scale, sy = (rift.y - 40 - cam.top()) * cam.scale;
       const now = performance.now() / 1000, beat = 0.5 + Math.sin(now * 7) * 0.5;
-      const label = 'GRIETA · ' + Math.round(G.U.dist(pl.x, pl.y, rift.x, rift.y) / 32) + ' m · ' + Math.ceil(rift.ttl) + ' s';
+      const from = G.Game.view();          // desde lo que se ve (caído en grupo, el compañero al que miras)
+      const label = 'GRIETA · ' + Math.round(G.U.dist(from.x, from.y, rift.x, rift.y) / 32) + ' m · ' + Math.ceil(rift.ttl) + ' s';
       const off = sx < 0 || sx > w || sy < 0 || sy > h;
       ctx.save();
       if (off) {
@@ -267,8 +268,8 @@ G.HUD = (() => {
       const on = i === pl.active;
       const x = sx + i * (S + GAP);
       const y = on ? sy - 6 : sy;
-      // Tocar (o hacer clic en) un icono activa ese movimiento.
-      if (m) G.Touch.addButton(x, y, S, S, () => { if (G.Game.state === 'playing' && pl.active !== i) { pl.setActive(i); G.Audio.sfx('click'); } }, GAP / 2 + 3);
+      // Tocar (o hacer clic en) un icono activa ese movimiento (caído, sin ruido: para cuando te levanten).
+      if (m) G.Touch.addButton(x, y, S, S, () => { if (G.Game.state === 'playing' && pl.active !== i) { pl.setActive(i, pl.dead); if (!pl.dead) G.Audio.sfx('click'); } }, GAP / 2 + 3);
       const col = m ? G.U.TYPE_COLOR[m.type] : '#4a5468';
 
       // fondo
@@ -396,16 +397,27 @@ G.HUD = (() => {
    * - Vida de cada compañero debajo de la tuya.
    * - Flecha en el borde de la pantalla hacia los que no se ven, con su nombre
    *   y a cuántos metros están (roja y parpadeando si está caído).
-   * - Si has caído tú: aviso y barra de "te están levantando".
+   * - Si has caído tú: aviso y barra de "te están levantando", y a quién miras
+   *   (‹ › para cambiar; también tocando su nombre o su flecha), con una flecha
+   *   hacia tu Pokémon. Las distancias, desde lo que se ve.
    */
   function drawCoop(ctx, w, h, pl, px, top) {
-    const cam = G.Camera;
     const t = performance.now() / 1000;
+    const spec = G.Game.spectating, canSee = pl.dead ? G.Game.specList() : [];
+    const from = G.Game.view();
     let y = top;
     ctx.textAlign = 'left';
     for (const m of G.Coop.mates) {
       if (!m.connected) continue;
       const o = m.pl;
+      // Caído: tocar el nombre de uno en pie le mira; el que miras va marcado.
+      if (canSee.includes(m)) G.Touch.addButton(px - 12, y - 2, 248, 15, () => G.Game.specSet(m.uid), 0);
+      if (spec === m) {
+        roundRect(ctx, px - 12, y - 2, 248, 14, 5);
+        ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fill();
+        ctx.fillStyle = m.color;
+        ctx.beginPath(); ctx.moveTo(px - 9, y + 1); ctx.lineTo(px - 3, y + 5); ctx.lineTo(px - 9, y + 9); ctx.closePath(); ctx.fill();
+      }
       ctx.font = F(800, 10);
       ctx.fillStyle = m.color;
       G.I18n.rawCanvas(ctx, 'fillText', m.name, px, y + 9);
@@ -419,43 +431,20 @@ G.HUD = (() => {
       y += 15;
     }
 
-    // Flechas hacia los compañeros fuera de la vista.
+    // Flechas hacia los compañeros fuera de la vista (caído: se tocan para mirarles).
     for (const m of G.Coop.mates) {
       if (!m.connected) continue;
       const o = m.pl;
-      const sx = (o.x - cam.left()) * cam.scale, sy = (o.y - o.bodyH * 0.5 - cam.top()) * cam.scale;
-      if (sx > 0 && sx < w && sy > 0 && sy < h) continue;
-      const M = 42;
-      const ex = G.U.clamp(sx, M, w - M), ey = G.U.clamp(sy, M + 70, h - M - 80);
-      const a = Math.atan2(sy - ey, sx - ex);
-      const metres = Math.round(G.U.dist(pl.x, pl.y, o.x, o.y) / 32);
+      const metres = Math.round(G.U.dist(from.x, from.y, o.x, o.y) / 32);
       const col = o.dead ? (Math.sin(t * 8) > 0 ? '#ff5f6d' : '#ffd0d5') : m.color;
-      ctx.save();
-      ctx.translate(ex, ey);
-      // Flecha
-      ctx.fillStyle = 'rgba(0,0,0,.55)';
-      ctx.beginPath(); ctx.arc(0, 0, 17, 0, 6.2832); ctx.fill();
-      ctx.fillStyle = col;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(a) * 28, Math.sin(a) * 28);
-      ctx.lineTo(Math.cos(a + 2.4) * 14, Math.sin(a + 2.4) * 14);
-      ctx.lineTo(Math.cos(a - 2.4) * 14, Math.sin(a - 2.4) * 14);
-      ctx.closePath(); ctx.fill();
-      // Inicial del compañero dentro del círculo
-      ctx.font = F(800, 14);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#fff';
-      G.I18n.rawCanvas(ctx, 'fillText', m.name.charAt(0).toUpperCase(), 0, 5);
-      // Nombre y distancia: al lado contrario de la flecha, para que no se salga
-      const lx = -Math.cos(a) * 30, ly = -Math.sin(a) * 26 + 4;
-      ctx.font = F(800, 12);
       const label = o.dead ? G.I18n.f('¡{x} necesita ayuda! · {x} m', m.name, metres) : m.name + ' · ' + metres + ' m';
-      ctx.textAlign = Math.cos(a) > 0.3 ? 'right' : Math.cos(a) < -0.3 ? 'left' : 'center';
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
-      G.I18n.rawCanvas(ctx, 'strokeText', label, lx, ly);
-      ctx.fillStyle = col;
-      G.I18n.rawCanvas(ctx, 'fillText', label, lx, ly);
-      ctx.restore();
+      edgeArrow(ctx, w, h, o, col, m.name, label, canSee.includes(m) ? () => G.Game.specSet(m.uid) : null);
+    }
+    // Mirando a otro: flecha hacia tu Pokémon (se toca para volver a él).
+    if (spec) {
+      const me = G.Coop.members.find(x => x.uid === pl.uid);
+      edgeArrow(ctx, w, h, pl, pl.tagColor || '#eaf2ff', me ? me.name : '',
+                G.I18n.f('Tú · {x} m', Math.round(G.U.dist(from.x, from.y, pl.x, pl.y) / 32)), () => G.Game.specSet(null));
     }
 
     // Tú, caído.
@@ -464,14 +453,83 @@ G.HUD = (() => {
       ctx.textAlign = 'center';
       ctx.font = F(800, 20);
       ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.75)';
-      const msg = G.Coop.players().every(p => p.dead) ? 'Habéis caído todos…' : 'Has caído: un compañero puede levantarte';
-      ctx.strokeText(msg, w / 2, h * 0.62);
+      const all = G.Coop.players().every(p => p.dead);
+      const msg = all ? 'Habéis caído todos…' : 'Has caído: un compañero puede levantarte';
+      // En pantallas bajas (móvil en horizontal), más arriba: que no pise los ataques.
+      const my = Math.min(h * 0.62, h - 170 - (G.Touch.active ? Math.min(28, G.Touch.safeArea().bottom) : 0));
+      ctx.strokeText(msg, w / 2, my);
       ctx.fillStyle = '#ffb0b8';
-      ctx.fillText(msg, w / 2, h * 0.62);
+      ctx.fillText(msg, w / 2, my);
       const f = (pl.reviveT || 0) / G.Player.REVIVE_TIME;
-      if (f > 0) bar(ctx, w / 2 - 110, h * 0.62 + 12, 220, 10, f, '#5fe08a');
+      if (f > 0) bar(ctx, w / 2 - 110, my + 12, 220, 10, f, '#5fe08a');
+      if (!all && (spec || canSee.length)) drawSpec(ctx, w, my + 42, pl, spec);
       ctx.restore();
     }
+  }
+
+  /** Flecha en el borde hacia alguien que no se ve: su inicial dentro, y al lado `label`. */
+  function edgeArrow(ctx, w, h, o, col, name, label, tap) {
+    const cam = G.Camera;
+    const sx = (o.x - cam.left()) * cam.scale, sy = (o.y - o.bodyH * 0.5 - cam.top()) * cam.scale;
+    if (sx > 0 && sx < w && sy > 0 && sy < h) return;
+    const M = 42;
+    const ex = G.U.clamp(sx, M, w - M), ey = G.U.clamp(sy, M + 70, h - M - 80);
+    const a = Math.atan2(sy - ey, sx - ex);
+    if (tap) G.Touch.addButton(ex - 20, ey - 20, 40, 40, tap, 4);
+    ctx.save();
+    ctx.translate(ex, ey);
+    // Flecha
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.beginPath(); ctx.arc(0, 0, 17, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * 28, Math.sin(a) * 28);
+    ctx.lineTo(Math.cos(a + 2.4) * 14, Math.sin(a + 2.4) * 14);
+    ctx.lineTo(Math.cos(a - 2.4) * 14, Math.sin(a - 2.4) * 14);
+    ctx.closePath(); ctx.fill();
+    // Inicial dentro del círculo
+    ctx.font = F(800, 14);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    G.I18n.rawCanvas(ctx, 'fillText', name.charAt(0).toUpperCase(), 0, 5);
+    // Nombre y distancia: al lado contrario de la flecha, para que no se salga
+    const lx = -Math.cos(a) * 30, ly = -Math.sin(a) * 26 + 4;
+    ctx.font = F(800, 12);
+    ctx.textAlign = Math.cos(a) > 0.3 ? 'right' : Math.cos(a) < -0.3 ? 'left' : 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
+    G.I18n.rawCanvas(ctx, 'strokeText', label, lx, ly);
+    ctx.fillStyle = col;
+    G.I18n.rawCanvas(ctx, 'fillText', label, lx, ly);
+    ctx.restore();
+  }
+
+  /** Caído en grupo: "‹ Mirando a … ›" (las flechas se tocan o se pulsan) y cómo cambiar con lo que uses. */
+  function drawSpec(ctx, w, y, pl, spec) {
+    ctx.font = F(800, 14);
+    // El nombre va tal cual: el texto ya traducido se dibuja sin pasar otra vez por el traductor.
+    const txt = spec ? G.I18n.f('Mirando a {x}', spec.name) : G.T('Mirando a tu Pokémon');
+    const B = 28, half = Math.min(w / 2 - 8, G.I18n.rawCanvas(ctx, 'measureText', txt).width / 2 + 12 + B);
+    for (const dir of [-1, 1]) {
+      const x = dir < 0 ? w / 2 - half : w / 2 + half - B, cx = x + B / 2;
+      roundRect(ctx, x, y - B / 2, B, B, 8);
+      ctx.fillStyle = 'rgba(10,16,28,.75)'; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(244,248,255,.8)'; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - 3 * dir, y - 6); ctx.lineTo(cx + 4 * dir, y); ctx.lineTo(cx - 3 * dir, y + 6);
+      ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#f4f8ff'; ctx.stroke();
+      G.Touch.addButton(x, y - B / 2, B, B, () => G.Game.specCycle(dir), 8);
+    }
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.8)';
+    G.I18n.rawCanvas(ctx, 'strokeText', txt, w / 2, y + 5);
+    ctx.fillStyle = spec ? spec.color : pl.tagColor || '#eaf2ff';
+    G.I18n.rawCanvas(ctx, 'fillText', txt, w / 2, y + 5);
+    // Cómo se cambia, según lo que estés usando.
+    const hint = G.Touch.active ? 'Toca las flechas para cambiar de compañero'
+      : G.Pad.name && G.Settings.get('gamepad') !== false ? 'LB / RB: cambiar de compañero' : 'Q / E: cambiar de compañero';
+    ctx.font = F(600, 10);
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.7)';
+    ctx.strokeText(hint, w / 2, y + 28);
+    ctx.fillStyle = 'rgba(200,215,240,.85)';
+    ctx.fillText(hint, w / 2, y + 28);
   }
 
   return { draw, roundRect, bar };

@@ -15,11 +15,22 @@
  * esperando a otro para siempre (pasaba en 2026-10).
  *
  * Mensajes (por net.js, unas 15 veces por segundo; 5 si va por el relé):
- *   invitado -> anfitrión  { k:'f', p:[estado], ev:[eventos] }
+ *   invitado -> anfitrión  { k:'f', p:[estado], ev:[eventos],
+ *                            sp:[x,y] (caído mirando a un compañero: dónde está su cámara) }
  *   anfitrión -> invitado  { k:'f', t, lv, xp, xn, ki, bo, co, p:{uid:[estado]},
  *                            e:[[id,x,y,vida,anim,dir,estados]], ev:[eventos],
  *                            ja:[x,y,anim,dir] (Arceus, sólo en la Sentencia) }
  *   anfitrión -> todos     { k:'start', seed, host, members:[{uid,name,dex,shiny}] }
+ * Las claves y los avisos que no se conocen se ignoran: versiones distintas
+ * del juego pueden jugar juntas.
+ *
+ * Quien se va: el anfitrión avisa a todos ('gone'). Antes sólo lo sabía él y
+ * los demás invitados seguían viendo a ese compañero quieto para siempre (y
+ * hasta los levantaba). Por si el aviso se pierde, un compañero que el
+ * anfitrión deja de mandar también se da por ido. Y quien no manda nada en
+ * los primeros FIRST_MS no ha llegado a entrar: se le quita (si no, las cartas
+ * de nivel le esperaban para siempre). Al que sí ha mandado algo no se le
+ * quita nunca por callar (pestaña en segundo plano): sólo si se cierra la conexión.
  */
 G.Coop = (() => {
   const ANIMS = ['Idle', 'Walk', 'Attack', 'Shoot', 'Charge', 'Hurt', 'Faint'];
@@ -29,10 +40,13 @@ G.Coop = (() => {
   const RATE_FAST = 1 / 15, RATE_SLOW = 1 / 3;
   const rateFor = u => (G.Net.slow(u) ? RATE_SLOW : RATE_FAST);
   const NEAR = 950;                     // radio de enemigos que se mandan a cada uno
+  const FIRST_MS = 10000;               // anfitrión: quien no ha mandado nada en este tiempo no ha entrado
+  const GONE_MS = 3000;                 // invitado: compañero que el anfitrión ya no manda = se ha ido
 
   let active = false, host = false, me = null, hostUid = null;
   let local = null;                     // tu Player
-  const mates = new Map();              // uid -> { uid, name, color, pl, connected, q:[], flushT, xpMul }
+  let startAt = 0;                      // cuándo empezó la partida (performance.now)
+  const mates = new Map();              // uid -> { uid, name, color, pl, connected, q:[], flushT, xpMul, state, sp, seenAt }
   let outEv = [];                       // invitado: eventos para el anfitrión
   let flushT = 0;
   let hitFrom = null;                   // invitado cuyo golpe se está aplicando (no repetirle el número)
@@ -59,7 +73,7 @@ G.Coop = (() => {
   /**
    * @param cfg   { seed, host, members }
    * @param pl    tu Player (ya creado)
-   * @param cb    { levelStart(lv), resume(), waiting(names), over(data), lost(msg), team(t), shiny(dex) }
+   * @param cb    { levelStart(lv), resume(), waiting(names), over(data), lost(msg), team(t), shiny(dex), specAt() }
    */
   function begin(cfg, pl, cb) {
     active = true;
@@ -70,7 +84,7 @@ G.Coop = (() => {
     members = cfg.members;
     mates.clear();
     outEv = []; flushT = 0; waiting = new Set(); holds = new Set();
-    hostAway = false; stalled = false; lastHostAt = performance.now();
+    hostAway = false; stalled = false; lastHostAt = startAt = performance.now();
     levelSeq = 0; levelNow = 1; seenSeq = 0; doneSeq = 0; lastHo = '';
     cfg.members.forEach((m, i) => {
       const x = (i - (cfg.members.length - 1) / 2) * 34, y = 0;
@@ -83,6 +97,9 @@ G.Coop = (() => {
       G.Sprites.preload([mon.dex], 8000, p.shiny);
       mates.set(m.uid, { uid: m.uid, name: m.name, color: COLORS[i], pl: p, connected: true, q: [], flushT: 0, xpMul: 1 });
     });
+    // Invitado: el primer envío, ya (aunque la pestaña esté en segundo plano y
+    // el bucle del juego no corra): así el anfitrión sabe que has entrado.
+    if (!host) flushClient(true);
   }
 
   function end() {
@@ -112,6 +129,17 @@ G.Coop = (() => {
     return out;
   }
   function puppets() { const out = []; for (const m of mates.values()) if (m.connected) out.push(m.pl); return out; }
+
+  /**
+   * ¿Llegan datos de este compañero? Al anfitrión, desde su primer envío; al
+   * invitado, si sale en los envíos recientes del anfitrión. (Para mirarle al caer.)
+   */
+  function fresh(m) {
+    return !!m && m.connected && (host ? !!m.state : m.seenAt != null && performance.now() - m.seenAt < GONE_MS);
+  }
+
+  /** Anfitrión: dónde mira un invitado (su Pokémon o, caído, el compañero al que mira). */
+  const focusOf = m => (m.sp && m.pl.net && m.pl.net.dead ? { x: m.sp[0], y: m.sp[1] } : m.pl);
 
   /**
    * Multiplicador de la experiencia del equipo: la media de los bonus de
@@ -150,11 +178,12 @@ G.Coop = (() => {
     for (const m of mates.values()) if (m.connected && m.uid !== except) m.q.push(ev);
   }
 
-  /** Anfitrión: evento sólo para los que están cerca (números de daño). */
+  /** Anfitrión: evento sólo para los que lo ven cerca (números de daño). */
   function emitNear(ev, x, y, except) {
     for (const m of mates.values()) {
       if (!m.connected || m.uid === except) continue;
-      if (G.U.dist2(m.pl.x, m.pl.y, x, y) > 700 * 700) continue;
+      const f = focusOf(m);
+      if (G.U.dist2(f.x, f.y, x, y) > 700 * 700) continue;
       if (m.q.length > 400) continue;
       m.q.push(ev);
     }
@@ -179,8 +208,9 @@ G.Coop = (() => {
       if (o.connected && o.uid !== m.uid && o.state) p[o.uid] = o.state;
     }
     const ev = m.q; m.q = [];
+    // Enemigos alrededor de lo que ve: si está caído mirando a otro, los de allí (si no, se le quedaban quietos).
     const f = { k: 'f', t: r2(st.time), lv: st.level, xp: r2(st.xp), xn: st.xpNext, ki: st.kills, bo: st.bosses, co: st.coins, tk: [st.t1, st.t10],
-                p, e: enemyList(m.pl), ev };
+                p, e: enemyList(focusOf(m)), ev };
     const ja = G.Judgment.netState();       // Arceus en la Sentencia
     if (ja) f.ja = ja;
     // Siempre: quién está eligiendo y, si hay cartas de nivel, cuáles (ver arriba).
@@ -191,18 +221,28 @@ G.Coop = (() => {
 
   function flushAll() { for (const m of mates.values()) if (m.connected) G.Net.send(m.uid, hostFrame(m)); }
 
+  /** Invitado: el envío al anfitrión. `sp` va aparte del estado (que sigue con sus 15 datos). */
+  function clientFrame() {
+    const f = { k: 'f', p: myState(), ev: outEv };
+    const sp = api.specAt && api.specAt();
+    if (sp) f.sp = sp;
+    outEv = [];
+    return f;
+  }
+
   function flushClient(force) {
     if (!force && !outEv.length && flushT > 0) return;
-    G.Net.toHost({ k: 'f', p: myState(), ev: outEv });
-    outEv = [];
+    G.Net.toHost(clientFrame());
   }
 
   /** Cada fotograma (también en la pantalla de subida de nivel). */
   function tick(dt) {
     if (!active) return;
     if (host) {
+      const now = performance.now();
       for (const m of mates.values()) {
         if (!m.connected) continue;
+        if (!m.state && now - startAt > FIRST_MS) { mateGone(m.uid, true); continue; }
         m.flushT -= dt;
         if (m.flushT > 0) continue;
         m.flushT = rateFor(m.uid);
@@ -213,8 +253,7 @@ G.Coop = (() => {
       flushT -= dt;
       if (flushT <= 0) {
         flushT = rateFor(hostUid);
-        G.Net.toHost({ k: 'f', p: myState(), ev: outEv });
-        outEv = [];
+        G.Net.toHost(clientFrame());
       }
     }
   }
@@ -234,14 +273,26 @@ G.Coop = (() => {
     else if (u === hostUid) { const cb = api.lost; end(); if (cb) cb('Se ha perdido la conexión con el anfitrión.'); }
   });
 
-  function mateGone(u) {
+  /**
+   * Anfitrión: `u` se ha ido (o, con `never`, no ha llegado a entrar). Se avisa
+   * a todos ('gone') y a él también, por si sigue ahí y sólo fallaba su envío.
+   */
+  function mateGone(u, never = false) {
     const m = mates.get(u);
     if (!m || !m.connected) return;
-    m.connected = false;
-    G.Projectiles.clearOrbs(m.pl);
-    G.Spawner.say(m.name + ' ha dejado la partida', 2.6);
+    dropMate(m);
+    m.q.push(['gone', u]);
+    G.Net.send(u, hostFrame(m));
+    emit(['gone', u]);
+    G.Spawner.say(m.name + (never ? ' no ha podido entrar en la partida' : ' ha dejado la partida'), 2.6);
     if (waiting.has(u)) picked(u);
     if (holds.has(u)) holdOff(u);
+  }
+
+  /** En cada ordenador: ese compañero ya no está (no se dibuja ni cuenta para nada). */
+  function dropMate(m) {
+    m.connected = false; m.sp = null;
+    G.Projectiles.clearOrbs(m.pl);
     if (api.mateLeft) api.mateLeft(m);
   }
 
@@ -251,6 +302,7 @@ G.Coop = (() => {
     const m = mates.get(from);
     if (!m || !m.connected) return;
     if (msg.p) { m.state = msg.p; m.pl.net = readState(msg.p); m.xpMul = m.pl.net.xpMul || 1; reconcile(from, m.pl.net); }
+    m.sp = Array.isArray(msg.sp) && msg.sp.length === 2 && msg.sp.every(Number.isFinite) ? msg.sp : null;
     for (const ev of msg.ev || []) {
       switch (ev[0]) {
         case 'h': {
@@ -311,7 +363,7 @@ G.Coop = (() => {
   function onHostFrame(msg) {
     lastHostAt = performance.now();
     if (stalled) { stalled = false; updateAway(); }
-    for (const ev of msg.ev || []) applyHostEvent(ev);
+    for (const ev of msg.ev || []) { applyHostEvent(ev); if (!active) return; }     // 'ov' o 'gone' (tú): se acabó
     if (msg.ja) G.Judgment.netApply(msg.ja);
     // Quién elige y las cartas de nivel, aunque se haya perdido algún aviso.
     if (msg.ho) {
@@ -322,11 +374,13 @@ G.Coop = (() => {
     }
     api.syncTeam({ time: msg.t, level: msg.lv, xp: msg.xp, xpNext: msg.xn, kills: msg.ki, bosses: msg.bo, coins: msg.co,
                    t1: (msg.tk || [])[0], t10: (msg.tk || [])[1] });
+    const now = performance.now();
     for (const u in msg.p || {}) {
       const m = mates.get(u);
-      if (m) m.pl.net = readState(msg.p[u]);
+      if (m && m.connected) { m.pl.net = readState(msg.p[u]); m.seenAt = now; }
     }
-    const now = performance.now();
+    // Por si se pierde el aviso 'gone': el que el anfitrión mandaba y ya no manda, se ha ido.
+    for (const m of mates.values()) if (m.connected && m.seenAt != null && now - m.seenAt > GONE_MS) dropMate(m);
     for (const a of msg.e || []) {
       const e = G.EnemyMgr.get(a[0]);
       if (!e || !e.remote || e.dead) continue;
@@ -361,7 +415,7 @@ G.Coop = (() => {
       case 'mag': G.Pickups.pullAll(); G.FX.ring(local.x, local.y, 10, 420, '#ff9ed8', 0.6, 4); break;
       case 'bomb':
         G.FX.ring(ev[1], ev[2], 20, G.Camera.outerRadius(), '#ff7b3d', 0.5, 6);
-        if (G.U.dist2(ev[1], ev[2], local.x, local.y) < 500 * 500) G.Camera.kick(0.8);
+        if (G.U.dist2(ev[1], ev[2], G.Camera.x, G.Camera.y) < 500 * 500) G.Camera.kick(0.8);     // si se ve cerca
         G.Audio.sfx('break');
         break;
       case 'pb': G.World.breakAt(ev[1], ev[2]); break;
@@ -374,6 +428,13 @@ G.Coop = (() => {
       case 'ha': hostAway = !!ev[1]; updateAway(); break;
       case 'sh': api.shiny(ev[1]); break;
       case 'ov': { const cb = api.over; const d = ev[1]; end(); cb(d); break; }
+      case 'gone': {
+        // Un compañero se ha ido. Si eres tú, el anfitrión no recibía nada tuyo: fuera.
+        if (ev[1] === me) { const cb = api.lost; end(); if (cb) cb('Se ha perdido la conexión con el anfitrión.'); break; }
+        const m = mates.get(ev[1]);
+        if (m && m.connected) dropMate(m);
+        break;
+      }
       case 'rift': case 'riftx': case 'arena': case 'aw': case 'al': G.Rift.onEvent(ev); break;
       case 'jd': case 'jk': G.Judgment.onEvent(ev); break;
       case 'wx': G.Weather.onEvent(ev); break;
@@ -492,7 +553,7 @@ G.Coop = (() => {
   }
 
   return {
-    ANIMS, COLORS, begin, end, leave, tick, players, puppets, xpFactor, scaleRate, scaleHp,
+    ANIMS, COLORS, begin, end, leave, tick, players, puppets, fresh, xpFactor, scaleRate, scaleHp,
     cast, hit, status, hurtShown, enemyAdded, enemyGone, enemyShot, pickupAdded, pickupGone, say,
     propBroken, collected, shinyCaught, levelStart, localPicked, over, holdStart, holdEnd,
     /** Anfitrión: evento para todos. Invitado: evento para el anfitrión. */
