@@ -7,6 +7,8 @@
  */
 G.CHANGELOG = [
   { d: '2026-10-21', title: ['Jugar en grupo con código de sala', 'Group play with room codes'], new: [
+    ['Gacha: botón «Saltar» (o Esc) para ver los premios al momento, sin esperar a la tragaperras.',
+     'Gacha: a "Skip" button (or Esc) shows your prizes right away, without waiting for the slot machine.'],
     ['¿Te has equivocado al hacer un vínculo? En la pausa, «Cambiar vínculo» saca un movimiento del vínculo y pone en su lugar uno suelto (sin gastar vínculo).',
      'Made the wrong bond? In the pause menu, "Change bond" takes a move out of the bond and puts a free move in its place (without using up a bond).'],
     ['Jugar en grupo sin cuenta en la nube: crea una sala y pasa su código de 5 letras a tus amigos (hasta 4). Se abre desde Amigos en el menú principal, con «Crear sala» o «Unirse».',

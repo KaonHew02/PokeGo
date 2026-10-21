@@ -726,6 +726,8 @@
     // ---- fin auto ----
 
     // ---- PokéGo: saltar animación del gacha ----
+    ["Saltar", "Passer", "Salta", "Pular", "跳过", "跳過"],
+    ["Gacha: botón «Saltar» (o Esc) para ver los premios al momento, sin esperar a la tragaperras.", "Gacha : un bouton « Passer » (ou Échap) affiche tes gains tout de suite, sans attendre la machine à sous.", "Gacha: un pulsante «Salta» (o Esc) mostra subito i premi, senza aspettare la slot machine.", "Gacha: um botão «Pular» (ou Esc) mostra seus prêmios na hora, sem esperar a máquina caça-níqueis.", "抽取：新增“跳过”按钮（或按 Esc），不用等拉霸机，立刻看到奖励。", "抽獎：新增「跳過」按鈕（或按 Esc），不用等拉霸機，立刻看到獎勵。"],
     // ---- fin gacha ----
   ];
   languages.forEach((lang, i) => G.I18n.add(Object.fromEntries(rows.map(r => [r[0], r[i + 1]])), lang));

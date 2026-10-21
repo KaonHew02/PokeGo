@@ -856,5 +856,6 @@ G.I18n.add({
   // ---- fin auto ----
 
   // ---- PokéGo: saltar animación del gacha ----
+  'Saltar': 'Skip',
   // ---- fin gacha ----
 });

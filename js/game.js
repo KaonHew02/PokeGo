@@ -588,6 +588,8 @@ G.Game = (() => {
       return;
     }
     if (state === 'ui') {
+      // Tirada del gacha abierta: Esc salta la animación (o cierra los premios).
+      if (G.Input.tap('escape') && G.GachaUI.open_) { G.GachaUI.escape(); return; }
       // Esc en una subpantalla del menú vuelve al menú.
       if (G.Input.tap('escape') && !G.UI.isOpen('scr-profile') && ['scr-dex', 'scr-upgrades', 'scr-gacha', 'scr-friends', 'scr-group', 'scr-rank', 'scr-goals'].some(G.UI.isOpen)
           && document.getElementById('pull-fx').classList.contains('hidden')) G.MenuUI.open();

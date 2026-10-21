@@ -3,7 +3,7 @@
  */
 G.GachaUI = (() => {
   const $ = G.UI.$;
-  let busy = false;
+  let busy = false, skipping = false;
   let gen = 1;
 
   function init() {
@@ -11,6 +11,7 @@ G.GachaUI = (() => {
     $('pull-10').onclick = () => pull(10, 't1');
     $('pull-10b').onclick = () => pull(10, 't10');
     $('pull-close').onclick = close;
+    $('pull-skip').onclick = skip;
 
     const tabs = $('gacha-gens');
     G.Gacha.BANNERS.forEach(b => {
@@ -84,12 +85,13 @@ G.GachaUI = (() => {
     if (!res) { G.Audio.sfx('error'); G.UI.toast('No tienes tickets suficientes: consíguelos jugando'); return; }
     G.Progress.checkAch();
     G.DB.commit(true);
-    busy = true;
+    busy = true; skipping = false;
 
     const best = Math.max(...res.map(r => r.rarity));
     const fx = $('pull-fx'), slot = $('slot'), out = $('pull-results');
     out.innerHTML = '';
     $('pull-close').classList.add('hidden');
+    $('pull-skip').classList.remove('hidden');
     slot.style.display = '';
     fx.classList.remove('hidden');
 
@@ -110,17 +112,30 @@ G.GachaUI = (() => {
         : `Repetido · <span class="coin"></span> +${r.refund}`;
       c.insertAdjacentHTML('beforeend', `<b>${r.shiny ? G.Icons.html('shiny', 12) + ' ' : ''}${mon.name}</b><div class="tag">${tag}</div>`);
       out.appendChild(c);
+      if (skipping) continue;              // saltando: todas a la vez, con un solo sonido (abajo)
       G.Audio.sfx('reveal', { rarity: r.rarity });
       await wait(n === 10 ? 150 : 0);
     }
+    if (skipping) G.Audio.sfx('reveal', { rarity: best });
+    $('pull-skip').classList.add('hidden');
     $('pull-close').classList.remove('hidden');
     busy = false;
   }
+
+  /** "Saltar": sin tragaperras ni cartas una a una; los premios salen ya. */
+  function skip() {
+    if (!busy || skipping) return;
+    skipping = true;
+    G.Slots.skip();
+  }
+
+  /** Esc (y B en el mando) con la tirada abierta: salta la animación o, al final, cierra. */
+  function escape() { if (busy) skip(); else close(); }
 
   function close() {
     $('pull-fx').classList.add('hidden');
     refresh();
   }
 
-  return { init, open, get open_() { return !$('pull-fx').classList.contains('hidden'); } };
+  return { init, open, escape, get open_() { return !$('pull-fx').classList.contains('hidden'); } };
 })();

@@ -363,7 +363,7 @@ label { display: block; font-size: 14px; color: var(--muted); margin: 8px 0 4px;
 }
 /* Centrado vertical que no corta por arriba cuando no cabe. */
 #pull-fx::before, #pull-fx::after { content: ''; margin: auto; }
-#pull-close { position: sticky; bottom: 8px; z-index: 2; flex-shrink: 0; box-shadow: 0 4px 18px rgba(0,0,0,.6); }
+#pull-close, #pull-skip { position: sticky; bottom: 8px; z-index: 2; flex-shrink: 0; box-shadow: 0 4px 18px rgba(0,0,0,.6); }
 @media (max-height: 520px) {
   #pull-fx { gap: 10px; }
   .pull-results { gap: 6px; }
