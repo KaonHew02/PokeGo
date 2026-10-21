@@ -45,6 +45,8 @@ G.I18n = (() => {
     '¿Reportar la marca de {x} como trampa?',
 
     // ---- PokéGo: cooperativo con código de sala ----
+    // (el hueco es el código de la sala: tal cual, como un apodo)
+    'Buscando la sala {x}…', 'Código copiado: {x}',
     // ---- fin cooperativo ----
 
     // ---- PokéGo: mirar a un compañero al caer ----

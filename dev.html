@@ -305,6 +305,10 @@
       (como en una videollamada), así que cada uno puede llegar a ver la dirección IP del otro.
       Juega en grupo sólo con gente que conozcas. Si la conexión directa no es posible, la partida
       pasa por los servidores de Firebase.</p>
+    <p>Jugar en grupo con código de sala: para que vuestros navegadores se encuentren se usa el servidor
+      público y gratuito de PeerJS (0.peerjs.com), que sólo os presenta: por él no pasa nada de la partida.
+      Después cada navegador se conecta directamente con los demás, así que cada jugador puede ver la
+      dirección IP de los otros.</p>
     <p>Puedes borrar tu cuenta cuando quieras (se borran también tu apodo, tus amigos y tus marcas):</p>
     <div class="row">
       <button class="btn small" id="legal-delete">Borrar mi cuenta y mi partida</button>
@@ -357,7 +361,7 @@
 <section id="scr-friends" class="scr dim hidden">
   <div class="box wide">
     <div class="row between"><h2>Amigos</h2>
-      <div class="row"><button id="fr-room" class="btn small gold hidden">Ir a la sala</button><button class="btn small ghost" data-back>Volver</button></div></div>
+      <div class="row"><button id="fr-room" class="btn small gold hidden">Ir a la sala</button><button id="fr-code" class="btn small">Jugar con código</button><button class="btn small ghost" data-back>Volver</button></div></div>
     <p class="sub" id="fr-me"></p>
     <form id="fr-add" class="row" autocomplete="off">
       <input id="fr-name" class="field grow" maxlength="16" spellcheck="false" placeholder="Apodo de tu amigo">
@@ -368,12 +372,31 @@
   </div>
 </section>
 
+<!-- ====== Jugar en grupo con código de sala (sin nube, js/ui/group-ui.js) ====== -->
+<section id="scr-group" class="scr dim hidden">
+  <div class="box" style="width:min(480px,100%)">
+    <div class="row between"><h2>Jugar en grupo</h2><button id="grp-back" class="btn small ghost">Volver</button></div>
+    <p class="sub">Crea una sala y pasa su código a tus amigos, o escribe el código de la sala de un amigo. Hasta 4 jugadores.</p>
+    <label for="grp-name">Tu nombre en la sala</label>
+    <input id="grp-name" class="field" maxlength="16" spellcheck="false" autocomplete="off" placeholder="Tu nombre">
+    <div class="row" style="margin-top:12px"><button id="grp-create" class="btn gold grow" data-sfx="confirm">Crear sala</button></div>
+    <h3 style="margin:16px 0 6px">Unirse a una sala</h3>
+    <form id="grp-join" class="row" autocomplete="off">
+      <input id="grp-code" class="field grow" maxlength="5" spellcheck="false" autocapitalize="characters" autocomplete="off" placeholder="Código">
+      <button id="grp-join-btn" class="btn" type="submit" data-sfx="confirm">Unirse</button>
+    </form>
+    <p id="grp-msg" class="err"></p>
+    <p class="note">Para encontraros se usa el servidor gratuito de PeerJS; la partida va directa de un navegador a otro.</p>
+  </div>
+</section>
+
 <!-- ====== Sala (partida en grupo) ====== -->
 <section id="scr-lobby" class="scr dim hidden">
   <div class="box wide">
     <div class="row between"><h2>Sala</h2>
       <div class="row"><button id="lobby-menu" class="btn small ghost">Menú</button><button id="lobby-leave" class="btn small ghost">Salir de la sala</button></div></div>
     <p class="sub" id="lobby-sub"></p>
+    <div id="lobby-code" class="lobby-code hidden"><span>Código de la sala</span><b id="lobby-code-val" translate="no"></b><button id="lobby-copy" class="btn small">Copiar</button></div>
     <div id="lobby-members" class="lobby-members"></div>
     <h3 id="lobby-inv-title" style="margin:14px 0 6px">Invitar amigos</h3>
     <div id="lobby-invite" class="fr-list"></div>
@@ -626,6 +649,7 @@
 <script defer src="js/net/codec.js"></script>
 <script defer src="js/net/net.js"></script>
 <script defer src="js/net/coop.js"></script>
+<script defer src="js/net/coderoom.js"></script>
 <script defer src="js/net/ranking.js"></script>
 <!-- interfaz -->
 <script defer src="js/ui/icons.js"></script>
@@ -638,6 +662,7 @@
 <script defer src="js/ui/gacha-ui.js"></script>
 <script defer src="js/ui/run-ui.js"></script>
 <script defer src="js/ui/social-ui.js"></script>
+<script defer src="js/ui/group-ui.js"></script>
 <script defer src="js/ui/ranking-ui.js"></script>
 <script defer src="js/ui/mod-ui.js"></script>
 <script defer src="js/ui/goals-ui.js"></script>

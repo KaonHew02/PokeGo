@@ -563,7 +563,7 @@ G.Game = (() => {
     }
     if (state === 'ui') {
       // Esc en una subpantalla del menú vuelve al menú.
-      if (G.Input.tap('escape') && !G.UI.isOpen('scr-profile') && ['scr-dex', 'scr-upgrades', 'scr-gacha', 'scr-friends', 'scr-rank', 'scr-goals'].some(G.UI.isOpen)
+      if (G.Input.tap('escape') && !G.UI.isOpen('scr-profile') && ['scr-dex', 'scr-upgrades', 'scr-gacha', 'scr-friends', 'scr-group', 'scr-rank', 'scr-goals'].some(G.UI.isOpen)
           && document.getElementById('pull-fx').classList.contains('hidden')) G.MenuUI.open();
       return;
     }
@@ -988,7 +988,11 @@ G.Flow = {
   play() { G.Game.startRun(); },
   /** Empieza la partida en grupo (el anfitrión la manda a todos). */
   startCoop(cfg) {
-    if (G.Game.state !== 'ui' || !G.Social.room) return;
+    if (!G.Social.room) return;
+    // Si aún mirabas el resumen de la anterior (ya guardada), entras también: antes el aviso
+    // se perdía, te quedabas fuera y la partida de los demás se paraba en la primera subida de nivel.
+    if (G.Game.state === 'over') { G.UI.hide('scr-over'); G.Game.toUI(); }
+    if (G.Game.state !== 'ui') return;
     G.LobbyUI.close();
     G.Game.startRun(cfg);
   }

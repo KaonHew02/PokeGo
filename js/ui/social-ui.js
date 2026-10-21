@@ -6,8 +6,12 @@
   /** ¿Se puede usar lo online? Si no, explica por qué. */
   function needOnline() {
     if (G.DB.online) return true;
-    G.UI.toast(G.DB.guest ? 'Crea una cuenta para jugar con amigos y salir en el ranking.'
-      : 'Esto necesita la versión online del juego (con la nube).', 3200);
+    // Sin nube (esta copia sólo guarda en el navegador), crear una cuenta no cambia nada.
+    // (Jugar en grupo sí se puede: con código de sala, ver group-ui.js.)
+    const local = G.DB.mode !== 'cloud';
+    G.UI.toast(local ? 'El ranking necesita la nube (Firebase): esta copia del juego sólo guarda en este navegador.'
+      : G.DB.guest ? 'Crea una cuenta para jugar con amigos y salir en el ranking.'
+      : 'Esto necesita la versión online del juego (con la nube).', local ? 4500 : 3200);
     return false;
   }
 
@@ -64,6 +68,7 @@
         if (r.ok) $('fr-name').value = '';
       };
       $('fr-room').onclick = () => G.LobbyUI.open();
+      $('fr-code').onclick = () => G.GroupUI.open();
       G.Social.on(() => { if (G.UI.isOpen('scr-friends')) render(); });
     }
 
@@ -95,6 +100,7 @@
       const room = G.Social.room;
       $('fr-me').innerHTML = 'Tu apodo: <b class="gold" translate="no">' + esc(G.Social.me ? G.Social.me.name : '') + '</b> · dáselo a tus amigos para que te añadan.';
       $('fr-room').classList.toggle('hidden', !room);
+      $('fr-code').classList.toggle('hidden', !!room);
       const list = G.Social.friends.sort((a, b) => {
         const rank = f => f.status === 'in' ? 0 : f.status === 'ok' ? (f.online ? (f.play ? 2 : 1) : 3) : 4;
         return rank(a) - rank(b) || a.name.localeCompare(b.name);
@@ -153,15 +159,17 @@
       $('lobby-menu').onclick = () => G.MenuUI.open();
       $('lobby-start').onclick = start;
       $('lobby-start').dataset.sfx = 'confirm';
-      // Conecta / desconecta la red al entrar o salir de una sala.
+      // Conecta / desconecta la red al entrar o salir de una sala (las de código van por PeerJS: room.net).
       G.Social.on(what => {
         const room = G.Social.room;
         if (room) {
-          G.Net.open(room.id, room.isHost, room.host);
+          G.Net.open(room.id, room.isHost, room.host, room.net);
           G.Net.syncMembers(room.members.map(m => m.uid));
-        } else if (G.Net.open_) G.Net.close();
-        if (what === 'room-closed') {
-          G.UI.toast('La sala se ha cerrado', 2600);
+        } else if (G.Net.open_ && !G.CodeRoom.busy) G.Net.close();     // (entrando en una sala con código aún no hay sala)
+        // Se ha cerrado sin que salieras tú (p. ej. se ha ido el anfitrión).
+        const ended = what === 'room-closed' ? 'La sala se ha cerrado' : what && what.ended;
+        if (ended) {
+          G.UI.toast(ended, 3600);
           if (G.UI.isOpen('scr-lobby')) G.MenuUI.open();
         }
         if (G.UI.isOpen('scr-lobby')) render();
@@ -180,11 +188,18 @@
 
     function close() { G.UI.hide('scr-lobby'); }
 
+    /** Lo que sale bajo cada jugador → [texto, clase] (wait: conectando; bad: no se pudo). */
     function connText(m, room) {
-      if (m.uid === room.host) return 'Anfitrión';
-      if (!room.isHost) return m.uid === G.Social.uid ? 'Tú' : 'En la sala';
       const mode = G.Net.mode(m.uid);
-      return mode === 'direct' ? 'Conectado' : mode === 'relay' ? 'Conectado (por servidor)' : mode === 'failed' ? 'No se pudo conectar (reintentando…)' : 'Conectando…';
+      if (!room.isHost) {
+        if (m.uid !== room.host) return [m.uid === (room.me ? room.me.uid : G.Social.uid) ? 'Tú' : 'En la sala', ''];
+        // El invitado también ve si está conectado con el anfitrión (antes sólo lo veía el anfitrión).
+        return mode === 'direct' || mode === 'relay' ? ['Anfitrión · conectado', '']
+          : mode === 'failed' ? ['No se pudo conectar con el anfitrión (reintentando…)', 'bad'] : ['Conectando con el anfitrión…', 'wait'];
+      }
+      if (m.uid === room.host) return ['Anfitrión', ''];
+      return mode === 'direct' ? ['Conectado', ''] : mode === 'relay' ? ['Conectado (por servidor)', '']
+        : mode === 'failed' ? ['No se pudo conectar (reintentando…)', 'bad'] : ['Conectando…', 'wait'];
     }
 
     function render() {
@@ -192,8 +207,11 @@
       if (!room) return;
       const ms = room.members;
       $('lobby-sub').textContent = room.isHost
-        ? 'Eres el anfitrión. Invita a tus amigos (hasta ' + G.Social.MAX_PLAYERS + ') y empezad cuando estéis.'
+        ? (room.code ? 'Eres el anfitrión. Pasa el código a tus amigos (hasta ' : 'Eres el anfitrión. Invita a tus amigos (hasta ') + G.Social.MAX_PLAYERS + ') y empezad cuando estéis.'
         : 'Estás en la sala de ' + ((ms.find(m => m.uid === room.host) || {}).name || '…') + '. El anfitrión empezará la partida.';
+      // Sala con código: el código, en grande, para pasárselo a los amigos.
+      $('lobby-code').classList.toggle('hidden', !room.code);
+      if (room.code) $('lobby-code-val').textContent = room.code;
 
       // Las tarjetas sólo se rehacen si cambian los miembros (los sprites no parpadean).
       const key = ms.map(m => m.uid + ':' + m.dex + ':' + (m.shiny ? 1 : 0)).join('|');
@@ -216,13 +234,13 @@
       box.querySelectorAll('.conn').forEach(el => {
         const m = ms.find(x => x.uid === el.dataset.u);
         if (!m) return;
-        const t = connText(m, room);
+        const [t, cls] = connText(m, room);
         el.textContent = t;
-        el.className = 'conn' + (t === 'Conectando…' ? ' wait' : '');
+        el.className = 'conn' + (cls ? ' ' + cls : '');
       });
 
-      // Invitar (sólo el anfitrión y si queda sitio).
-      const canInvite = room.isHost && ms.length < G.Social.MAX_PLAYERS;
+      // Invitar (sólo el anfitrión, si queda sitio y en las salas de amigos).
+      const canInvite = room.isHost && !room.code && ms.length < G.Social.MAX_PLAYERS;
       $('lobby-inv-title').classList.toggle('hidden', !canInvite);
       const inv = $('lobby-invite');
       inv.classList.toggle('hidden', !canInvite);
@@ -244,14 +262,17 @@
 
       const btn = $('lobby-start');
       btn.classList.toggle('hidden', !room.isHost);
-      const connecting = ms.some(m => m.uid !== room.host && G.Net.mode(m.uid) === 'connecting');
+      // Sólo con todos conectados: quien no lo está se quedaría fuera de la partida.
       const failed = ms.some(m => m.uid !== room.host && G.Net.mode(m.uid) === 'failed');
-      btn.disabled = !room.isHost || ms.length < 2 || connecting || failed;
+      const ready = ms.every(m => m.uid === room.host || ['direct', 'relay'].includes(G.Net.mode(m.uid)));
+      btn.disabled = !room.isHost || ms.length < 2 || !ready;
       btn.textContent = 'Empezar partida (' + ms.length + '/' + G.Social.MAX_PLAYERS + ')';
-      $('lobby-note').textContent = !room.isHost ? 'Cuando el anfitrión empiece, entraréis todos a la vez.'
-        : ms.length < 2 ? 'Necesitas al menos un amigo en la sala.'
+      $('lobby-note').textContent = !room.isHost
+        ? (G.Net.mode(room.host) === 'failed' ? 'No se puede conectar con el anfitrión: su red (o la tuya) no deja jugar en grupo. Probad con otra wifi o datos móviles; se reintenta solo.'
+          : 'Cuando el anfitrión empiece, entraréis todos a la vez.')
+        : ms.length < 2 ? (room.code ? 'Pasa el código a un amigo para que entre.' : 'Necesitas al menos un amigo en la sala.')
         : failed ? 'No se puede conectar con algún amigo: su red (o la tuya) no deja jugar en grupo. Probad con otra wifi o datos móviles; se reintenta solo.'
-        : connecting ? 'Conectando con tus amigos…' : 'La partida empieza para todos a la vez.';
+        : !ready ? 'Conectando con tus amigos…' : 'La partida empieza para todos a la vez.';
     }
 
     function start() {
@@ -305,7 +326,7 @@
   })();
 
   G.SocialUI = {
-    init() { G.NickUI.init(); G.FriendsUI.init(); G.LobbyUI.init(); G.InvitePop.init(); },
+    init() { G.NickUI.init(); G.FriendsUI.init(); G.LobbyUI.init(); G.InvitePop.init(); G.GroupUI.init(); },
     withNick, needOnline
   };
 })();

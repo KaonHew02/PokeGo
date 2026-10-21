@@ -64,9 +64,14 @@ npx firebase-tools deploy --only firestore,database --project TU-PROYECTO
      projectId: '...',
      storageBucket: '...',
      messagingSenderId: '...',
-     appId: '...'
+     appId: '...',
+     databaseURL: 'https://...firebasedatabase.app'
    };
    ```
+
+   `databaseURL` es la URL de la Realtime Database del paso 3b. Si el bloque que
+   copias no la trae, añádela a mano: sin ella no hay salas de amigos (el botón
+   **Invitar** avisa de que falta). Jugar en grupo con código de sala funciona sin nube.
 
    Estos datos **no son secretos**: Firebase los diseña para ir dentro de la web.
    Lo que protege las partidas son las reglas del paso 3.
