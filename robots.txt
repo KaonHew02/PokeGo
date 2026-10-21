@@ -5,4 +5,4 @@ Disallow: /tools/
 Disallow: /docs/
 Disallow: /dev.html
 
-Sitemap: https://pokego.example/sitemap.xml
+Sitemap: https://kaonhew02.github.io/PokeGo/sitemap.xml

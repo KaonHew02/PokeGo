@@ -59,17 +59,17 @@ the other languages as a row in `js/data/lang-updates.js`.
 
 - **Name:** PokéGo is used in the game, the web pages and all 7 languages. The
   news screen keeps PokéSurvivor's history under its original name.
-- **Saves stay in the browser.** Cloud saves, accounts across devices, friends,
-  leaderboards and online co-op used the original author's Firebase project,
-  so they're off. To turn them on with your own project, follow
-  `docs/FIREBASE.md`, paste your config into `js/core/firebase-config.js` and
-  add your domain to `HOSTS` in `js/core/db.js`.
+- **Its own Firebase project** (`pokego-ec220`, free Spark plan) for accounts,
+  Google sign-in, cloud saves, friends, leaderboards and co-op rooms, instead of
+  the original author's. The config is in `js/core/firebase-config.js`. Any new
+  web address must be added to `HOSTS` in `js/core/db.js` and to Firebase
+  Authentication's authorized domains. Security rules:
+  `npx firebase-tools deploy --only firestore,database`.
 - **No donation or contact links.** The Ko-fi/GitHub Sponsors buttons and pages
   are gone, and so are the original author's contact email and page. To add
   your own, set `kofi` in `js/data/funding.js` and `CONTACT` in `js/ui/ui.js`.
-- **Website address placeholder:** `https://pokego.example`. When you have a
-  domain, replace it in `dev.html` and in `SITE` in `tools/make_seo_pages.py`,
-  then rebuild.
+- **Website:** published on GitHub Pages at <https://kaonhew02.github.io/PokeGo/>
+  (`dev.html` meta tags and `SITE` in `tools/make_seo_pages.py`).
 - **New link-preview image:** `assets/og-image.jpg`.
 - `docs/`, `infra/` and `GDD.md` are PokéSurvivor's notes (in Spanish). They
   still describe its servers and domain.

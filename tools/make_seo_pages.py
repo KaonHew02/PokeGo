@@ -9,7 +9,7 @@ import json, os, re, datetime, html
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 UPSTREAM = 'https://github.com/JPTER78/pokesurvivor'   # el juego original en el que se basa PokéGo
-SITE = 'https://pokego.example/'   # cámbialo por tu dominio cuando publiques el juego
+SITE = 'https://kaonhew02.github.io/PokeGo/'   # GitHub Pages del repositorio KaonHew02/PokeGo
 TODAY = datetime.date.today().isoformat()
 D = json.load(open(os.path.join(ROOT, 'tools', 'cache', 'gamedata.json'), encoding='utf-8'))
 DEX = D['dex']; BY = {p['dex']: p for p in DEX}

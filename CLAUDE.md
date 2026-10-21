@@ -21,8 +21,11 @@ upstream commit 018e986). Code comments, docs and the source-language UI text ar
   Entries before 2026-10-20 are PokéSurvivor's history: keep its name there and in their translations.
 
 ## Independence from the original game
-- `js/core/firebase-config.js` is `null` (local saves only). Never restore the original
-  `pokesurvivor-free` config: it is the original author's project.
-- The website address is the placeholder `https://pokego.example` (`dev.html`, `SITE` in `tools/make_seo_pages.py`).
+- Firebase: the user's own project **`pokego-ec220`** (free Spark plan) in `js/core/firebase-config.js`.
+  Never restore the original `pokesurvivor-free` config, and never upgrade the project to Blaze or
+  Identity Platform (they bill). Rules deploy with `npx firebase-tools deploy --only firestore,database`.
+- New hostnames must go in `HOSTS` (`js/core/db.js`) and in Firebase Authentication's authorized domains.
+- Published on GitHub Pages: repo `KaonHew02/PokeGo`, site `https://kaonhew02.github.io/PokeGo/`
+  (`dev.html` meta tags, `SITE` in `tools/make_seo_pages.py`). Push only when the user asks.
 - Keep `LICENSE`, `LICENSE-NONCOMMERCIAL.md`, `CREDITS.md` and the "Basado en PokéSurvivor, de JPTER78"
   credits: the license requires the notice. No commercial use (no ads, sales or paid items).
