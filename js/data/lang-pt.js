@@ -262,7 +262,7 @@ G.I18n.add({
   "Recuperas vida con el daño que haces.": "Você recupera vida com o dano que causa.",
   "+50% de Pokémonedas al acabar la run.": "+50% de Pokémoedas ao terminar a run.",
   "+30% de experiencia.": "+30% de experiência.",
-  "+30% de daño, pero cada ataque te quita un poco de vida.": "+30% de dano, mas cada ataque tira um pouco da sua vida.",
+  "+30% de daño, pero cada ataque contra enemigos te quita el 1% de tu vida máxima (nunca te deja KO).": "+30% de dano, mas cada ataque contra inimigos tira 1% da sua vida máxima (nunca te nocauteia).",
   "+35% de velocidad.": "+35% de velocidade.",
   "Los que te golpean cuerpo a cuerpo reciben daño.": "Quem te acerta corpo a corpo recebe dano.",
   "+20% de reducción de daño recibido.": "+20% de redução de dano recebido.",

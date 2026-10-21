@@ -121,7 +121,7 @@ G.I18n.add({
   'Recuperas vida con el daño que haces.': 'Recuperi PS con il danno inflitto.',
   '+50% de Pokémonedas al acabar la run.': '+50% di Pokémonete alla fine della partita.',
   '+30% de experiencia.': '+30% di esperienza.',
-  '+30% de daño, pero cada ataque te quita un poco de vida.': '+30% di danno, ma ogni attacco ti toglie un po\' di PS.',
+  '+30% de daño, pero cada ataque contra enemigos te quita el 1% de tu vida máxima (nunca te deja KO).': '+30% di danno, ma ogni attacco contro i nemici ti toglie l\'1% dei PS massimi (non ti manda mai KO).',
   '+35% de velocidad.': '+35% di velocità.',
   'Los que te golpean cuerpo a cuerpo reciben daño.': 'Chi ti colpisce in mischia subisce danni.',
   '+20% de reducción de daño recibido.': '+20% di riduzione dei danni subiti.', '¡Un objeto!': 'Uno strumento!',

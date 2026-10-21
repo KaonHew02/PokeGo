@@ -159,18 +159,26 @@ G.RunUI = (() => {
     G.UI.show('scr-over');
   }
 
-  /** Has encontrado un objeto llevando ya otro: ¿con cuál te quedas? */
+  /**
+   * Has encontrado un objeto: ¿te lo pones? Si ya llevas otro, ¿con cuál te
+   * quedas? cb recibe el que eliges (null = ninguno). La carta de no quererlo
+   * (o de quedarte con el tuyo) lleva data-refuse: es la de Esc y B en el mando.
+   */
   function showItemChoice(cur, next, cb) {
     const box = $('item-cards');
     box.innerHTML = '';
-    [[cur, 'Quedarme con'], [next, 'Cambiar a']].forEach(([id, verb], i) => {
-      const it = G.Items.BY[id];
+    const opts = cur ? [[cur, 'Quedarme con ', true], [next, 'Cambiar a ', false]]
+                     : [[next, 'Llevar ', false], [null, 'No lo quiero', true]];
+    opts.forEach(([id, verb, refuse], i) => {
+      const it = id && G.Items.BY[id];
       const el = document.createElement('div');
-      el.className = 'card' + (i === 1 ? ' evo' : '');
-      el.innerHTML = `<div class="ico">${G.Icons.html(id, 36)}</div>
-        <div class="txt"><div class="nm">${verb} ${it.name}</div><div class="ds">${it.desc}</div></div>
+      el.className = 'card' + (id === next ? ' evo' : '');
+      if (refuse) el.dataset.refuse = '';
+      el.innerHTML = `<div class="ico">${G.Icons.html(id || 'ban', 36)}</div>
+        <div class="txt"><div class="nm">${it ? verb + it.name : verb}</div><div class="ds">${it ? it.desc : 'Sigues sin objeto.'}</div></div>
         <div class="key">${i + 1}</div>`;
-      el.onclick = () => { if (guarded()) return; G.UI.hide('scr-item'); cb(id); };
+      // (Sólo una: dos teclas en el mismo fotograma no eligen dos veces.)
+      el.onclick = () => { if (guarded() || !el.isConnected || !G.UI.isOpen('scr-item')) return; G.UI.hide('scr-item'); cb(id); };
       box.appendChild(el);
     });
     G.UI.show('scr-item');
@@ -283,11 +291,37 @@ G.RunUI = (() => {
       <h3>Tus estadísticas</h3><div class="sum-stats">${st}</div>
       <h3>Objeto y cartas</h3>
       <p class="sub">${it ? G.Icons.html(pl.item, 18) + ' <b>' + it.name + '</b>: ' + it.desc : 'Sin objeto.'}</p>
+      ${it ? '<p><button id="pause-drop" class="btn small" type="button" data-sfx="none">Tirar objeto</button></p>' : ''}
       <div class="chips">${cards || '<span class="sub">Aún no has cogido cartas de mejora.</span>'}</div>`;
+  }
+
+  /*
+   * Tirar el objeto desde la pausa, en dos toques: el primero pide confirmarlo
+   * (unos segundos) y el segundo lo tira. Sin confirm(): con mando no se puede
+   * contestar a una ventana del navegador.
+   */
+  function wireDrop() {
+    const b = $('pause-drop');
+    if (!b) return;
+    let armed = 0;
+    b.onclick = () => {
+      if (!armed) {
+        G.Audio.sfx('select');
+        b.textContent = 'Pulsa otra vez para tirarlo';
+        b.classList.add('danger');
+        armed = setTimeout(() => { armed = 0; b.textContent = 'Tirar objeto'; b.classList.remove('danger'); }, 3000);
+        return;
+      }
+      clearTimeout(armed);
+      G.Game.dropItem();
+      $('pause-sum').innerHTML = pauseSummary();
+      wireDrop();
+    };
   }
 
   function showPause(coop = false) {
     $('pause-sum').innerHTML = pauseSummary();
+    wireDrop();
     G.UI.soundControls($('pause-sound'));
     $('pause-coop').classList.toggle('hidden', !coop);
     $('btn-quit').textContent = coop ? 'Salir de la partida' : 'Abandonar run';

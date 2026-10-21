@@ -441,12 +441,14 @@ def items_page(lang):
     if lang == 'es':
         h1 = 'Objetos equipables de PokéGo'
         intro = ('<p class="lead">Durante la partida puedes encontrar <b>objetos equipables</b> en los cofres y al derrotar a los jefes. Sólo puedes llevar <b>uno</b> '
-                 'a la vez: si encuentras otro, eliges con cuál quedarte. Duran lo que dura la run.</p>')
+                 'a la vez: cada vez que encuentras uno eliges si te lo pones (o, si ya llevas otro, con cuál te quedas), y el que llevas '
+                 'puedes tirarlo cuando quieras desde la pausa. Duran lo que dura la run.</p>')
         title, desc, c = f'Objetos de PokéGo: los {ni} objetos equipables', f'Los {ni} objetos equipables de PokéGo (Restos, Cinta Elección, Banda Focus, Vidasfera…) y qué hace cada uno.', 'Encuéntralos: jugar gratis'
     else:
         h1 = 'PokéGo held items'
         intro = ('<p class="lead">During a run you can find <b>held items</b> in chests and by defeating bosses. You can only hold <b>one</b> at a time: '
-                 'if you find another, you choose which one to keep. They last for the whole run.</p>')
+                 'each time you find one you choose whether to hold it (or, if you already hold another, which one to keep), and you can '
+                 'drop the one you hold at any time from the pause menu. They last for the whole run.</p>')
         title, desc, c = f'PokéGo items: all {ni} held items', f'The {ni} held items in PokéGo (Leftovers, Choice Band, Focus Sash, Life Orb…) and what each one does.', 'Find them: play free'
     body = f'<article class="doc"><h1>{h1}</h1>{intro}<ul class="items">{rows}</ul>{cta(pid, lang, c)}</article>'
     write(pid, lang, page(pid, lang, title, desc, body, {'@context': 'https://schema.org', '@graph': [crumbs(pid, lang, h1)]}))

@@ -215,10 +215,13 @@ G.Player = class Player {
   /**
    * Lo llama combat.js al lanzar un movimiento. Elige la animación de PMD y la
    * acelera si la recarga es más corta que la animación, para que encadene.
+   * @param foe  hay algún enemigo al que darle (combat.js: hasFoe)
    */
-  cast(m) {
-    // Vidasfera: cada ataque cuesta un poco de vida (nunca te deja KO).
-    if (this.hasItem('lifeorb') && m.kind !== 'orbit' && m.kind !== 'trail' && !this.remote) {
+  cast(m, foe = false) {
+    // Vidasfera: cada ataque contra enemigos cuesta un 1 % de la vida máxima (nunca
+    // te deja KO). Las mejoras y lo que se lanza sin nadie a tiro, no (21-10-2026:
+    // un aura o Acua Aro te dejaban a 1 de vida aunque no hubiera enemigos).
+    if (foe && this.hasItem('lifeorb') && !this.remote) {
       this.hp = Math.max(1, this.hp - Math.max(1, this.maxHp * 0.01));
     }
     const anim = { melee: 'Attack', beam: 'Shoot', projectile: 'Shoot', nova: 'Attack',
@@ -305,10 +308,11 @@ G.Player = class Player {
   // ---------------- objeto equipado ----------------
   hasItem(id) { return this.item === id; }
 
-  /** Se pone un objeto (y se quita el que llevara). */
+  /** Se pone un objeto (y se quita el que llevara). null = ninguno (lo has tirado). */
   equip(id) {
     if (this.item) G.Items.BY[this.item].off(this);
     this.item = id;
+    this.bellHeal = 0;                       // lo que le quedara por curar al Cascabel Concha
     if (id) G.Items.BY[id].on(this);
   }
 
