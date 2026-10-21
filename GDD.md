@@ -228,7 +228,10 @@ Las que se compraron cuando eran de la cuenta pasaron al compañero de entonces.
 Restos, Cinta Elección, Garra Rápida, Banda Focus, Cascabel Concha, Moneda
 Amuleto, Huevo Suerte, Vidasfera, Pañuelo Elección, Casco Dentado y Chaleco
 Asalto. Los sueltan **todos los jefes**, los cofres con candado (50%) y a veces
-los normales (8%). Si ya llevas uno, eliges (en solitario el juego se para).
+los normales (8%). Cada vez eliges si te lo pones («No lo quiero» o Esc para
+no); si ya llevas uno, con cuál te quedas. El juego se para (en grupo, para
+todos) y los que llegan mientras eliges esperan su turno. Desde la pausa se
+puede tirar el que llevas («Tirar objeto»); lo rechazado o tirado se pierde.
 
 ### 7.2c Evolución de movimientos
 Un movimiento al nivel máximo evoluciona si en esa run has cogido su mejora de

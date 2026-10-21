@@ -127,7 +127,7 @@ G.I18n.add({
   '-20% de recarga en todos tus movimientos.': '-20% cooldown on all your moves.',
   'Un golpe que te dejaría KO te deja con 1 de vida (cada 60 s).': 'A hit that would knock you out leaves you at 1 HP (every 60 s).',
   'Recuperas vida con el daño que haces.': 'You heal from the damage you deal.', '+50% de Pokémonedas al acabar la run.': '+50% PokéCoins at the end of the run.',
-  '+30% de experiencia.': '+30% experience.', '+30% de daño, pero cada ataque te quita un poco de vida.': '+30% damage, but each attack costs a little HP.',
+  '+30% de experiencia.': '+30% experience.', '+30% de daño, pero cada ataque contra enemigos te quita el 1% de tu vida máxima (nunca te deja KO).': '+30% damage, but each attack against enemies costs 1% of your max HP (it never knocks you out).',
   '+35% de velocidad.': '+35% speed.', 'Los que te golpean cuerpo a cuerpo reciben daño.': 'Foes that hit you in melee take damage.',
   '+20% de reducción de daño recibido.': '+20% damage reduction.',
   '¡Un objeto!': 'An item!', 'Sólo puedes llevar uno ·': 'You can only hold one ·', 'Quedarme con': 'Keep', 'Cambiar a': 'Switch to',
@@ -762,6 +762,9 @@ G.I18n.add({
   'Folagor, Sekiam, PokeAlex: ¿un hueco?': 'Folagor, Sekiam, PokeAlex: room for one more?',
 
   // ---- PokéGo: objetos (rechazar / tirar) ----
+  'Llevar {x}': 'Hold {x}', 'No lo quiero': 'I don’t want it', 'no lo quiero': 'I don’t want it', 'Sigues sin objeto.': 'You still have no item.',
+  'Puedes tirarlo cuando quieras desde la pausa.': 'You can drop it any time from the pause menu.',
+  'Tirar objeto': 'Drop item', 'Pulsa otra vez para tirarlo': 'Press again to drop it', 'Has tirado {x}': 'You dropped {x}',
   // ---- fin objetos ----
 
   // ---- PokéGo: copia de seguridad y Google Drive ----

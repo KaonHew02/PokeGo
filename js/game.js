@@ -104,6 +104,7 @@ G.Game = (() => {
   /** @param coop  { seed, host, members } para una partida en grupo */
   function startRun(coop = null) {
     holdBy = []; awayBy = null;
+    openItem = null; laterItems.length = 0;   // (una elección a medias de la run anterior no pasa a ésta)
     const save = G.DB.save;
     const mon = G.DEX_BY[save.partner];
     const perks = G.Upgrades.perks(G.DB.upgradesOf(mon.dex));
@@ -393,6 +394,7 @@ G.Game = (() => {
       G.Audio.sfx('confirm');
       card.apply(pl);
       state = 'playing';
+      afterLevelUp();
     });
   }
 
@@ -425,6 +427,7 @@ G.Game = (() => {
       G.Spawner.say('¡Vínculo! ' + group.length + ' movimientos a la vez', 2.6, true);
       if (state === 'choice') state = holdBy.length ? 'held' : 'playing';
       if (G.Coop.active) G.Coop.holdEnd();
+      afterLevelUp();                // los objetos que han llegado mientras elegías
     });
   }
 
@@ -438,48 +441,64 @@ G.Game = (() => {
    * las cartas llegan con la elección de objeto abierta, ésta vuelve a salir al
    * terminar. (Antes una cerraba la otra, nadie podía terminar de elegir y la
    * partida se quedaba parada para todos.)
+   * Las elecciones van de una en una: un objeto que llega con otra abierta
+   * (cartas, vínculo u otro objeto) espera en laterItems. (Hasta el 21-10-2026,
+   * dos objetos a la vez dejaban la partida parada para siempre.)
    */
   let openItem = null;           // { cur, next, take } elección de objeto sin terminar
-  const laterItems = [];         // objetos recogidos con las cartas de nivel abiertas
+  const laterItems = [];         // objetos que esperan a que se cierre otra elección
   function afterLevelUp() {
     if (state !== 'playing' && state !== 'held') return;
     if (openItem && !G.UI.isOpen('scr-item')) {
       const o = openItem;
-      if (o.mine) { state = 'choice'; if (G.Coop.active) G.Coop.holdStart(); }
+      state = 'choice';
+      if (G.Coop.active) G.Coop.holdStart();
       G.RunUI.showItemChoice(o.cur, o.next, o.take);
       return;
     }
     if (laterItems.length) offerItem(laterItems.shift());
   }
 
-  /** Has cogido un objeto: si no llevas ninguno te lo pones; si no, eliges. */
+  /**
+   * Has cogido un objeto: eliges si te lo pones (o, si ya llevas otro, con cuál
+   * te quedas). Antes el primero se ponía solo y no había forma de quitárselo.
+   */
   function offerItem(id) {
     if (!pl || !G.Items.BY[id]) return;
-    if (state === 'levelup' || G.UI.isOpen('scr-levelup')) { laterItems.push(id); return; }
-    let mine = false;            // esta elección es la que ha parado el juego
+    if ((state !== 'playing' && state !== 'held') || openItem || ['scr-levelup', 'scr-bond', 'scr-item'].some(G.UI.isOpen)) {
+      laterItems.push(id);
+      return;
+    }
+    // El que ya llevas no te sirve de nada: sale otro.
+    if (id === pl.item) id = G.Items.roll(pl.item);
+    // Cuenta como encontrado (misiones y logros) aunque no te lo quedes.
+    G.Progress.event('item', { id });
     const take = got => {
       openItem = null;
       if (got !== pl.item) {
         pl.equip(got);
         G.Spawner.say('¡Llevas ' + G.Items.BY[got].name + '!', 2.6, true);
-        G.Progress.event('item', { id: got });
       }
-      if (!mine) { afterLevelUp(); return; }
       if (state === 'choice') state = holdBy.length ? 'held' : 'playing';
       if (G.Coop.active) G.Coop.holdEnd();
       afterLevelUp();
     };
-    if (!pl.item) { take(id); return; }
-    if (pl.item === id) { G.Spawner.say('Ya llevas ' + G.Items.BY[id].name, 2, true); return; }
     // Se para el juego mientras eliges; en grupo, para todos (como con las
     // fusiones). Antes en grupo seguía y te pegaban mientras elegías.
-    if (state === 'playing' || state === 'held') {
-      mine = true;
-      state = 'choice';
-      if (G.Coop.active) G.Coop.holdStart();
-    }
-    openItem = { cur: pl.item, next: id, take, get mine() { return mine; } };
+    state = 'choice';
+    if (G.Coop.active) G.Coop.holdStart();
+    openItem = { cur: pl.item, next: id, take };
     G.RunUI.showItemChoice(pl.item, id, take);
+  }
+
+  /** Tira el objeto que llevas (botón de la pausa). Se pierde: no se queda en el suelo. */
+  function dropItem() {
+    if (!pl || !pl.item || state === 'ui' || state === 'over') return false;
+    const it = G.Items.BY[pl.item];
+    pl.equip(null);
+    G.UI.toast('Has tirado ' + it.name, 2400);
+    G.Audio.sfx('back');
+    return true;
   }
 
   /** @param who  quien lo ha cogido (en cooperativo puede ser un compañero) */
@@ -556,9 +575,12 @@ G.Game = (() => {
       return;
     }
     if (G.UI.isOpen('scr-item')) {
-      for (let i = 0; i < 2; i++) {
-        if (G.Input.tap('digit' + (i + 1)) || G.Input.tap('numpad' + (i + 1))) document.querySelectorAll('#item-cards .card')[i].click();
-      }
+      document.querySelectorAll('#item-cards .card').forEach((c, i) => {
+        if (G.Input.tap('digit' + (i + 1)) || G.Input.tap('numpad' + (i + 1))) c.click();
+      });
+      // Esc (y B en el mando): no lo quiero / me quedo con el que llevo.
+      const no = document.querySelector('#item-cards .card[data-refuse]');
+      if (G.Input.tap('escape') && no) no.click();
       return;
     }
     if (state === 'ui') {
@@ -916,7 +938,7 @@ G.Game = (() => {
     debugTime(t) { tampered = true; time = t; },
     /** Para grabar vídeos: cámara lenta (0,5 = mitad de velocidad). */
     debugSpeed(k) { if (k > 1) tampered = true; speedK = k; },
-    togglePause,
+    togglePause, dropItem,
     /** Abandona la partida en curso (p. ej. al cerrar sesión desde Ajustes). */
     quit() { if (state !== 'ui' && state !== 'over') quitRun(); },
     /** Para grabar vídeos: abre las cartas de subir de nivel. */

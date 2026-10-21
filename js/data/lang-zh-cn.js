@@ -116,7 +116,7 @@ G.I18n.add({
   "Recuperas vida con el daño que haces.": "依造成的伤害恢复生命值。",
   "+50% de Pokémonedas al acabar la run.": "本局结束时获得的宝可币 +50%。",
   "+30% de experiencia.": "经验 +30%。",
-  "+30% de daño, pero cada ataque te quita un poco de vida.": "伤害 +30%，但每次攻击会消耗少量生命值。",
+  "+30% de daño, pero cada ataque contra enemigos te quita el 1% de tu vida máxima (nunca te deja KO).": "伤害 +30%，但每次攻击敌人会消耗最大生命值的 1%（不会因此倒下）。",
   "+35% de velocidad.": "速度 +35%。",
   "Los que te golpean cuerpo a cuerpo reciben daño.": "以近战攻击你的敌人会受到伤害。",
   "+20% de reducción de daño recibido.": "受到的伤害减少 20%。",

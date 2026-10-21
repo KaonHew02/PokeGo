@@ -1,7 +1,8 @@
 /* ============ items.js — objetos equipables (uno por run) ============
  * Se encuentran en los cofres (a veces en los normales, a menudo en los de
- * candado) y los sueltan los jefes. Sólo puedes llevar UNO; si encuentras
- * otro, eliges con cuál quedarte. Duran lo que dura la run.
+ * candado) y los sueltan los jefes. Sólo puedes llevar UNO: al cogerlo eliges
+ * si te lo pones (o con cuál te quedas) y desde la pausa puedes tirar el que
+ * llevas. Duran lo que dura la run.
  *
  *   on(pl)   se lo pones (lo que hace mientras lo llevas)
  *   off(pl)  se lo quitas (deshace lo de on)
@@ -25,14 +26,16 @@ G.Items = (() => {
       on: p => { p.coinMul *= 1.5; }, off: p => { p.coinMul /= 1.5; } },
     { id: 'luckyegg', name: 'Huevo Suerte', desc: '+30% de experiencia.',
       on: p => { p.xpMul *= 1.3; }, off: p => { p.xpMul /= 1.3; } },
-    { id: 'lifeorb', name: 'Vidasfera', desc: '+30% de daño, pero cada ataque te quita un poco de vida.',
+    // El coste lo cobra Player.cast, sólo si el ataque tiene a quién darle (combat.js: hasFoe).
+    { id: 'lifeorb', name: 'Vidasfera', desc: '+30% de daño, pero cada ataque contra enemigos te quita el 1% de tu vida máxima (nunca te deja KO).',
       on: p => { p.atkMul *= 1.3; }, off: p => { p.atkMul /= 1.3; } },
     { id: 'choicescarf', name: 'Pañuelo Elección', desc: '+35% de velocidad.',
       on: p => { p.spdMul *= 1.35; }, off: p => { p.spdMul /= 1.35; } },
     { id: 'rockyhelmet', name: 'Casco Dentado', desc: 'Los que te golpean cuerpo a cuerpo reciben daño.',
       on: () => {}, off: () => {} },
+    // Lo suyo va aparte (_vest): el tope de la carta Coraza no lo cuenta y al quitártelo resta justo eso.
     { id: 'assaultvest', name: 'Chaleco Asalto', desc: '+20% de reducción de daño recibido.',
-      on: p => { p.dmgReduce += 0.2; }, off: p => { p.dmgReduce -= 0.2; } }
+      on: p => { p._vest = 0.2; p.dmgReduce += 0.2; }, off: p => { p.dmgReduce -= p._vest || 0; p._vest = 0; } }
   ];
   const BY = {};
   for (const it of LIST) BY[it.id] = it;
@@ -43,5 +46,11 @@ G.Items = (() => {
     return G.U.pick(pool).id;
   }
 
-  return { LIST, BY, roll };
+  /** El que suelta un cofre o un jefe: en solitario, nunca el que llevas (en grupo lo cambia cada uno al cogerlo). */
+  function rollDrop() {
+    const p = !G.Coop.active && G.Game.player;
+    return roll(p ? p.item : null);
+  }
+
+  return { LIST, BY, roll, rollDrop };
 })();

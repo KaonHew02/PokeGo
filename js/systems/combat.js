@@ -35,7 +35,7 @@ G.Combat = (() => {
       return;
     }
     m.t = Math.max(0.05, m.cd * pl.cdMul);
-    pl.cast(m);
+    pl.cast(m, hasFoe(pl, m));
     if (G.Coop.active) G.Coop.cast(pl, m);
     // Vínculo: su icono destella en el HUD al lanzarse (uno que explota pegado al
     // enemigo, como Ascuas tras Ataque Rápido, casi no se ve).
@@ -89,6 +89,23 @@ G.Combat = (() => {
     if (m.kind === 'quake') return (m.count | 0) * QSTEP + m.radius;
     if (m.kind === 'vortex' || m.kind === 'stun') return 300;
     return 520;
+  }
+
+  /*
+   * ¿Este lanzamiento tiene a quién darle? (la Vidasfera sólo cobra vida si sí).
+   * Las mejoras no hacen daño; los de blanco necesitan uno a tiro (con "Apuntar
+   * a mano" se lanzan sin él) y los de zona, algún enemigo a su alcance: el aura
+   * su radio, la onda lo que vuelan sus disparos y minas y torretas, lo de
+   * siempre (se quedan un rato y llegan los que vienen).
+   */
+  function hasFoe(pl, m) {
+    if (m.kind === 'buff' || m.kind === 'trail' || m.kind === 'orbit') return false;
+    if (TARGETED.includes(m.kind)) {
+      const t = pl.target;
+      return !!(t && t.hurt && !t.dead && G.U.dist(pl.x, pl.y, t.x, t.y) <= reach(m));
+    }
+    const r = m.kind === 'aura' ? m.radius : m.kind === 'nova' ? m.speed * m.life || reach(m) : reach(m);
+    return G.EnemyMgr.queryCircle(pl.x, pl.y, r).length > 0;
   }
 
   function payload(m) {

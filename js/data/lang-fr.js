@@ -326,7 +326,7 @@ G.I18n.add({
   "Recuperas vida con el daño que haces.": "Tu récupères des PV avec les dégâts que tu infliges.",
   "+50% de Pokémonedas al acabar la run.": "+50\u00a0% de Poképièces à la fin de la run.",
   "+30% de experiencia.": "+30\u00a0% d'expérience.",
-  "+30% de daño, pero cada ataque te quita un poco de vida.": "+30\u00a0% de dégâts, mais chaque attaque te coûte quelques PV.",
+  "+30% de daño, pero cada ataque contra enemigos te quita el 1% de tu vida máxima (nunca te deja KO).": "+30\u00a0% de dégâts, mais chaque attaque contre des ennemis te coûte 1\u00a0% de tes PV max (elle ne te met jamais K.O.).",
   "+35% de velocidad.": "+35\u00a0% de vitesse.",
   "Los que te golpean cuerpo a cuerpo reciben daño.": "Ceux qui te frappent au corps à corps subissent des dégâts.",
   "+20% de reducción de daño recibido.": "+20\u00a0% de réduction des dégâts subis.",
