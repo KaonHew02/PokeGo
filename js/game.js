@@ -150,6 +150,7 @@ G.Game = (() => {
       G.Social.setPlaying(true);
     }
     G.Camera.x = pl.x; G.Camera.y = pl.y; G.Camera.shake = 0;
+    specReset(); lastView = null;
     // Hojas de sprites locales: el compañero y los primeros enemigos.
     G.Sprites.preload([mon.dex], 8000, pl.shiny);
     G.Audio.music(G.BIOME_MUSIC[0]);
@@ -245,6 +246,8 @@ G.Game = (() => {
     lost(msg) { G.UI.toast(msg, 3600); endRun(false); },
     item(id) { offerItem(id); },
     mateLeft() {},
+    /** Invitado caído mirando a otro: dónde está la cámara (el anfitrión le manda los enemigos de allí). */
+    specAt() { return pl && pl.dead && view() !== pl ? [Math.round(G.Camera.x), Math.round(G.Camera.y)] : null; },
     /** Grupo: quién está eligiendo fusión. Mientras haya alguien, todo parado. */
     hold(names) {
       holdBy = names || [];
@@ -306,6 +309,7 @@ G.Game = (() => {
     if (G.Coop.active) G.Coop.end();
     if (coop) G.Social.setPlaying(false);
     state = 'over';
+    specReset();
     G.Audio.music(null);
     G.Audio.sfx(dead ? 'gameover' : 'back');
     const save = G.DB.save;
@@ -542,7 +546,7 @@ G.Game = (() => {
       return;
     }
     if (p.kind === 'bomb') {
-      if (G.U.dist2(who.x, who.y, pl.x, pl.y) < 500 * 500) G.Camera.kick(0.8);
+      if (G.U.dist2(who.x, who.y, G.Camera.x, G.Camera.y) < 500 * 500) G.Camera.kick(0.8);     // si se ve cerca
       const R = G.Camera.outerRadius();
       G.FX.ring(who.x, who.y, 20, R, '#ff7b3d', 0.5, 6);
       for (const e of G.EnemyMgr.all()) {
@@ -591,11 +595,89 @@ G.Game = (() => {
     }
     if (G.Input.tap('escape') || G.Input.tap('keyp')) { togglePause(); return; }
     if (state !== 'playing' || !pl) return;
+    // Caído: 1-4 dejan elegido el ataque para cuando te levanten (sin sonido ni
+    // efectos). En grupo, Q / E / Tab (LB / RB / A en el mando) cambian a quién miras.
+    if (pl.dead) {
+      for (let i = 0; i < 4; i++) {
+        if (G.Input.tap('digit' + (i + 1)) || G.Input.tap('numpad' + (i + 1))) pl.setActive(i, true);
+      }
+      if (G.Input.tap('keyq')) specCycle(-1);
+      if (G.Input.tap('keye') || G.Input.tap('tab') || G.Input.tap('space')) specCycle(1);
+      return;
+    }
     for (let i = 0; i < 4; i++) {
       if (G.Input.tap('digit' + (i + 1)) || G.Input.tap('numpad' + (i + 1))) pl.setActive(i);
     }
     if (G.Input.tap('keyq')) pl.cycle(-1);
     if (G.Input.tap('keye') || G.Input.tap('tab')) pl.cycle(1);
+  }
+
+  // ---------------- mirar a un compañero (caído en grupo) ----------------
+  // Mientras esperas a que te levanten, la cámara sigue a un compañero en pie:
+  // al caer, el más cercano (el que antes puede venir). Q / E, las flechas o su
+  // nombre en el HUD cambian a otro; tu Pokémon va el último. Si el que miras
+  // cae o se va, se le sigue viendo un momento y luego al siguiente; si no queda
+  // nadie en pie, a tu Pokémon. Al levantarte, la cámara vuelve a ti en el acto.
+
+  const SPEC_HOLD = 1.2;            // s que se sigue mirando al que cae o se va
+  let specUid = null;               // a quién miras (uid) o null
+  let specSelf = false;             // has elegido mirar a tu Pokémon
+  let specHold = 0, lastView = null;
+
+  function specReset() { specUid = null; specSelf = false; specHold = 0; }
+
+  /** Compañeros a los que se puede mirar: en pie, conectados y con datos; en el orden de la sala. */
+  function specList() { return G.Coop.active ? G.Coop.mates.filter(m => G.Coop.fresh(m) && !m.pl.dead) : []; }
+
+  /** Lo que sigue la cámara: tu Pokémon o, caído en grupo, el compañero al que miras. */
+  function view() {
+    const m = pl && pl.dead && G.Coop.active && specUid != null ? G.Coop.mate(specUid) : null;
+    return m ? m.pl : pl;
+  }
+
+  function specTick(dt) {
+    if (!G.Coop.active || !pl.dead) { specReset(); return; }
+    if (specSelf) return;
+    const list = specList(), cur = specUid != null ? G.Coop.mate(specUid) : null;
+    if (cur && list.includes(cur)) { specHold = SPEC_HOLD; return; }
+    if (cur && (specHold -= dt) > 0) return;
+    // Al caer, el más cercano a tu Pokémon; si el que mirabas ha caído o se ha ido, el siguiente.
+    let next = null;
+    if (cur) next = specStep(cur, 1, list);
+    else for (const m of list) if (!next || G.U.dist2(m.pl.x, m.pl.y, pl.x, pl.y) < G.U.dist2(next.pl.x, next.pl.y, pl.x, pl.y)) next = m;
+    specUid = next ? next.uid : null; specHold = SPEC_HOLD;
+  }
+
+  /**
+   * El siguiente (dir 1) o el anterior (-1) a partir de `from`, en el orden de
+   * la sala, de entre los de `list`; con `self` cuenta también tu Pokémon (null, el último).
+   */
+  function specStep(from, dir, list, self = false) {
+    const all = [...G.Coop.mates, null], n = all.length;
+    let i = all.indexOf(from || null);
+    if (i < 0) i = n - 1;
+    for (let k = 1; k <= n; k++) {
+      const m = all[((i + k * dir) % n + n) % n];
+      if (m ? list.includes(m) : self) return m;
+    }
+    return null;
+  }
+
+  /** Cambia a quién miras: 1 el siguiente, -1 el anterior. */
+  function specCycle(dir) {
+    if (state !== 'playing' || !pl || !pl.dead || !G.Coop.active) return;
+    const list = specList();
+    if (!list.length) return;
+    const next = specStep(specSelf || specUid == null ? null : G.Coop.mate(specUid), dir, list, true);
+    specSelf = !next; specUid = next ? next.uid : null; specHold = SPEC_HOLD;
+  }
+
+  /** Mira a ese compañero (null: a tu Pokémon). Desde el HUD: tocar su nombre o una flecha. */
+  function specSet(uid) {
+    if (state !== 'playing' || !pl || !pl.dead || !G.Coop.active) return;
+    const m = uid == null ? null : G.Coop.mate(uid);
+    if (m && !specList().includes(m)) return;
+    specSelf = !m; specUid = m ? m.uid : null; specHold = SPEC_HOLD;
   }
 
   // ---------------- bucle ----------------
@@ -691,7 +773,17 @@ G.Game = (() => {
       for (const p of G.Coop.puppets()) { p.netUpdate(dt); G.Combat.ghostOrbit(p, dt, time); }
       if (pl.dead) reviveTick(dt);
     }
-    G.Camera.follow(pl.x, pl.y, dt);
+    // Cámara: tu Pokémon o, caído en grupo, el compañero al que miras. Va después
+    // de reviveTick: si te acaban de levantar, vuelve a ti en este mismo fotograma
+    // (antes de descartar disparos lejos de la vista y de apuntar con el ratón).
+    specTick(dt);
+    const v = view();
+    if (v !== lastView) {
+      // Al cambiar a quién se mira: salta si te levantan o si está lejos; si no, se desliza.
+      if (lastView && (!pl.dead || G.U.dist2(G.Camera.x, G.Camera.y, v.x, v.y) > G.Camera.w * G.Camera.w)) { G.Camera.x = v.x; G.Camera.y = v.y; }
+      lastView = v;
+    }
+    G.Camera.follow(v.x, v.y, dt);
     G.World.update(dt, G.Camera);
 
     const all = everyone();
@@ -769,7 +861,8 @@ G.Game = (() => {
    * delante de tu Pokémon si apuntas con el stick derecho.
    */
   function drawAimMark() {
-    const on = state === 'playing' && pl && pl.manualAim && !G.Judgment.cinematic;
+    // Caído no se apunta (manualAim se quedaba con lo último de antes de caer).
+    const on = state === 'playing' && pl && !pl.dead && pl.manualAim && !G.Judgment.cinematic;
     const cur = on && !G.Pad.aim() ? 'crosshair' : '';
     if (cv.style.cursor !== cur) cv.style.cursor = cur;
     if (!on) return;
@@ -943,7 +1036,11 @@ G.Game = (() => {
     quit() { if (state !== 'ui' && state !== 'over') quitRun(); },
     /** Para grabar vídeos: abre las cartas de subir de nivel. */
     debugLevelUp() { tampered = true; pl.level++; pendingLevels++; },
-    toUI() { state = 'ui'; if (cv) cv.style.cursor = ''; Backdrop.restore(); },
+    toUI() { state = 'ui'; specReset(); if (cv) cv.style.cursor = ''; Backdrop.restore(); },
+    /** Caído en grupo: lo que sigue la cámara, a quién se puede mirar y cambiarlo (ver arriba). */
+    view, specList, specCycle, specSet,
+    /** El compañero al que miras (null si la cámara está en tu Pokémon). */
+    get spectating() { return view() !== pl ? G.Coop.mate(specUid) || null : null; },
     get state() { return state; }, get player() { return pl; }, st
   };
 })();

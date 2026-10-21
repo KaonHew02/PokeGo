@@ -837,5 +837,9 @@ G.I18n.add({
   // ---- fin cooperativo ----
 
   // ---- PokéGo: mirar a un compañero al caer ----
+  'Mirando a {x}': 'Watching {x}', 'Mirando a tu Pokémon': 'Watching your Pokémon', 'Tú · {x} m': 'You · {x} m',
+  'Q / E: cambiar de compañero': 'Q / E: switch teammate', 'LB / RB: cambiar de compañero': 'LB / RB: switch teammate',
+  'Toca las flechas para cambiar de compañero': 'Tap the arrows to switch teammate',
+  '{x} no ha podido entrar en la partida': '{x} couldn\'t join the game',
   // ---- fin mirar ----
 });

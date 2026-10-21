@@ -153,17 +153,19 @@ G.Player = class Player {
 
   hasMove(id) { return this.moves.some(m => m.id === id); }
 
-  setActive(i) {
+  /** @param quiet  sin sonido ni efectos (caído: se deja elegido para cuando te levanten) */
+  setActive(i, quiet = false) {
     if (i < 0 || i >= this.slots.length || i === this.active) return;
     // Cinta Elección: no se puede cambiar de movimiento.
     if (this.hasItem('choiceband') && this.slots[this.active]) {
-      G.FX.dmgText(this.x, this.y - this.bodyH - 8, 'Cinta Elección', '#ff8ad8');
+      if (!quiet) G.FX.dmgText(this.x, this.y - this.bodyH - 8, 'Cinta Elección', '#ff8ad8');
       return;
     }
     this.active = i;
     G.Projectiles.clearOrbs(this);
-    G.Audio.sfx('select');
     for (const m of this.slots[i]) m.t = Math.min(m.t, m.cd * 0.35);
+    if (quiet) return;
+    G.Audio.sfx('select');
     const m = this.slots[i][0];
     G.FX.ring(this.x, this.y - G.LIFT * 0.5, 6, this.r * 3.4, G.U.TYPE_COLOR[m.type], 0.3, 3);
   }

@@ -676,6 +676,39 @@
     // ---- fin cooperativo ----
 
     // ---- PokéGo: mirar a un compañero al caer ----
+    ["Mirando a {x}", "Tu regardes {x}", "Stai guardando {x}", "Observando {x}", "正在观看 {x}", "正在觀看 {x}"],
+    ["Mirando a tu Pokémon", "Tu regardes ton Pokémon", "Stai guardando il tuo Pokémon", "Observando seu Pokémon", "正在观看你的宝可梦", "正在觀看你的寶可夢"],
+    ["Tú · {x} m", "Toi · {x} m", "Tu · {x} m", "Você · {x} m", "你 · {x} 米", "你 · {x} 公尺"],
+    ["Q / E: cambiar de compañero", "Q / E : changer de coéquipier", "Q / E: cambia compagno", "Q / E: trocar de companheiro", "Q／E 切换队友", "Q／E 切換隊友"],
+    ["LB / RB: cambiar de compañero", "LB / RB : changer de coéquipier", "LB / RB: cambia compagno", "LB / RB: trocar de companheiro", "LB／RB 切换队友", "LB／RB 切換隊友"],
+    ["Toca las flechas para cambiar de compañero", "Touche les flèches pour changer de coéquipier", "Tocca le frecce per cambiare compagno", "Toque nas setas para trocar de companheiro", "点击箭头切换队友", "點擊箭頭切換隊友"],
+    ["{x} no ha podido entrar en la partida", "{x} n’a pas pu rejoindre la partie", "{x} non è riuscito a entrare nella partita", "{x} não conseguiu entrar na partida", "{x} 未能加入游戏", "{x} 未能加入遊戲"],
+    // Novedades (changelog.js)
+    ["Mirar a tus compañeros al caer", "Regarder tes coéquipiers quand tu es K.O.", "Guarda i tuoi compagni quando sei a terra", "Assista aos seus companheiros quando cair", "倒下时观看队友", "倒下時觀看隊友"],
+    ["Cooperativo: al caer, la cámara sigue al compañero que tengas más cerca mientras esperas a que te levante. Cambia de compañero con Q / E, LB / RB o tocando las flechas o su nombre (tu Pokémon va el último), y al levantarte la cámara vuelve a ti.",
+     "Coopératif : quand tu es K.O., la caméra suit le coéquipier le plus proche pendant que tu attends qu’il te relève. Change de coéquipier avec Q / E, LB / RB ou en touchant les flèches ou son nom (ton Pokémon vient en dernier), et la caméra revient sur toi quand tu es relevé.",
+     "Cooperativa: quando sei a terra, la telecamera segue il compagno più vicino mentre aspetti che ti rianimi. Cambia compagno con Q / E, LB / RB o toccando le frecce o il suo nome (il tuo Pokémon è l’ultimo), e quando vieni rianimato la telecamera torna su di te.",
+     "Cooperativo: ao cair, a câmera segue o companheiro mais próximo enquanto você espera que ele te levante. Troque de companheiro com Q / E, LB / RB ou tocando nas setas ou no nome dele (seu Pokémon é o último), e ao ser levantado a câmera volta para você.",
+     "合作模式：倒下后，在等待队友救起你时，镜头会跟随离你最近的队友。可以用 Q / E、LB / RB，或点击箭头或队友名字切换队友（你自己的宝可梦排在最后）；被救起后，镜头会回到你身上。",
+     "合作模式：倒下後，在等待隊友救起你時，鏡頭會跟隨離你最近的隊友。可以用 Q / E、LB / RB，或點擊箭頭或隊友名字切換隊友（你自己的寶可夢排在最後）；被救起後，鏡頭會回到你身上。"],
+    ["Cooperativo: un compañero que dejaba la partida se quedaba quieto en la pantalla de los demás invitados (y hasta podía levantarte). Ahora desaparece para todos.",
+     "Coopératif : un coéquipier qui quittait la partie restait figé sur l’écran des autres invités (et pouvait même te relever). Il disparaît maintenant pour tout le monde.",
+     "Cooperativa: un compagno che lasciava la partita restava fermo sullo schermo degli altri ospiti (e poteva perfino rianimarti). Ora scompare per tutti.",
+     "Cooperativo: um companheiro que saía da partida ficava parado na tela dos outros convidados (e podia até te levantar). Agora ele desaparece para todos.",
+     "合作模式：队友离开游戏后，会一直静止地留在其他玩家的画面中（甚至还能救起你）。现在他会对所有人消失。",
+     "合作模式：隊友離開遊戲後，會一直靜止地留在其他玩家的畫面中（甚至還能救起你）。現在他會對所有人消失。"],
+    ["Cooperativo: si un compañero no llegaba a entrar en la partida, las cartas de nivel se quedaban esperando a que eligiera para siempre. Ahora, si a los 10 segundos no ha entrado, la partida sigue sin él.",
+     "Coopératif : si un coéquipier n’arrivait pas à entrer dans la partie, les cartes de niveau attendaient son choix indéfiniment. Désormais, s’il n’est pas entré au bout de 10 secondes, la partie continue sans lui.",
+     "Cooperativa: se un compagno non riusciva a entrare nella partita, le carte di livello aspettavano per sempre la sua scelta. Ora, se dopo 10 secondi non è entrato, la partita continua senza di lui.",
+     "Cooperativo: se um companheiro não conseguia entrar na partida, as cartas de nível ficavam esperando a escolha dele para sempre. Agora, se ele não entrar em 10 segundos, a partida continua sem ele.",
+     "合作模式：如果有队友没能进入游戏，升级卡片会一直等待他做出选择。现在若 10 秒后他仍未进入，游戏会在没有他的情况下继续。",
+     "合作模式：如果有隊友沒能進入遊戲，升級卡片會一直等待他做出選擇。現在若 10 秒後他仍未進入，遊戲會在沒有他的情況下繼續。"],
+    ["Con «Apuntar a mano», la mira se quedaba en pantalla con tu Pokémon caído, y cambiar de ataque estando caído hacía sonidos y efectos sobre él. Ahora la mira se quita y 1-4 sólo dejan elegido el ataque para cuando te levanten.",
+     "Avec la Visée manuelle, le viseur restait à l’écran quand ton Pokémon était K.O., et changer d’attaque en étant K.O. faisait des sons et des effets sur lui. Désormais, le viseur disparaît et 1-4 choisissent seulement l’attaque pour quand tu seras relevé.",
+     "Con la Mira manuale, il mirino restava sullo schermo con il tuo Pokémon a terra, e cambiare mossa mentre eri a terra produceva suoni ed effetti su di lui. Ora il mirino sparisce e 1-4 scelgono soltanto la mossa per quando verrai rianimato.",
+     "Com a Mira manual, a mira continuava na tela com seu Pokémon caído, e trocar de golpe enquanto estava caído fazia sons e efeitos nele. Agora a mira some e 1-4 só deixam o golpe escolhido para quando você for levantado.",
+     "开启“手动瞄准”时，宝可梦倒下后准星仍会留在屏幕上，倒下时切换招式还会在它身上播放音效和特效。现在准星会消失，按 1-4 只会预选招式，等你被救起后使用。",
+     "開啟「手動瞄準」時，寶可夢倒下後準星仍會留在螢幕上，倒下時切換招式還會在牠身上播放音效和特效。現在準星會消失，按 1-4 只會預選招式，等你被救起後使用。"],
     // ---- fin mirar ----
   ];
   languages.forEach((lang, i) => G.I18n.add(Object.fromEntries(rows.map(r => [r[0], r[i + 1]])), lang));

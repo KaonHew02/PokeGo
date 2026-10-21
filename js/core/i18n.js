@@ -50,6 +50,7 @@ G.I18n = (() => {
     // ---- fin cooperativo ----
 
     // ---- PokéGo: mirar a un compañero al caer ----
+    'Mirando a {x}', '{x} no ha podido entrar en la partida',
     // ---- fin mirar ----
   ]);
   const L = '\\p{L}\\p{N}';

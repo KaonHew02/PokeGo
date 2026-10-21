@@ -368,10 +368,125 @@ test('real Coop.tick frames pass through the codec without changing gameplay fie
       magnet: 78, aim: -1.43, xpMul: 1.2, reviveT: 0, activeGroup: () => [{ id: 'thundershock', lvl: 3 }] };
     G.Coop.begin({ host: 'host', members: [{ uid: 'host', name: 'Aarón', dex: 25 }, { uid: 'guest', name: '皮卡丘', dex: 25 }] }, local,
       { team: () => ({ time: 145.12, level: 7, xp: 123.45, xpNext: 300, kills: 52, bosses: 2, coins: 40, t1: 1, t10: 0 }), choosing: () => false });
+    // The guest says hello from begin() (even with its tab in the background); the host waits for its tick.
+    const hello = sent.splice(0);
+    assert.equal(hello.length, host ? 0 : 1);
+    if (!host) assert.equal(hello[0].p.length, 15);
     G.Coop.tick(1 / 15);
     assert.equal(sent.length, 1);
     assert.deepEqual(C.decode(C.encode(sent[0])), sent[0]);
     if (host) { assert.deepEqual(sent[0].e, [[123, 50, -10, 126, 1, 3, 1]]); assert.ok('ho' in sent[0]); }
     else { assert.equal(sent[0].p.length, 15); }
   }
+});
+
+// Real js/net/coop.js with a fake network, clock and game: `uid` plays in a room of host + a + b.
+function coopSim(uid) {
+  const sent = [], said = [], lost = [], waits = [], clock = { now: 0 }, net = {}, G = {};
+  G.Net = { uid, on: fn => { net.msg = fn; }, onPeer: fn => { net.peer = fn; }, slow: () => false,
+    send: (to, f) => sent.push([to, f]), toHost: f => sent.push(['host', f]) };
+  G.Player = class { constructor() { this.maxHp = 300; } };
+  G.DEX_BY = { 25: { dex: 25 } }; G.baseStartOf = () => 'thundershock';
+  G.Sprites = { preload() {} }; G.Social = { me: null };
+  G.U = { dist2: (x, y, a, b) => (x - a) ** 2 + (y - b) ** 2, clamp: (v, a, b) => Math.max(a, Math.min(b, v)) };
+  const enemy = (id, x, y) => ({ id, x, y, hp: 50, anim: { cur: 'Walk', dir: 0 } });
+  G.EnemyMgr = { all: () => [enemy(1, 0, 0), enemy(2, 3000, 0)], get: () => null };
+  G.Judgment = { netState: () => null }; G.Projectiles = { clearOrbs() {} };
+  G.Spawner = { say: t => said.push(t) };
+  new Function('G', 'document', 'performance', source('js/net/coop.js'))(G, { addEventListener() {} }, { now: () => clock.now });
+  const local = { x: 0, y: 0, moveAngle: 0, walking: false, hp: 300, maxHp: 300, dead: false, magnet: 78, aim: 0,
+    xpMul: 1, reviveT: 0, activeGroup: () => [{ id: 'thundershock', lvl: 1 }] };
+  const api = { spec: null, specAt() { return this.spec; }, choosing: () => false, syncTeam() {}, levelStart() {}, resume() {},
+    team: () => ({ time: 1, level: 1, xp: 0, xpNext: 9, kills: 0, bosses: 0, coins: 0, t1: 0, t10: 0 }),
+    waiting: n => waits.push(n), lost: m => lost.push(m) };
+  G.Coop.begin({ host: 'host', members: [{ uid: 'host', name: 'Hugo', dex: 25 }, { uid: 'a', name: 'Ana', dex: 25 }, { uid: 'b', name: 'Bea', dex: 25 }] }, local, api);
+  // A 15-entry state like myState() makes: [x, y, ..., dead (6), ...].
+  const state = (x, y, dead = 0) => [x, y, 0, 0, dead ? 0 : 300, 300, dead, 'thundershock', 1, 78, 0, 1, 0, 0, 0];
+  const hostFrame = (p, ev = []) => ({ k: 'f', t: 1, lv: 1, xp: 0, xn: 9, ki: 0, bo: 0, co: 0, tk: [0, 0], p, e: [], ev, ho: [] });
+  const to = u => sent.filter(([d]) => d === u).map(([, f]) => f);
+  return { C: G.Coop, sent, to, said, lost, waits, clock, net, api, local, state, hostFrame };
+}
+
+test('a downed guest sends the spectated view as a separate sp key; its state stays 15 entries', () => {
+  const s = coopSim('a');
+  assert.equal(s.sent.length, 1);                          // hello from begin(), before any tick
+  assert.equal(s.sent[0][1].p.length, 15); assert.ok(!('sp' in s.sent[0][1]));
+  s.sent.length = 0; s.local.dead = true; s.api.spec = [400, -300];
+  s.C.tick(1 / 15);
+  const f = s.sent[0][1];
+  assert.equal(f.p.length, 15); assert.equal(f.p[6], 1); assert.deepEqual(f.sp, [400, -300]);
+  assert.deepEqual(C.decode(C.encode(f)), f);
+  s.api.spec = null; s.C.toHost(['re']);                   // watching your own Pokémon again: no sp
+  assert.ok(!('sp' in s.sent[1][1])); assert.deepEqual(s.sent[1][1].ev, [['re']]);
+});
+
+test('host lists enemies and damage numbers around the point a downed guest is watching', () => {
+  const s = coopSim('host');
+  const frame = (dead, sp) => s.net.msg('a', Object.assign({ k: 'f', p: s.state(34, 0, dead), ev: [] }, sp === undefined ? {} : { sp }));
+  const tick = () => { s.C.tick(1); return s.to('a').at(-1); };
+  frame(1, [3000, 10]);
+  assert.deepEqual(tick().e.map(e => e[0]), [2]);         // only the enemies by the teammate being watched
+  s.C.hurtShown({ id: 2, x: 3000, y: 0 }, 12, '#fff'); s.C.hurtShown({ id: 1, x: 0, y: 0 }, 7, '#fff');
+  assert.deepEqual(tick().ev, [['hn', 2, 12, '#fff']]);
+  frame(0, [3000, 10]);
+  assert.deepEqual(tick().e.map(e => e[0]), [1]);         // standing: always around its own Pokémon
+  frame(1);
+  assert.deepEqual(tick().e.map(e => e[0]), [1]);         // older clients send no sp
+  for (const bad of [[null, 2], [1], ['1', 2], 'x', [1, 2, 3]]) { frame(1, bad); assert.deepEqual(tick().e.map(e => e[0]), [1]); }
+});
+
+test("host tells everyone when a teammate leaves ('gone'); guests drop it, also if that notice is lost", () => {
+  const h = coopSim('host');
+  h.net.msg('a', { k: 'f', p: h.state(10, 0), ev: [] }); h.net.msg('b', { k: 'f', p: h.state(20, 0), ev: [] });
+  h.net.peer('a', 'closed');
+  assert.equal(h.C.mate('a').connected, false); assert.equal(h.C.players().length, 2);
+  assert.deepEqual(h.to('a').at(-1).ev.at(-1), ['gone', 'a']);        // also to the one who left, in case it is still there
+  h.C.tick(1);
+  const fb = h.to('b').at(-1);
+  assert.ok(fb.ev.some(e => e[0] === 'gone' && e[1] === 'a')); assert.deepEqual(Object.keys(fb.p), ['host']);
+  assert.ok(h.said.includes('Ana ha dejado la partida'));
+
+  const g = coopSim('b');
+  assert.equal(g.C.fresh(g.C.mate('a')), false);                       // nothing heard of Ana yet
+  g.net.msg('host', g.hostFrame({ host: g.state(0, 0), a: g.state(10, 0) }));
+  assert.equal(g.C.fresh(g.C.mate('a')), true); assert.equal(g.C.players().length, 3);
+  g.net.msg('host', g.hostFrame({ host: g.state(0, 0) }, [['zz', 1], ['gone', 'a']]));    // unknown events are ignored
+  assert.equal(g.C.mate('a').connected, false); assert.equal(g.C.fresh(g.C.mate('a')), false);
+  assert.deepEqual(g.C.puppets(), [g.C.mate('host').pl]);
+
+  // The notice got lost: a teammate the host stops sending is gone after 3 s of host frames without it...
+  const n = coopSim('b');
+  n.net.msg('host', n.hostFrame({ host: n.state(0, 0), a: n.state(10, 0) }));
+  for (const t of [1000, 2000, 2900]) { n.clock.now = t; n.net.msg('host', n.hostFrame({ host: n.state(0, 0) })); }
+  assert.equal(n.C.mate('a').connected, true);
+  n.clock.now = 3100; n.net.msg('host', n.hostFrame({ host: n.state(0, 0) }));
+  assert.equal(n.C.mate('a').connected, false); assert.equal(n.C.mate('host').connected, true);
+  // ...but a host that goes quiet (its tab in the background) drops nobody.
+  const q = coopSim('b');
+  q.net.msg('host', q.hostFrame({ host: q.state(0, 0), a: q.state(10, 0) }));
+  q.clock.now = 20000; assert.equal(q.C.fresh(q.C.mate('a')), false);
+  q.net.msg('host', q.hostFrame({ host: q.state(0, 0), a: q.state(10, 0) }));
+  assert.equal(q.C.mate('a').connected, true); assert.equal(q.C.fresh(q.C.mate('a')), true);
+
+  // 'gone' about yourself: the host was getting nothing from you, so your run ends (and nothing after it runs).
+  const me = coopSim('b');
+  me.net.msg('host', me.hostFrame({ host: me.state(0, 0) }, [['gone', 'b'], ['heal', 0.3]]));
+  assert.equal(me.C.active, false); assert.deepEqual(me.lost, ['Se ha perdido la conexión con el anfitrión.']);
+});
+
+test('host drops a teammate with no first frame after 10 s, never one whose tab merely went quiet', () => {
+  const s = coopSim('host');
+  s.clock.now = 500; s.net.msg('a', { k: 'f', p: s.state(10, 0), ev: [] });
+  assert.equal(s.C.fresh(s.C.mate('a')), true); assert.equal(s.C.fresh(s.C.mate('b')), false);
+  s.C.levelStart(2);
+  assert.deepEqual(s.waits.at(-1), ['Tú', 'Ana', 'Bea']);
+  s.clock.now = 9900; s.C.tick(1);
+  assert.equal(s.C.mate('b').connected, true);
+  s.clock.now = 10100; s.C.tick(1);
+  assert.equal(s.C.mate('b').connected, false); assert.equal(s.C.mate('a').connected, true);
+  assert.deepEqual(s.waits.at(-1), ['Tú', 'Ana']);                     // the level-up cards stop waiting for Bea
+  assert.ok(s.said.includes('Bea no ha podido entrar en la partida'));
+  s.C.tick(1); assert.ok(s.to('a').some(f => f.ev.some(e => e[0] === 'gone' && e[1] === 'b')));
+  s.clock.now = 600000; s.C.tick(1);                                     // Ana sent once, then went quiet
+  assert.equal(s.C.mate('a').connected, true);
 });
