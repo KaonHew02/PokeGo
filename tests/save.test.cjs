@@ -34,6 +34,8 @@ const same = (actual, expected, msg) => assert.deepEqual(json(actual), expected,
 /** Cuenta nueva que ya ha hecho el test (su inicial y compañero). */
 async function account(b, name, starter = 4) {
   await b.G.DB.ready();
+  // Cada cuenta se distingue por su `created` (ms): dos en el mismo ms serían "la misma".
+  await new Promise(r => setTimeout(r, 3));
   const r = await b.G.DB.register(name, 'pass1234');
   assert.equal(r.ok, true, r.error);
   const s = b.G.DB.save;
