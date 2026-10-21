@@ -8,10 +8,19 @@
  *
  * Si se pone a null, el juego funciona en modo local (sólo en el navegador).
  */
-// PokéGo empieza en modo local: cuentas y partidas sólo en este navegador.
-// Para guardar en la nube, crea tu propio proyecto de Firebase (docs/FIREBASE.md),
-// pega aquí su configuración y añade tu dominio a HOSTS en js/core/db.js.
-G.FIREBASE_CONFIG = null;
+// Proyecto de PokéGo: pokego-ec220 (plan gratuito Spark, creado el 21-10-2026).
+// ¡No pulsar nunca "Upgrade/Blaze" ni "Identity Platform" en su consola: cobran!
+// Las webs desde las que se usa van en HOSTS (js/core/db.js) y en los dominios
+// autorizados de Authentication.
+G.FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyAJ2r6KaDCdwTzb6nv3HalDNxTl85BH4Ng',
+  authDomain: 'pokego-ec220.firebaseapp.com',
+  databaseURL: 'https://pokego-ec220-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId: 'pokego-ec220',
+  storageBucket: 'pokego-ec220.firebasestorage.app',
+  messagingSenderId: '604225746330',
+  appId: '1:604225746330:web:a457f85248ef10724b7623'
+};
 
 /* Ejemplo de cómo debe quedar:
 G.FIREBASE_CONFIG = {

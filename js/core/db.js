@@ -30,7 +30,7 @@ G.DB = (() => {
   const VERSION = 3;
   const START_COINS = 500;
   const SDK = 'https://www.gstatic.com/firebasejs/13.0.0/';
-  const NAME_DOMAIN = 'jugadores.pokesurvivor.net';   // sólo para el email interno
+  const NAME_DOMAIN = 'jugadores.pokego-ec220.firebaseapp.com';   // sólo para el email interno: no cambiar con cuentas creadas
 
   let mode = 'local';       // 'cloud' | 'local'
   let localReason = '';     // por qué no hay nube: 'file' | 'config' | 'host' | 'error'
@@ -453,8 +453,8 @@ G.DB = (() => {
    * cierra de verdad es la clave de la API restringida a estos dominios en
    * Google Cloud; esto frena las copias que ni lo miran (14-10-2026).
    */
-  // Añade aquí tu dominio cuando publiques PokéGo con tu propio Firebase.
-  const HOSTS = ['localhost', '127.0.0.1'];
+  // Webs desde las que PokéGo usa la nube (también en los dominios autorizados de Firebase).
+  const HOSTS = ['kaonhew02.github.io', 'localhost', '127.0.0.1'];
 
   async function initCloud() {
     const cfg = G.FIREBASE_CONFIG;
