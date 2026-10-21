@@ -136,6 +136,12 @@ licencia en `assets/fonts/OFL.txt`). El juego usa una versión modificada,
 "Pixelify PS", con los números redibujados para distinguirlos mejor
 (`tools/make_font.py`).
 
+## Librerías
+
+[PeerJS](https://github.com/peers/peerjs) 1.5.4 (licencia MIT, © 2015 Michelle Bu y Eric Zhang),
+en `js/vendor/peerjs.min.js` sin cambios: sólo para que los navegadores se encuentren al jugar
+en grupo con código de sala (`js/net/coderoom.js`).
+
 ## Marca
 
 Pokémon es propiedad de Nintendo, Creatures Inc. y GAME FREAK.

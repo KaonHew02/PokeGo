@@ -287,6 +287,9 @@ G.Ranking = (() => {
   async function submitGroupNow(r) {
     const fb = fbx();
     if (!fb || r.t < MIN_T || !r.members || r.members.length < 2) return [];
+    // Salas con código (coderoom.js): sus jugadores no son cuentas de la nube, no van al ranking.
+    const room = G.Social.room;
+    if (room && room.code) return [];
     const ms = r.members.slice().sort((a, b) => (a.uid < b.uid ? -1 : 1));
     const id = ms.map(m => m.uid).join('_');
     const entry = { t: r.t, uids: ms.map(m => m.uid), names: ms.map(m => m.name), dex: ms.map(m => m.dex),

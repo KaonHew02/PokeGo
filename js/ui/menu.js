@@ -21,7 +21,7 @@ G.MenuUI = (() => {
         else if (go === 'upgrades') openUpgrades();
         else if (go === 'gacha') G.GachaUI.open();
         else if (go === 'goals') G.GoalsUI.open();
-        else if (go === 'friends') G.FriendsUI.open();
+        else if (go === 'friends') { if (G.DB.online) G.FriendsUI.open(); else G.GroupUI.open(); }   // sin nube: con código de sala
         else if (go === 'rank') G.RankingUI.open();
         else if (go === 'settings') G.SettingsUI.open();
       };
@@ -102,6 +102,10 @@ G.MenuUI = (() => {
     if (req) parts.push(req + (req === 1 ? ' solicitud' : ' solicitudes'));
     $('menu-friends-sub').textContent = parts.length ? parts.join(' · ') : 'Juega en grupo, hasta 4';
     $('menu-friends-sub').classList.toggle('gold', req > 0);
+    // Sin nube no hay ranking: el botón se ve apagado (y al pulsarlo explica por qué).
+    const rank = document.querySelector('#scr-menu [data-go=rank]'), local = G.DB.mode !== 'cloud';
+    rank.classList.toggle('off', local);
+    rank.querySelector('small').textContent = local ? 'Necesita la nube' : 'Quién aguanta más';
   }
 
   // ---------------- colección ----------------

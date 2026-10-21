@@ -20,6 +20,10 @@
  * y se lee sólo al abrir Amigos o la sala (lo leído vale 1 min).
  *
  * El resto del juego escucha los cambios con G.Social.on(fn).
+ *
+ * Las salas con código (sin nube, js/net/coderoom.js) también salen aquí, en
+ * G.Social.room, con la misma forma: la sala, el menú y el cooperativo no
+ * distinguen entre las dos.
  */
 G.Social = (() => {
   const VALID = /^[A-Za-z0-9_ñÑáéíóúÁÉÍÓÚ]{3,16}$/;
@@ -58,6 +62,7 @@ G.Social = (() => {
   const sentInv = new Set();        // a quién invitaste (para retirarlo al salir)
   let room = null;                  // { id, host, isHost, members: [{ uid, name, dex, shiny }] }
   let roomRefs = [];
+  let codeRoom = null;              // sala con código (coderoom.js), si estás en una
   const invites = new Map();        // fromUid -> { from, name, room, at }
   const listeners = new Set();
   let started = false;
@@ -308,8 +313,13 @@ G.Social = (() => {
   function rtOn() { if (fb.rtdb) fb.rtdb.goOnline(); }
   function rtOff() { if (fb && fb.rtdb && !room) fb.rtdb.goOffline(); }
 
+  // Sin databaseURL en firebase-config.js no hay Realtime Database: ni salas ni invitaciones.
+  const NO_RTDB = 'Las salas de amigos necesitan la Realtime Database: falta databaseURL en firebase-config.js.';
+
   async function createRoom() {
     if (room) return room;
+    if (!fb || !fb.rtdb) throw Error(NO_RTDB);
+    if (codeRoom) await G.CodeRoom.leave();
     rtOn();
     const id = fb.rtdb.ref('rooms').push().key;
     await fb.rtdb.ref('rooms/' + id).set({ host: uid, open: true, at: ts(), m: { [uid]: memberInfo() } });
@@ -319,7 +329,9 @@ G.Social = (() => {
 
   async function joinRoom(id) {
     if (room && room.id === id) return { ok: true };
+    if (!fb || !fb.rtdb) return { ok: false, error: NO_RTDB };
     if (room) await leaveRoom();
+    if (codeRoom) await G.CodeRoom.leave();
     rtOn();
     let open = null, host = null;
     try {
@@ -384,7 +396,7 @@ G.Social = (() => {
   }
 
   async function leaveRoom() {
-    if (!room) return;
+    if (!room) { if (codeRoom) await G.CodeRoom.leave(); return; }
     const r = room;
     detachRoom();
     room = null;
@@ -400,13 +412,18 @@ G.Social = (() => {
   /** El anfitrión cierra la sala a nuevos jugadores al empezar la partida. */
   function setOpen(open) {
     if (room && room.isHost) fb.rtdb.ref('rooms/' + room.id + '/open').set(!!open).catch(() => {});
+    else if (!room && codeRoom) G.CodeRoom.setOpen(open);
   }
 
   /** Actualiza tu Pokémon en la sala (si cambias de compañero). */
   function refreshMember() {
     if (room && me) fb.rtdb.ref('rooms/' + room.id + '/m/' + uid).update(
       { dex: G.DB.save.partner, shiny: !!G.DB.save.partnerShiny && G.DB.ownsShiny(G.DB.save.partner) }).catch(() => {});
+    else if (!room && codeRoom) G.CodeRoom.refreshMember();
   }
+
+  /** coderoom.js: entras, cambia o se acaba tu sala con código. `what` va a los que escuchan. */
+  function setCodeRoom(r, what) { codeRoom = r; emit(what || 'room'); }
 
   // ---------------- invitaciones ----------------
 
@@ -415,7 +432,9 @@ G.Social = (() => {
     if (!f || f.status !== 'ok') return { ok: false, error: 'Sólo puedes invitar a tus amigos.' };
     if (room && room.members.length >= MAX_PLAYERS) return { ok: false, error: 'La sala está llena.' };
     if (room && !room.isHost) return { ok: false, error: 'Sólo el anfitrión de la sala puede invitar.' };
-    if (!room) await createRoom();
+    if (!room) {
+      try { await createRoom(); } catch (e) { return { ok: false, error: e.message === NO_RTDB ? NO_RTDB : 'No se pudo invitar (' + (e.code || 'error') + ').' }; }
+    }
     try {
       await fb.fs.collection('inv').doc(other + '_' + uid).set({ to: other, from: uid, room: room.id, name: me.name, at: fts() });
     } catch (e) { return { ok: false, error: 'No se pudo invitar (' + (e.code || 'error') + ').' }; }
@@ -533,14 +552,15 @@ G.Social = (() => {
 
   return {
     start, stop, claimNick, request, accept, remove, publishProfile, getProfile, profileData,
-    createRoom, joinRoom, leaveRoom, setOpen, refreshMember, setPlaying, refreshPresence,
+    createRoom, joinRoom, leaveRoom, setOpen, refreshMember, setCodeRoom, setPlaying, refreshPresence,
     invite, acceptInvite, declineInvite,
     on(fn) { listeners.add(fn); }, off(fn) { listeners.delete(fn); },
-    get me() { return me; },
+    /** Tú: { uid, name }. En una sala con código, con el nombre de esa sala (el cooperativo lo usa). */
+    get me() { return (codeRoom && codeRoom.me) || me; },
     get started() { return started; },
     get friends() { return [...friends.values()]; },
     get invites() { return [...invites.values()]; },
-    get room() { return room; },
+    get room() { return room || codeRoom; },
     get uid() { return uid; },
     /** La hora real (corrige el reloj del aparato si va desfasado). */
     now,

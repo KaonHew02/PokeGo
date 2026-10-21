@@ -29,6 +29,8 @@ G.FIREBASE_CONFIG = {
   projectId: 'tu-proyecto',
   storageBucket: 'tu-proyecto.firebasestorage.app',
   messagingSenderId: '1234567890',
-  appId: '1:1234567890:web:abc123'
+  appId: '1:1234567890:web:abc123',
+  // Realtime Database (amigos en línea, invitaciones y salas): sin esto no hay salas de amigos.
+  databaseURL: 'https://tu-proyecto-default-rtdb.europe-west1.firebasedatabase.app'
 };
 */
