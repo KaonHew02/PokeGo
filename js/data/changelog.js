@@ -7,6 +7,8 @@
  */
 G.CHANGELOG = [
   { d: '2026-10-21', title: ['Jugar en grupo con código de sala', 'Group play with room codes'], new: [
+    ['Modo automático: con el botón AUTO (o la tecla T, o X en el mando) tu Pokémon juega solo: esquiva enemigos, disparos y avisos del suelo, recoge experiencia y objetos, abre cofres, levanta a los compañeros caídos y elige por ti las cartas, los objetos y los vínculos. Si te mueves tú, mandas tú, y AUTO vuelve al soltar. Las partidas con AUTO no van al ranking; lo demás cuenta igual.',
+     'Auto mode: with the AUTO button (or the T key, or X on a controller) your Pokémon plays by itself: it dodges enemies, shots and ground warnings, collects experience and items, opens chests, revives downed teammates and picks your cards, items and bonds for you. If you move, you take over, and AUTO comes back when you let go. Runs with AUTO don\'t go to the leaderboard; everything else counts as usual.'],
     ['Gacha: botón «Saltar» (o Esc) para ver los premios al momento, sin esperar a la tragaperras.',
      'Gacha: a "Skip" button (or Esc) shows your prizes right away, without waiting for the slot machine.'],
     ['¿Te has equivocado al hacer un vínculo? En la pausa, «Cambiar vínculo» saca un movimiento del vínculo y pone en su lugar uno suelto (sin gastar vínculo).',

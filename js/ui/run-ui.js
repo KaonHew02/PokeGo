@@ -139,6 +139,8 @@ G.RunUI = (() => {
       ${r.caught && r.caught.length ? `<div style="grid-column:1/-1" class="caught"><span>${G.Icons.html('shiny', 12)} Shinies conseguidos</span>
         <div class="caught-row" id="over-caught"></div></div>` : ''}
       ${r.record ? '<div style="grid-column:1/-1;text-align:center" class="gold">¡Nuevo récord de tiempo!</div>' : ''}
+      ${r.auto ? `<div style="grid-column:1/-1;text-align:center;font-size:13px;color:var(--muted)"><span class="tag-chip" translate="no" style="display:inline-block;background:#ffd23f;color:#20160a">AUTO</span>
+        ${r.auto === 'mate' ? 'Un compañero ha usado el modo automático: esta partida no va al ranking.' : 'Has usado el modo automático: esta partida no va al ranking.'}</div>` : ''}
       ${askSupport(r) ? `<div class="support-ask" id="over-ask" style="grid-column:1/-1">
         <button class="x" type="button" aria-label="Cerrar">×</button>
         <p>¿Te está gustando PokéGo? Lo hago yo solo y los servidores cuestan dinero. Si quieres, puedes ayudarme a mantenerlo en línea.</p>
@@ -164,11 +166,14 @@ G.RunUI = (() => {
    * quedas? cb recibe el que eliges (null = ninguno). La carta de no quererlo
    * (o de quedarte con el tuyo) lleva data-refuse: es la de Esc y B en el mando.
    */
+  let item = null;          // elección de objeto abierta: { cur, next, els: [[id, carta], ...] }
+
   function showItemChoice(cur, next, cb) {
     const box = $('item-cards');
     box.innerHTML = '';
     const opts = cur ? [[cur, 'Quedarme con ', true], [next, 'Cambiar a ', false]]
                      : [[next, 'Llevar ', false], [null, 'No lo quiero', true]];
+    item = { cur, next, els: [] };
     opts.forEach(([id, verb, refuse], i) => {
       const it = id && G.Items.BY[id];
       const el = document.createElement('div');
@@ -180,9 +185,27 @@ G.RunUI = (() => {
       // (Sólo una: dos teclas en el mismo fotograma no eligen dos veces.)
       el.onclick = () => { if (guarded() || !el.isConnected || !G.UI.isOpen('scr-item')) return; G.UI.hide('scr-item'); cb(id); };
       box.appendChild(el);
+      item.els.push([id, el]);
     });
     G.UI.show('scr-item');
     guard(box);
+  }
+
+  /** Elige ese objeto (null = ninguno) como si se pulsara su carta (modo automático). */
+  function chooseItem(id) {
+    const o = item && item.els.find(([x]) => x === id);
+    if (o) o[1].click();
+  }
+
+  /**
+   * Lo que se está eligiendo ahora, o null (para el modo automático, autopilot.js):
+   *   { kind: 'level', list } · { kind: 'item', cur, next } · { kind: 'bond', opt, first, list }
+   */
+  function pending() {
+    if (offers && G.UI.isOpen('scr-levelup')) return { kind: 'level', list: offers };
+    if (bond && G.UI.isOpen('scr-bond')) return { kind: 'bond', opt: bond.opt, first: bond.first, list: bond.list };
+    if (item && G.UI.isOpen('scr-item')) return { kind: 'item', cur: item.cur, next: item.next };
+    return null;
   }
 
   // ---------------- vínculo: qué movimientos se fusionan ----------------
@@ -383,5 +406,5 @@ G.RunUI = (() => {
     $('btn-quit').onclick = onQuit;
   }
 
-  return { showLevelUp, reroll, showItemChoice, showBond, pickBond, bondBack, pick, setWaiting, closeLevelUp, showOver, wirePause, showPause };
+  return { showLevelUp, reroll, showItemChoice, chooseItem, showBond, pickBond, bondBack, pick, pending, setWaiting, closeLevelUp, showOver, wirePause, showPause };
 })();

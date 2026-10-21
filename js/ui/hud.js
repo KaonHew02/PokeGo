@@ -379,6 +379,8 @@ G.HUD = (() => {
       G.Touch.addButton(bx, by, bs, bs, () => G.Game.togglePause(), 8);
     }
 
+    drawAuto(ctx, w, h, touch);
+
     // pista de controles
     if (st.time < 14) {
       ctx.font = F(600, 10);
@@ -389,6 +391,63 @@ G.HUD = (() => {
     }
 
     ctx.restore();
+  }
+
+  // ---------------- modo automático ----------------
+
+  /**
+   * Botón AUTO (autopilot.js), arriba a la derecha: debajo del clima o, en
+   * móvil, de la pausa. Se pulsa con el ratón o el dedo; al lado, su tecla (T,
+   * o X con mando). Encendido: dorado y latiendo, "Modo automático" debajo y un
+   * marco dorado en la pantalla. Si mandas tú un momento, se apaga el dorado y
+   * una barra dice cuánto falta para que AUTO vuelva.
+   */
+  function drawAuto(ctx, w, h, touch) {
+    const sa = G.Touch.safeArea(), on = G.Auto.on, man = G.Auto.manual;
+    const bw = 74, bh = 34;
+    const x = touch ? w - 12 - Math.min(44, sa.right) - bw : w - 16 - sa.right - bw;
+    const y = touch ? 62 + Math.min(20, sa.top) : 48 + sa.top;
+    const beat = 0.5 + Math.sin(performance.now() / 160) * 0.5, driving = on && man <= 0;
+    ctx.save();
+    if (driving) {
+      // Marco dorado en el borde de la pantalla: se ve que juega solo.
+      ctx.globalAlpha = 0.18 + beat * 0.22;
+      ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 4;
+      ctx.strokeRect(2, 9, w - 4, h - 11);
+      roundRect(ctx, x - 4, y - 4, bw + 8, bh + 8, 13);
+      ctx.fillStyle = '#ffd23f'; ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    roundRect(ctx, x, y, bw, bh, 10);
+    ctx.fillStyle = driving ? '#ffd23f' : on ? 'rgba(40,30,10,.9)' : 'rgba(10,16,28,.7)';
+    ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = on ? '#ffe9a8' : 'rgba(244,248,255,.8)'; ctx.stroke();
+    // Icono de "adelante" y el texto.
+    const fg = driving ? '#20160a' : on ? '#ffd23f' : '#f4f8ff', ix = x + 13, iy = y + bh / 2;
+    ctx.fillStyle = fg;
+    ctx.beginPath(); ctx.moveTo(ix - 5, iy - 7); ctx.lineTo(ix + 5, iy); ctx.lineTo(ix - 5, iy + 7); ctx.closePath(); ctx.fill();
+    // "AUTO" tal cual en todos los idiomas (como se llama en los avisos y en Ajustes).
+    ctx.font = F(800, 13); ctx.textAlign = 'center';
+    G.I18n.rawCanvas(ctx, 'fillText', 'AUTO', x + bw / 2 + 7, iy + 5);
+    if (on && man > 0) { ctx.fillStyle = '#ffd23f'; ctx.fillRect(x + 6, y + bh - 6, (bw - 12) * man, 3); }
+    // La tecla que lo cambia (en móvil se toca el botón).
+    if (!touch) {
+      const key = G.Pad.name && G.Settings.get('gamepad') !== false ? 'X' : 'T', kx = x - 24, ky = iy - 9;
+      roundRect(ctx, kx, ky, 18, 18, 4);
+      ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fill();
+      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(180,200,230,.55)'; ctx.stroke();
+      ctx.font = F(800, 10); ctx.fillStyle = 'rgba(220,230,245,.9)';
+      G.I18n.rawCanvas(ctx, 'fillText', key, kx + 9, ky + 13);
+    }
+    if (on) {
+      ctx.font = F(800, 10); ctx.textAlign = 'right';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.75)';
+      ctx.strokeText('Modo automático', x + bw, y + bh + 14);
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillText('Modo automático', x + bw, y + bh + 14);
+    }
+    ctx.restore();
+    G.Touch.addButton(x, y, bw, bh, () => { if (G.Game.state === 'playing') G.Auto.toggle(); }, 6);
   }
 
   // ---------------- cooperativo ----------------

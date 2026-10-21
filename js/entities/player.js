@@ -372,7 +372,8 @@ G.Player = class Player {
 
     // --- movimiento con colisiones ---
     // (En cooperativo la pausa no para el juego: sólo te quedas quieto.)
-    const [ax, ay] = this.frozen ? [0, 0] : G.Input.axis();
+    // Con el modo automático (autopilot.js) la dirección la pone él, salvo si te mueves tú.
+    const [ax, ay] = this.frozen ? [0, 0] : G.Auto.axis(this, dt);
     this.walking = ax !== 0 || ay !== 0;
     const s = this.spd;
     // Hielo: resbalas (la velocidad cambia despacio).
@@ -439,9 +440,10 @@ G.Player = class Player {
    * Ángulo de "Apuntar a mano", o null si toca apuntar solo. Manda lo último
    * que se haya usado: el stick derecho mientras se empuja; si no, el ratón si
    * se ha movido después (en PC). Soltar el stick sin tocar el ratón = solo.
+   * Con el modo automático encendido, siempre solo.
    */
   handAim() {
-    if (this.remote || !G.Settings.get('aimManual')) return null;
+    if (this.remote || !G.Settings.get('aimManual') || G.Auto.on) return null;
     const st = G.Pad.aim();
     if (st) return Math.atan2(st[1], st[0]);
     if (G.Touch.active || !G.Input.mouseMovedAt || G.Input.mouseMovedAt < G.Pad.aimAt) return null;

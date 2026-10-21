@@ -47,7 +47,7 @@ or Traditional Chinese (Settings > Graphics > Language).
 3. Run the tests:
 
    ```bash
-   node --test tests/i18n.test.cjs tests/net.test.cjs tests/items.test.cjs tests/save.test.cjs
+   node --test tests/i18n.test.cjs tests/net.test.cjs tests/items.test.cjs tests/save.test.cjs tests/auto.test.cjs
    ```
 
 The source language is Spanish and every on-screen string is a dictionary key.

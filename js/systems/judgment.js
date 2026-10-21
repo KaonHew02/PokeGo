@@ -708,6 +708,8 @@ G.Judgment = (() => {
     AT, reset, noteDmg, update, cineTick, skip, bossDown, drawable, drawAir, drawOverlay, onEvent, netState, netApply,
     get active() { return !!phase; }, capSpd,
     get cinematic() { return phase === 'cine'; },
+    /** Arceus en la pelea (el modo automático huye de él), o null. */
+    get arceus() { return phase === 'fight' && A ? A : null; },
     /** Lo que suena: nada en la animación hasta que aterriza. */
     get music() { return phase === 'cine' && ct < T_LAND ? null : 'judgment'; },
     /** Para el resumen de la partida: { time, bosses } o null. */

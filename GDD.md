@@ -78,6 +78,10 @@ Menú principal  (el mundo de fondo, con Pokémon salvajes paseando)
 
 - El Pokémon **ataca solo** con el **movimiento activo** (1 de hasta 4).
 - Cambias el activo con `1`–`4` o `Q`/`E`. Moverse: `WASD` / flechas. Pausa: `Esc`.
+- **Modo automático (AUTO)** (`js/systems/autopilot.js`): botón AUTO del HUD, `T` o
+  `X` en el mando. El juego mueve a tu Pokémon (esquiva enemigos, disparos y avisos,
+  recoge lo del suelo, levanta compañeros) y elige cartas, objetos y vínculos. Si te
+  mueves tú, mandas tú; vuelve a los 1,5 s. Una partida con AUTO no va al ranking.
 - Cada ataque reproduce la **animación de PMD** que toca: `Attack`, `Shoot` o `Charge`.
 - **Apuntado:** lo que te está tocando > el jefe si está a tiro > el enemigo más
   cercano > (sin enemigos) la roca o cofre más cercano.

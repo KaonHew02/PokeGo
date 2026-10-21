@@ -723,6 +723,28 @@
     // ---- fin cambiar vínculo ----
 
     // ---- PokéGo: modo automático ----
+    ["Modo automático", "Mode automatique", "Modalità automatica", "Modo automático", "自动模式", "自動模式"],
+    ["Modo automático activado", "Mode automatique activé", "Modalità automatica attivata", "Modo automático ativado", "自动模式已开启", "自動模式已開啟"],
+    ["Modo automático desactivado", "Mode automatique désactivé", "Modalità automatica disattivata", "Modo automático desativado", "自动模式已关闭", "自動模式已關閉"],
+    ["Modo automático: esta partida no irá al ranking", "Mode automatique : cette partie n’ira pas au classement", "Modalità automatica: questa partita non andrà in classifica", "Modo automático: esta partida não vai para o ranking", "自动模式：本局不会计入排行榜", "自動模式：本局不會計入排行榜"],
+    ["AUTO evoluciona {x}", "AUTO fait évoluer {x}", "AUTO fa evolvere {x}", "AUTO evolui {x}", "AUTO 进化了{x}", "AUTO 進化了{x}"],
+    ["AUTO aprende {x}", "AUTO apprend {x}", "AUTO impara {x}", "AUTO aprende {x}", "AUTO 学会了{x}", "AUTO 學會了{x}"],
+    ["AUTO mejora {x}", "AUTO améliore {x}", "AUTO potenzia {x}", "AUTO melhora {x}", "AUTO 强化了{x}", "AUTO 強化了{x}"],
+    ["AUTO elige {x}", "AUTO choisit {x}", "AUTO sceglie {x}", "AUTO escolhe {x}", "AUTO 选择了{x}", "AUTO 選擇了{x}"],
+    ["AUTO se queda con {x}", "AUTO garde {x}", "AUTO tiene {x}", "AUTO fica com {x}", "AUTO 保留了{x}", "AUTO 保留了{x}"],
+    ["AUTO se pone {x}", "AUTO équipe {x}", "AUTO equipaggia {x}", "AUTO equipa {x}", "AUTO 装备了{x}", "AUTO 裝備了{x}"],
+    ["AUTO no se pone {x}", "AUTO laisse {x}", "AUTO lascia {x}", "AUTO deixa {x}", "AUTO 没有装备{x}", "AUTO 沒有裝備{x}"],
+    ["AUTO une {x}", "AUTO lie {x}", "AUTO lega {x}", "AUTO une {x}", "AUTO 结成羁绊：{x}", "AUTO 結成羈絆：{x}"],
+    ["Has usado el modo automático: esta partida no va al ranking.", "Tu as utilisé le mode automatique : cette partie ne va pas au classement.", "Hai usato la modalità automatica: questa partita non va in classifica.", "Você usou o modo automático: esta partida não vai para o ranking.", "你使用了自动模式：本局不计入排行榜。", "你使用了自動模式：本局不計入排行榜。"],
+    ["Un compañero ha usado el modo automático: esta partida no va al ranking.", "Un coéquipier a utilisé le mode automatique : cette partie ne va pas au classement.", "Un compagno ha usato la modalità automatica: questa partita non va in classifica.", "Um companheiro usou o modo automático: esta partida não vai para o ranking.", "有队友使用了自动模式：本局不计入排行榜。", "有隊友使用了自動模式：本局不計入排行榜。"],
+    ["modo automático (AUTO)", "mode automatique (AUTO)", "modalità automatica (AUTO)", "modo automático (AUTO)", "自动模式（AUTO）", "自動模式（AUTO）"],
+    ["El botón AUTO, arriba a la derecha, hace que tu Pokémon se mueva y elija solo; si te mueves tú, mandas tú. Las partidas con AUTO no van al ranking.", "Le bouton AUTO, en haut à droite, fait bouger et choisir ton Pokémon tout seul ; si tu bouges, c’est toi qui contrôles. Les parties avec AUTO ne vont pas au classement.", "Il pulsante AUTO, in alto a destra, fa muovere e scegliere il tuo Pokémon da solo; se ti muovi tu, comandi tu. Le partite con AUTO non vanno in classifica.", "O botão AUTO, no canto superior direito, faz seu Pokémon se mover e escolher sozinho; se você se mover, você assume o controle. Partidas com AUTO não vão para o ranking.", "右上角的 AUTO 按钮会让你的宝可梦自己移动和做选择；你一移动就由你操控。使用 AUTO 的对局不计入排行榜。", "右上角的 AUTO 按鈕會讓你的寶可夢自己移動和做選擇；你一移動就由你操控。使用 AUTO 的對局不計入排行榜。"],
+    ["Modo automático: con el botón AUTO (o la tecla T, o X en el mando) tu Pokémon juega solo: esquiva enemigos, disparos y avisos del suelo, recoge experiencia y objetos, abre cofres, levanta a los compañeros caídos y elige por ti las cartas, los objetos y los vínculos. Si te mueves tú, mandas tú, y AUTO vuelve al soltar. Las partidas con AUTO no van al ranking; lo demás cuenta igual.",
+     "Mode automatique : avec le bouton AUTO (ou la touche T, ou X sur la manette), ton Pokémon joue tout seul : il esquive les ennemis, les tirs et les alertes au sol, ramasse l’expérience et les objets, ouvre les coffres, relève les coéquipiers K.O. et choisit pour toi les cartes, les objets et les liens. Si tu bouges, c’est toi qui contrôles, et AUTO reprend quand tu lâches. Les parties avec AUTO ne vont pas au classement ; tout le reste compte normalement.",
+     "Modalità automatica: con il pulsante AUTO (o il tasto T, o X sul controller) il tuo Pokémon gioca da solo: schiva nemici, colpi e avvisi a terra, raccoglie esperienza e strumenti, apre i forzieri, rianima i compagni a terra e sceglie per te carte, strumenti e vincoli. Se ti muovi tu, comandi tu, e AUTO riprende quando lasci i comandi. Le partite con AUTO non vanno in classifica; tutto il resto conta come sempre.",
+     "Modo automático: com o botão AUTO (ou a tecla T, ou X no controle), seu Pokémon joga sozinho: desvia de inimigos, disparos e avisos no chão, coleta experiência e itens, abre baús, levanta companheiros caídos e escolhe por você as cartas, os itens e os vínculos. Se você se mover, assume o controle, e o AUTO volta quando você solta. Partidas com AUTO não vão para o ranking; o resto conta normalmente.",
+     "自动模式：按下 AUTO 按钮（或 T 键，或控制器上的 X 键），你的宝可梦就会自己战斗：躲避敌人、子弹和地面预警，收集经验和道具，打开宝箱，救起倒下的队友，并替你选择卡片、道具和羁绊。你一移动就由你操控，松手后 AUTO 会继续。使用 AUTO 的对局不计入排行榜，其他一切照常计算。",
+     "自動模式：按下 AUTO 按鈕（或 T 鍵，或控制器上的 X 鍵），你的寶可夢就會自己戰鬥：躲避敵人、子彈和地面預警，收集經驗和道具，打開寶箱，救起倒下的隊友，並替你選擇卡片、道具和羈絆。你一移動就由你操控，放手後 AUTO 會繼續。使用 AUTO 的對局不計入排行榜，其他一切照常計算。"],
     // ---- fin auto ----
 
     // ---- PokéGo: saltar animación del gacha ----
