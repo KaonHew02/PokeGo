@@ -52,6 +52,10 @@ G.I18n = (() => {
     // ---- PokéGo: mirar a un compañero al caer ----
     'Mirando a {x}', '{x} no ha podido entrar en la partida',
     // ---- fin mirar ----
+
+    // ---- PokéGo: cortes en el cooperativo ----
+    '{x} ha perdido la conexión: esperando a que vuelva…', '{x} ha vuelto a la partida',
+    // ---- fin cortes ----
   ]);
   const L = '\\p{L}\\p{N}';
   const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

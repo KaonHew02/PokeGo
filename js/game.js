@@ -78,10 +78,17 @@ G.Game = (() => {
     if (portrait) autoPause();
   }
 
-  /** Pausa sola (sólo en solitario: en grupo los demás siguen). */
+  /**
+   * ¿Para la pausa el juego? En solitario sí; en grupo no (los demás siguen),
+   * salvo que ya no quede nadie más en la partida. (Hasta el 22-10-2026, al irse
+   * o cortarse todos, el anfitrión seguía solo y Esc ya no paraba a los enemigos.)
+   */
+  const pauseStops = () => !G.Coop.active || G.Coop.alone;
+
+  /** Pausa sola (sólo si la pausa para el juego: en grupo los demás siguen). */
   function autoPause() {
     G.Touch.reset();
-    if (state === 'playing' && !G.Coop.active) { state = 'paused'; G.RunUI.showPause(); }
+    if (state === 'playing' && pauseStops()) { state = 'paused'; G.RunUI.showPause(); }
   }
 
   /** Pausa/continúa (tecla Esc o P, o el botón de pausa del móvil). */
@@ -89,7 +96,7 @@ G.Game = (() => {
 
   function togglePause() {
     // En grupo la pausa no para el juego (los demás siguen jugando).
-    if (G.Coop.active) {
+    if (!pauseStops()) {
       if (state !== 'playing') return;
       if (G.UI.isOpen('scr-pause')) G.UI.hide('scr-pause');
       else { G.RunUI.showPause(true); G.Audio.sfx('pause'); }
@@ -106,7 +113,8 @@ G.Game = (() => {
     holdBy = []; awayBy = null;
     openItem = null; laterItems.length = 0;   // (una elección a medias de la run anterior no pasa a ésta)
     const save = G.DB.save;
-    const mon = G.DEX_BY[save.partner];
+    // Con su naturaleza aplicada (una copia: ver systems/mons.js).
+    const mon = G.Mons.monFor(save.partner);
     const perks = G.Upgrades.perks(G.DB.upgradesOf(mon.dex));
 
     G.UI.hideAll();
@@ -130,6 +138,7 @@ G.Game = (() => {
     runReal = performance.now(); tampered = false;
 
     pl = new G.Player(mon, perks, !!save.partnerShiny && G.DB.ownsShiny(mon.dex));
+    pl.setAbility(G.Mons.abilityOf(mon.dex).id);
     banked = { t1: 0, t10: 0 };
     caught = [];
     // Atajos: movimientos con hueco fijo (save.pbind[dex] = [id del 1, id del 2, ...]),
@@ -138,10 +147,13 @@ G.Game = (() => {
     pl.addMove(G.startMoveOf(mon.dex));
     // Mejora "Veto": movimientos que no quieres que te salgan.
     pl.banned = new Set((save.pban && save.pban[mon.dex] || []).slice(0, perks.bans));
-    // Mejora "Repertorio": un segundo movimiento de ataque al azar.
+    // Mejora "Repertorio": un segundo movimiento de ataque, el elegido con
+    // "Segundo movimiento inicial" o, si no, al azar.
     if (perks.startMoves >= 2) {
+      const pick2 = G.startMove2Of(mon.dex);
       const pool = G.Moves.poolFor(mon).filter(id => !pl.hasMove(id) && !pl.banned.has(id) && G.Moves.BY_ID[id].kind !== 'buff');
-      if (pool.length) pl.addMove(G.U.pick(pool));
+      if (pick2 && !pl.hasMove(pick2)) pl.addMove(pick2);
+      else if (pool.length) pl.addMove(G.U.pick(pool));
       pl.setActive(0);
     }
 
@@ -594,7 +606,7 @@ G.Game = (() => {
       // Tirada del gacha abierta: Esc salta la animación (o cierra los premios).
       if (G.Input.tap('escape') && G.GachaUI.open_) { G.GachaUI.escape(); return; }
       // Esc en una subpantalla del menú vuelve al menú.
-      if (G.Input.tap('escape') && !G.UI.isOpen('scr-profile') && ['scr-dex', 'scr-upgrades', 'scr-gacha', 'scr-friends', 'scr-group', 'scr-rank', 'scr-goals'].some(G.UI.isOpen)
+      if (G.Input.tap('escape') && !G.UI.isOpen('scr-profile') && ['scr-dex', 'scr-upgrades', 'scr-shop', 'scr-bag', 'scr-gacha', 'scr-friends', 'scr-group', 'scr-rank', 'scr-goals'].some(G.UI.isOpen)
           && document.getElementById('pull-fx').classList.contains('hidden')) G.MenuUI.open();
       return;
     }

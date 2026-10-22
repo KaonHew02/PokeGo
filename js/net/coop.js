@@ -31,6 +31,16 @@
  * los primeros FIRST_MS no ha llegado a entrar: se le quita (si no, las cartas
  * de nivel le esperaban para siempre). Al que sí ha mandado algo no se le
  * quita nunca por callar (pestaña en segundo plano): sólo si se cierra la conexión.
+ *
+ * Cortes (22-10-2026): antes, en cuanto se cerraba el canal, el compañero salía
+ * de la partida (y el canal se cerraba solo cuando la red no daba abasto: ver
+ * net.js). Ahora se le espera RECONNECT_MS mientras net.js le vuelve a llamar;
+ * al invitado cortado se le para la partida (como cuando el anfitrión se va de
+ * la pestaña) y el anfitrión le guarda lo que no le ha llegado. Lo que sólo se
+ * ve un momento (TRANSIENT) no se guarda. Si con la conexión atascada no se
+ * puede mandar, se espera: los avisos no se pierden (sendTo). Y por si alguno
+ * se pierde igual, el invitado pide los enemigos que no conoce ('rq') y quita
+ * las copias que el anfitrión ya no tiene (GHOST_FRAMES).
  */
 G.Coop = (() => {
   const ANIMS = ['Idle', 'Walk', 'Attack', 'Shoot', 'Charge', 'Hurt', 'Faint'];
@@ -42,11 +52,18 @@ G.Coop = (() => {
   const NEAR = 950;                     // radio de enemigos que se mandan a cada uno
   const FIRST_MS = 10000;               // anfitrión: quien no ha mandado nada en este tiempo no ha entrado
   const GONE_MS = 3000;                 // invitado: compañero que el anfitrión ya no manda = se ha ido
+  const RECONNECT_MS = 20000;           // lo que se espera a quien se ha cortado (ver arriba)
+  const MAX_EV = 400;                   // avisos por envío como mucho (el resto, en el siguiente)
+  const MAX_Q = 6000;                   // avisos guardados para uno que no recibe: más, y se le da por ido
+  // Avisos que sólo se ven un momento: a quien está cortado o atascado no se le guardan.
+  const TRANSIENT = new Set(['c', 'es', 'hn', 'fxr', 'say', 'bomb', 'mag', 'hz']);
+  const ASK_MS = 2000;                  // invitado: cada cuánto se puede volver a pedir el mismo enemigo
+  const GHOST_FRAMES = 30, GHOST_R = 520;   // invitado: copia cercana que falta en tantos envíos seguidos = ya no existe
 
   let active = false, host = false, me = null, hostUid = null;
   let local = null;                     // tu Player
   let startAt = 0;                      // cuándo empezó la partida (performance.now)
-  const mates = new Map();              // uid -> { uid, name, color, pl, connected, q:[], flushT, xpMul, state, sp, seenAt }
+  const mates = new Map();              // uid -> { uid, name, color, pl, connected, q:[], flushT, xpMul, state, sp, seenAt, lostAt (null = conectado) }
   let outEv = [];                       // invitado: eventos para el anfitrión
   let flushT = 0;
   let hitFrom = null;                   // invitado cuyo golpe se está aplicando (no repetirle el número)
@@ -57,6 +74,8 @@ G.Coop = (() => {
   // todo se para para todos. Antes los enemigos se quedaban quietos y los demás
   // seguían jugando con una ventaja enorme.
   let hostAway = false, stalled = false, lastHostAt = 0;
+  let hostLostAt = null;                // invitado: cuándo se cortó el canal con el anfitrión (null = no)
+  const asked = new Map();              // invitado: enemigo pedido con 'rq' -> cuándo
   // Cartas de nivel: número de la ronda (anfitrión), la última que te ha llegado
   // y la última que has elegido (invitado). Y el último "quién elige" aplicado.
   let levelSeq = 0, levelNow = 1, seenSeq = 0, doneSeq = 0, lastHo = '';
@@ -84,7 +103,7 @@ G.Coop = (() => {
     members = cfg.members;
     mates.clear();
     outEv = []; flushT = 0; waiting = new Set(); holds = new Set();
-    hostAway = false; stalled = false; lastHostAt = startAt = performance.now();
+    hostAway = false; stalled = false; lastHostAt = startAt = performance.now(); hostLostAt = null; asked.clear();
     levelSeq = 0; levelNow = 1; seenSeq = 0; doneSeq = 0; lastHo = '';
     cfg.members.forEach((m, i) => {
       const x = (i - (cfg.members.length - 1) / 2) * 34, y = 0;
@@ -95,7 +114,7 @@ G.Coop = (() => {
       p.x = x; p.y = y;
       p.net = { x, y, ang: Math.PI / 2, walk: 0, hp: p.maxHp, maxHp: p.maxHp, dead: 0, mv: G.baseStartOf(mon.dex), ml: 1, mag: 78, aim: Math.PI / 2, rev: 0 };
       G.Sprites.preload([mon.dex], 8000, p.shiny);
-      mates.set(m.uid, { uid: m.uid, name: m.name, color: COLORS[i], pl: p, connected: true, q: [], flushT: 0, xpMul: 1 });
+      mates.set(m.uid, { uid: m.uid, name: m.name, color: COLORS[i], pl: p, connected: true, q: [], flushT: 0, xpMul: 1, lostAt: null });
     });
     // Invitado: el primer envío, ya (aunque la pestaña esté en segundo plano y
     // el bucle del juego no corra): así el anfitrión sabe que has entrado.
@@ -104,7 +123,7 @@ G.Coop = (() => {
 
   function end() {
     active = false; host = false; local = null;
-    mates.clear(); outEv = []; waiting = new Set(); holds = new Set();
+    mates.clear(); outEv = []; waiting = new Set(); holds = new Set(); asked.clear(); hostLostAt = null;
   }
 
   /** Te vas de la partida (los demás siguen). */
@@ -165,9 +184,17 @@ G.Coop = (() => {
             r2(local.reviveT || 0), api.choosing && api.choosing() ? 1 : 0, doneSeq];
   }
 
+  /** Número que llega por la red: si no es un número de verdad vale `def`, y si se pasa se queda en el tope. */
+  const num = (v, def, lo, hi) => typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def;
+
+  // Lo que manda otro jugador no se cree a ciegas: un xpMul de 1e309 colgaba al anfitrión al subir de nivel.
   function readState(a) {
-    return { x: a[0], y: a[1], ang: a[2], walk: a[3], hp: a[4], maxHp: a[5], dead: a[6], mv: a[7], ml: a[8],
-             mag: a[9], aim: a[10], xpMul: a[11], rev: a[12], ch: a[13], ld: a[14] };
+    if (!Array.isArray(a)) a = [];
+    return { x: num(a[0], 0, -1e6, 1e6), y: num(a[1], 0, -1e6, 1e6), ang: num(a[2], 0, -10, 10), walk: a[3] ? 1 : 0,
+             hp: num(a[4], 0, 0, 1e6), maxHp: num(a[5], 1, 1, 1e6), dead: a[6] ? 1 : 0,
+             mv: typeof a[7] === 'string' ? a[7].slice(0, 40) : '', ml: num(a[8], 1, 1, 99),
+             mag: num(a[9], 0, 0, 5000), aim: num(a[10], 0, -10, 10), xpMul: num(a[11], 1, 0.1, 20),
+             rev: num(a[12], 0, 0, 60), ch: a[13] === undefined ? undefined : a[13] ? 1 : 0, ld: num(a[14], 0, 0, 1e9) };
   }
 
   // ---------------- envío ----------------
@@ -175,8 +202,15 @@ G.Coop = (() => {
   /** Anfitrión: evento para todos los invitados (menos `except`). */
   function emit(ev, except) {
     if (!host) return;
-    for (const m of mates.values()) if (m.connected && m.uid !== except) m.q.push(ev);
+    for (const m of mates.values()) {
+      if (!m.connected || m.uid === except) continue;
+      if (m.lostAt != null && TRANSIENT.has(ev[0])) continue;
+      m.q.push(ev);
+    }
   }
+
+  /** Anfitrión: ¿no le llega nada ahora (cortado o con la conexión atascada)? */
+  const stuck = m => m.lostAt != null || G.Net.backlog(m.uid) > G.Net.BUF_HIGH;
 
   /** Anfitrión: evento sólo para los que lo ven cerca (números de daño). */
   function emitNear(ev, x, y, except) {
@@ -184,7 +218,7 @@ G.Coop = (() => {
       if (!m.connected || m.uid === except) continue;
       const f = focusOf(m);
       if (G.U.dist2(f.x, f.y, x, y) > 700 * 700) continue;
-      if (m.q.length > 400) continue;
+      if (m.q.length > 400 || stuck(m)) continue;        // (sólo son números de daño)
       m.q.push(ev);
     }
   }
@@ -196,7 +230,7 @@ G.Coop = (() => {
       if (e.dead || G.U.dist2(e.x, e.y, near.x, near.y) > r2n) continue;
       const a = ANIMS.indexOf(e.anim.cur);
       out.push([e.id, r1(e.x), r1(e.y), Math.ceil(e.hp), a < 0 ? 0 : a, e.anim.dir,
-                (e.burn > 0 ? 1 : 0) | (e.poison > 0 ? 2 : 0) | (e.shield > 0 ? 4 : 0)]);
+                (e.burn > 0 ? 1 : 0) | (e.poison > 0 ? 2 : 0) | (e.shield > 0 ? 4 : 0) | (e.slow > 0 ? 8 : 0)]);
     }
     return out;
   }
@@ -207,7 +241,9 @@ G.Coop = (() => {
     for (const o of mates.values()) {
       if (o.connected && o.uid !== m.uid && o.state) p[o.uid] = o.state;
     }
-    const ev = m.q; m.q = [];
+    // Como mucho MAX_EV avisos: tras un corte puede haber muchos y un envío enorme no saldría.
+    const ev = m.q.length > MAX_EV ? m.q.splice(0, MAX_EV) : m.q;
+    if (ev === m.q) m.q = [];
     // Enemigos alrededor de lo que ve: si está caído mirando a otro, los de allí (si no, se le quedaban quietos).
     const f = { k: 'f', t: r2(st.time), lv: st.level, xp: r2(st.xp), xn: st.xpNext, ki: st.kills, bo: st.bosses, co: st.coins, tk: [st.t1, st.t10],
                 p, e: enemyList(focusOf(m)), ev };
@@ -219,7 +255,18 @@ G.Coop = (() => {
     return f;
   }
 
-  function flushAll() { for (const m of mates.values()) if (m.connected) G.Net.send(m.uid, hostFrame(m)); }
+  /**
+   * Anfitrión: manda su envío a `m`. Si no sale (sin canal o atascado), sus
+   * avisos vuelven a la cola para el siguiente: antes se perdían.
+   */
+  function sendTo(m) {
+    const f = hostFrame(m);
+    if (G.Net.send(m.uid, f)) return true;
+    m.q = f.ev.filter(ev => !TRANSIENT.has(ev[0])).concat(m.q);
+    return false;
+  }
+
+  function flushAll() { for (const m of mates.values()) if (m.connected && m.lostAt == null) sendTo(m); }
 
   /** Invitado: el envío al anfitrión. `sp` va aparte del estado (que sigue con sus 15 datos). */
   function clientFrame() {
@@ -232,28 +279,35 @@ G.Coop = (() => {
 
   function flushClient(force) {
     if (!force && !outEv.length && flushT > 0) return;
-    G.Net.toHost(clientFrame());
+    const f = clientFrame();
+    // No ha salido (cortado o atascado): lo que importa (golpes, cartas, elecciones) espera al siguiente.
+    if (!G.Net.toHost(f)) outEv = f.ev.filter(ev => !TRANSIENT.has(ev[0])).concat(outEv);
   }
 
   /** Cada fotograma (también en la pantalla de subida de nivel). */
   function tick(dt) {
     if (!active) return;
+    const now = performance.now();
     if (host) {
-      const now = performance.now();
       for (const m of mates.values()) {
         if (!m.connected) continue;
         if (!m.state && now - startAt > FIRST_MS) { mateGone(m.uid, true); continue; }
+        // Cortado: se le espera (net.js le vuelve a llamar) con lo que no le ha llegado guardado.
+        if (m.lostAt != null) { if (now - m.lostAt > RECONNECT_MS || m.q.length > MAX_Q) mateGone(m.uid); continue; }
         m.flushT -= dt;
         if (m.flushT > 0) continue;
+        // Atascado (su red no da abasto): no se le añade otra foto hasta que salga lo que espera.
+        if (G.Net.backlog(m.uid) > G.Net.BUF_HIGH) { if (m.q.length > MAX_Q) mateGone(m.uid); continue; }
         m.flushT = rateFor(m.uid);
-        G.Net.send(m.uid, hostFrame(m));
+        sendTo(m);
       }
     } else {
-      if (!stalled && performance.now() - lastHostAt > STALL_MS) { stalled = true; updateAway(); }
+      if (hostLostAt != null && now - hostLostAt > RECONNECT_MS) { const cb = api.lost; end(); if (cb) cb('Se ha perdido la conexión con el anfitrión.'); return; }
+      if (!stalled && now - lastHostAt > STALL_MS) { stalled = true; updateAway(); }
       flushT -= dt;
-      if (flushT <= 0) {
+      if (flushT <= 0 && hostLostAt == null && G.Net.backlog(hostUid) <= G.Net.BUF_HIGH) {
         flushT = rateFor(hostUid);
-        G.Net.toHost(clientFrame());
+        flushClient(true);
       }
     }
   }
@@ -268,10 +322,45 @@ G.Coop = (() => {
   });
 
   G.Net.onPeer((u, mode) => {
-    if (!active || (mode !== 'closed' && mode !== 'failed')) return;
-    if (host) mateGone(u);
-    else if (u === hostUid) { const cb = api.lost; end(); if (cb) cb('Se ha perdido la conexión con el anfitrión.'); }
+    if (!active) return;
+    if (mode === 'direct') { back(u); return; }
+    if (mode !== 'closed' && mode !== 'failed') return;
+    // Te vas tú (la sala se cierra): no hay a quién esperar.
+    if (G.Net.closing) {
+      if (host) mateGone(u);
+      else if (u === hostUid) { const cb = api.lost; end(); if (cb) cb('Se ha perdido la conexión con el anfitrión.'); }
+      return;
+    }
+    cut(u);
   });
+
+  /** Se ha cortado el canal con `u`: se le espera RECONNECT_MS (tick). */
+  function cut(u) {
+    const now = performance.now();
+    if (host) {
+      const m = mates.get(u);
+      if (!m || !m.connected || m.lostAt != null) return;
+      m.lostAt = now;
+      m.q = m.q.filter(ev => !TRANSIENT.has(ev[0]));
+      G.Spawner.say(m.name + ' ha perdido la conexión: esperando a que vuelva…', 4, true);
+    } else if (u === hostUid && hostLostAt == null) {
+      hostLostAt = now;
+      stalled = true; updateAway();
+    }
+  }
+
+  /** El canal con `u` vuelve a estar abierto (tras un corte). */
+  function back(u) {
+    if (host) {
+      const m = mates.get(u);
+      if (!m || !m.connected || m.lostAt == null) return;
+      m.lostAt = null; m.flushT = 0;
+      G.Spawner.say(m.name + ' ha vuelto a la partida', 2.6, true);
+    } else if (u === hostUid && hostLostAt != null) {
+      hostLostAt = null;
+      flushClient(true);              // que el anfitrión sepa ya que sigues ahí
+    }
+  }
 
   /**
    * Anfitrión: `u` se ha ido (o, con `never`, no ha llegado a entrar). Se avisa
@@ -301,6 +390,7 @@ G.Coop = (() => {
   function onClientFrame(from, msg) {
     const m = mates.get(from);
     if (!m || !m.connected) return;
+    if (m.lostAt != null) back(from);         // si llega algo suyo, el canal funciona
     if (msg.p) { m.state = msg.p; m.pl.net = readState(msg.p); m.xpMul = m.pl.net.xpMul || 1; reconcile(from, m.pl.net); }
     m.sp = Array.isArray(msg.sp) && msg.sp.length === 2 && msg.sp.every(Number.isFinite) ? msg.sp : null;
     for (const ev of msg.ev || []) {
@@ -335,6 +425,12 @@ G.Coop = (() => {
         case 'he': holdOff(from); break;
         case 're': G.Rift.enterRequest(); break;
         case 'bye': mateGone(from); break;
+        case 'rq':                    // enemigos que no le llegaron (se perdió su 'ne')
+          for (const id of (Array.isArray(ev[1]) ? ev[1] : []).slice(0, 60)) {
+            const e = G.EnemyMgr.get(id);
+            if (e && !e.dead && !e.remote) m.q.push(neEv(e));
+          }
+          break;
       }
     }
   }
@@ -369,8 +465,13 @@ G.Coop = (() => {
     if (msg.ho) {
       const k = msg.ho.join('|');
       if (k !== lastHo) { lastHo = k; api.hold && api.hold(msg.ho); }
-      if (msg.lu && msg.lu[0] > seenSeq) { seenSeq = msg.lu[0]; api.levelStart(msg.lu[1]); }
-      else if (!msg.lu && api.inLevelUp && api.inLevelUp()) api.resume();
+      // Hay cartas abiertas que aún no has elegido y no las tienes delante (eran
+      // nuevas, o algo te las cerró al elegir muy deprisa): se abren otra vez.
+      // Antes sólo se miraba si eran nuevas y te podías quedar fuera de la ronda
+      // con los demás esperándote.
+      const showing = api.inLevelUp && api.inLevelUp();
+      if (msg.lu && msg.lu[0] > doneSeq && (msg.lu[0] > seenSeq || !showing)) { seenSeq = msg.lu[0]; api.levelStart(msg.lu[1]); }
+      else if (!msg.lu && showing) api.resume();
     }
     api.syncTeam({ time: msg.t, level: msg.lv, xp: msg.xp, xpNext: msg.xn, kills: msg.ki, bosses: msg.bo, coins: msg.co,
                    t1: (msg.tk || [])[0], t10: (msg.tk || [])[1] });
@@ -381,9 +482,18 @@ G.Coop = (() => {
     }
     // Por si se pierde el aviso 'gone': el que el anfitrión mandaba y ya no manda, se ha ido.
     for (const m of mates.values()) if (m.connected && m.seenAt != null && now - m.seenAt > GONE_MS) dropMate(m);
-    for (const a of msg.e || []) {
+    if (!Array.isArray(msg.e)) return;
+    const unknown = [], here = new Set();
+    for (const a of msg.e) {
+      if (!Array.isArray(a)) continue;
+      here.add(a[0]);
       const e = G.EnemyMgr.get(a[0]);
-      if (!e || !e.remote || e.dead) continue;
+      // No lo conoces (se perdió su 'ne' en un corte): se le pide al anfitrión.
+      if (!e) {
+        if (unknown.length < 40 && !(now - asked.get(a[0]) < ASK_MS)) { asked.set(a[0], now); unknown.push(a[0]); }
+        continue;
+      }
+      if (!e.remote || e.dead) continue;
       const n = e.net;
       const dts = (now - (n.last || now)) / 1000;
       if (dts > 0.02 && dts < 1) {
@@ -394,6 +504,18 @@ G.Coop = (() => {
       e.hp = Math.min(e.maxHp, a[3]);
       n.anim = a[4]; n.dir = a[5]; n.st = a[6];
     }
+    if (unknown.length) outEv.push(['rq', unknown]);
+    if (asked.size > 500) for (const [id, t] of asked) if (now - t > ASK_MS) asked.delete(id);
+    // Copias que el anfitrión ya no tiene (se perdió su 'ed'): las que están cerca
+    // de lo que ves siempre vienen en 'e'; si faltan GHOST_FRAMES envíos seguidos, fuera.
+    const [fx, fy] = (api.specAt && api.specAt()) || [local.x, local.y];
+    const ghosts = [];
+    for (const e of G.EnemyMgr.all()) {
+      if (!e.remote || e.dead || !e.net) continue;
+      if (here.has(e.id) || G.U.dist2(e.x, e.y, fx, fy) > GHOST_R * GHOST_R) e.net.miss = 0;
+      else if ((e.net.miss = (e.net.miss || 0) + 1) >= GHOST_FRAMES) ghosts.push(e.id);
+    }
+    for (const id of ghosts) G.EnemyMgr.removeRemote(id, false);
   }
 
   function applyHostEvent(ev) {
@@ -440,7 +562,9 @@ G.Coop = (() => {
       case 'wx': G.Weather.onEvent(ev); break;
       case 'ev': G.Events.onNet(ev); break;
       case 'hz': G.Hazards.add(ev[1], true); break;
-      case 'fxr': G.FX.ring(ev[1], ev[2], 8, ev[3], ev[4], 0.5, 3); break;
+      case 'fxr':
+        if (typeof ev[4] === 'string') G.FX.ring(num(ev[1], 0, -1e6, 1e6), num(ev[2], 0, -1e6, 1e6), 8, num(ev[3], 8, 0, 2000), ev[4], 0.5, 3);
+        break;
     }
   }
 
@@ -459,9 +583,8 @@ G.Coop = (() => {
 
   // anfitrión
   function hurtShown(e, d, color) { emitNear(['hn', e.id, d, color], e.x, e.y, hitFrom); }
-  function enemyAdded(e) {
-    emit(['ne', e.id, e.dex, r1(e.x), r1(e.y), e.boss ? 1 : 0, e.shiny ? 1 : 0, Math.ceil(e.maxHp), r2(e.dmg), e.behavior]);
-  }
+  const neEv = e => ['ne', e.id, e.dex, r1(e.x), r1(e.y), e.boss ? 1 : 0, e.shiny ? 1 : 0, Math.ceil(e.maxHp), r2(e.dmg), e.behavior];
+  function enemyAdded(e) { emit(neEv(e)); }
   function enemyGone(e, died) { emit([died ? 'ed' : 'eg', e.id]); }
   function enemyShot(p, type) { emit(['es', r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r2(p.dmg), p.r, p.life, type, p.cat]); }
   function pickupAdded(o) { emit(['pk', o.id, o.kind, r1(o.x), r1(o.y), o.value]); }
@@ -564,6 +687,8 @@ G.Coop = (() => {
     get members() { return members; },
     get active() { return active; },
     get isHost() { return active && host; },
+    /** En grupo, pero ya sin nadie más en la partida (se han ido todos): la pausa vuelve a parar el juego. */
+    get alone() { return active && ![...mates.values()].some(m => m.connected); },
     get local() { return local; }
   };
 })();

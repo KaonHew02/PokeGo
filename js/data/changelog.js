@@ -6,6 +6,36 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
+  { d: '2026-10-22', title: ['La gran actualización: Tienda Kecleon', 'The big update: Kecleon Shop'], new: [
+    ['Mejora nueva: Tienda Kecleon (botón en el menú) con Mentas, Cápsulas Habilidad y 8 MT nuevas cada día. Cada Pokémon tiene ahora su naturaleza (±10 % a dos stats) y su habilidad, con efecto en la partida; se ven y se cambian en su ficha de la colección. Las MT enseñan para siempre ataques de fuera de sus tipos, pero sólo si los aprende en los juegos (Mewtwo puede aprender Bola Sombra; Psyduck no puede aprender Lanzallamas). Gracias a TheAdro7 por la idea y el trabajo de base.',
+     'New: the Kecleon Shop (button in the menu) with Mints, Ability Capsules and 8 new TMs every day. Every Pokémon now has its own nature (±10% to two stats) and ability, with an effect in the run; you can see and change them on its page in the collection. TMs permanently teach moves outside its types, but only if it learns them in the games (Mewtwo can learn Shadow Ball; Psyduck cannot learn Flamethrower). Thanks to TheAdro7 for the idea and the groundwork.'],
+    ['Mejora nueva, Segundo movimiento inicial: con Repertorio, se compra una vez por Pokémon y luego eliges gratis el segundo ataque con el que empiezas (o lo dejas al azar).',
+     'New upgrade, Second starting move: with Repertoire, buy it once per Pokémon and then choose for free the second move you start with (or leave it random).'],
+    ['La Tienda Kecleon, las naturalezas, las habilidades y las MT vienen de PokéSurvivor, de JPTER78.',
+     'The Kecleon Shop, natures, abilities and TMs come from PokéSurvivor by JPTER78.']
+  ], chg: [
+    ['En el móvil ya no está la opción «Apuntar a mano» (no funcionaba con la pantalla táctil): los ataques siempre apuntan solos.',
+     'On mobile the "Manual aim" option is gone (it did not work with the touch screen): moves always aim on their own.']
+  ], fix: [
+    ['Cooperativo: cuando la red de alguien no daba abasto, la partida empezaba a ir con retraso y al rato ese compañero salía de la partida. Ahora no se le manda más de lo que puede recibir y el retraso ya no se acumula.',
+     'Co-op: when someone’s network could not keep up, the game started lagging and after a while that teammate was thrown out of the run. Now they are never sent more than they can receive, so the lag no longer builds up.'],
+    ['Cooperativo: si a alguien se le corta la conexión, ya no sale de la partida al momento: se le espera 20 segundos mientras se vuelve a conectar solo (mientras tanto su partida se pausa) y sigue donde estaba.',
+     'Co-op: if someone’s connection drops, they are no longer thrown out straight away: the game waits 20 seconds while it reconnects by itself (their game pauses meanwhile) and they carry on where they were.'],
+    ['Cooperativo: si se iban todos tus compañeros y seguías jugando solo, Esc ya no paraba la partida y los enemigos te seguían atacando. Ahora la pausa vuelve a pararlo todo.',
+     'Co-op: if all your teammates left and you kept playing alone, Esc no longer stopped the run and enemies kept attacking you. Now the pause stops everything again.'],
+    ['Cooperativo: un jugador con el juego trucado ya no puede colgar la partida de los demás mandando números imposibles (una experiencia infinita dejaba congelado al anfitrión y un efecto gigante, a los invitados).',
+     'Co-op: a player with a tampered game can no longer freeze the others by sending impossible numbers (infinite experience froze the host and a giant effect froze the guests).'],
+    ['Cooperativo: Viento Aciago, Bucle Arena y Torbellino de un invitado ya atraen a los enemigos (sólo atraían los del anfitrión).',
+     'Co-op: a guest\'s Ominous Wind, Sand Tomb and Whirlpool now pull enemies in (only the host\'s did).'],
+    ['Cooperativo: el Infortunio de un invitado ya hace su daño extra a los enemigos quemados, envenenados o frenados.',
+     'Co-op: a guest\'s Hex now deals its extra damage to burned, poisoned or slowed enemies.'],
+    ['Bomba Ácida, Bola Voltio, Bomba Germen, Rayo Señal, Joya de Luz, Bola Neblina, Energibola, Canto Helado, Sombra Vil y Beso Drenaje: al evolucionar, los disparos salían hacia los lados y no daban a nadie. Ahora salen hacia delante, y la mejora «+1 proyectil» ya añade uno (antes no añadía ninguno).',
+     'Acid Spray, Electro Ball, Seed Bomb, Signal Beam, Power Gem, Mist Ball, Energy Ball, Ice Shard, Shadow Sneak and Draining Kiss: once evolved, the shots flew off to the sides and hit nothing. Now they go forward, and the "+1 projectile" upgrade really adds one (it added none before).'],
+    ['Cooperativo: si a alguien se le cerraban las cartas de subida de nivel sin haber elegido (podía pasar eligiendo muy deprisa), ahora se le vuelven a abrir y los demás ya no se quedan esperándole.',
+     'Co-op: if someone\'s level-up cards closed before they had picked (it could happen when picking very fast), they now open again and the others are no longer left waiting for them.'],
+    ['Mejoras: al cambiar de compañero, la pantalla de mejoras se abre ya con el nuevo y no con el último que habías mirado.',
+     'Upgrades: after changing your partner, the upgrades screen now opens on the new one instead of the last one you had looked at.']
+  ] },
   { d: '2026-10-22', title: ['Modo automático más listo', 'Smarter auto mode'], new: [
     ['Modo automático más listo: va a por los cofres y los rompe de verdad (les apunta), abre los cofres con candado, usa los altares y recoge objetos, tickets e imanes desde casi dos pantallas, rodeando paredes y sin meterse en la horda. Si no hay nada cerca, explora zonas nuevas. Un anillo suave en el suelo marca a qué va.',
      'Smarter auto mode: it goes for chests and really breaks them (it aims at them), opens locked chests, uses altars and picks up items, tickets and magnets from almost two screens away, going around walls and without running into the horde. When nothing is near, it explores new areas. A faint ring on the ground shows where it is heading.'],
