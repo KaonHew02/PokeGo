@@ -129,6 +129,11 @@ uso **no comercial** y con atribución a sus artistas.
 Stats base y nombres en español: [PokeAPI](https://pokeapi.co/),
 descargados una vez y guardados en `js/data/pokedex.js`.
 
+Tienda Kecleon, naturalezas, habilidades y MT (`js/data/natures.js`, `abilities.js`,
+`ability-fx.js`, `tms.js`, `shop.js`, `js/systems/mons.js`, `js/ui/shop-ui.js` e iconos):
+de PokéSurvivor (commit ce57853, 21-10-2026), que los adaptó del PR #236 de TheAdro7
+(datos de PokeAPI y pixel art de la tienda).
+
 ## Fuente
 
 [Pixelify Sans](https://github.com/eifetx/Pixelify-Sans) (SIL Open Font License 1.1,

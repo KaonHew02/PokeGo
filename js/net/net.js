@@ -25,6 +25,15 @@
  *       broadcast(msg) · on(fn(from, msg)) · onPeer(fn(uid, state))
  *       peers() · mode(uid) -> 'connecting' | 'direct' | 'relay' | 'failed' | 'closed'
  *       viaPeerJS(peer) (transporte de las salas con código) · kick(uid)
+ *       backlog(uid) (bytes esperando a salir) · BUF_HIGH
+ *
+ * Atascos (22-10-2026): el canal es fiable y ordenado, así que si se manda más
+ * de lo que la red deja pasar, lo que sobra se queda en la cola del navegador:
+ * cada vez llega más tarde (el "lag") y, al pasar de 16 MB, Chrome CIERRA el
+ * canal y el compañero salía de la partida. Ahora send() no pasa de BUF_MAX y
+ * coop.js no manda otra foto de la partida mientras haya más de BUF_HIGH esperando.
+ * Y si el canal se corta, se vuelve a llamar enseguida (RECALL_MS) a quien ya
+ * estaba conectado, también si el servidor de PeerJS se ha cortado un momento.
  */
 G.Net = (() => {
   const ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
@@ -37,14 +46,24 @@ G.Net = (() => {
   // PeerJS: su servidor tarda unos 5 s en decir que un id no existe; y quien
   // llama a una sala que aún no es suya tiene este rato para entrar (coderoom.js).
   const PEER_TIMEOUT = 15000, PEER_RETRY = 5000, KNOCK_MS = 20000;
+  // Atascos (ver arriba): por encima de BUF_HIGH no se manda otra foto de la
+  // partida; send() no deja pasar de BUF_MAX (Chrome cierra el canal a los 16 MB).
+  const BUF_HIGH = 64 * 1024, BUF_MAX = 2 * 1024 * 1024;
+  // Quien ya estaba conectado y se corta: se le vuelve a llamar a los RECALL_MS
+  // (no a los 5-15 s de antes) y, mientras no pasen GIVEUP_MS, aunque su id no
+  // esté en el servidor de PeerJS (se está volviendo a conectar a él).
+  const RECALL_MS = 2500, GIVEUP_MS = 20000;
 
 
   let tr = null;                   // transporte de la sala abierta (ver abajo)
   let uid = null, roomId = null, isHost = false, hostUid = null;
   let members = [];                // los de la sala, según el último syncMembers
   const peers = new Map();         // uid -> { pc, dc, conn, mode, timer, knock }
+  // Quien llegó a estar conectado y se ha cortado -> temporizador de GIVEUP_MS (mientras corre, se le vuelve a llamar).
+  const recall = new Map();
+  let closing = false;             // close() en marcha: lo que se cuelga ahora no vuelve
   const handlers = new Set(), peerHandlers = new Set();
-  const stats = { sent: 0, recv: 0, relaySent: 0,
+  const stats = { sent: 0, recv: 0, relaySent: 0, held: 0,
     // Sólo los datos de la partida que se han mandado bien (sin ICE/SCTP/DTLS/TURN).
     sentBytes: 0, jsonBytes: 0, recvBytes: 0, binarySent: 0, binaryRecv: 0, invalidBinary: 0 };
 
@@ -106,7 +125,13 @@ G.Net = (() => {
         peer.on('error', onErr = e => {
           if (!e || e.type !== 'peer-unavailable') return;
           const who = String(e.message || '').split(' ').pop();
-          for (const [u, p] of [...peers]) if (p.conn && p.mode !== 'direct' && (u === who || !peers.has(who))) drop(u);
+          for (const [u, p] of [...peers]) {
+            if (!p.conn || p.mode === 'direct' || (u !== who && peers.has(who))) continue;
+            // Ya estabais conectados: su conexión con el servidor de PeerJS se ha
+            // cortado un momento. Se le sigue llamando un rato (antes la sala se cerraba).
+            if (recall.has(u)) useRelay(u);
+            else drop(u);
+          }
         });
       },
       stop() { peer.off('connection', onConn); peer.off('error', onErr); },
@@ -142,9 +167,13 @@ G.Net = (() => {
   }
 
   function close() {
-    for (const u of [...peers.keys()]) drop(u);
+    closing = true;
+    try { for (const u of [...peers.keys()]) drop(u); }
+    finally { closing = false; }
     if (tr) { tr.stop(); tr = null; }
     roomId = null; isHost = false; hostUid = null; members = [];
+    for (const t of recall.values()) clearTimeout(t);
+    recall.clear();
   }
 
   /** El anfitrión llama a esto cuando cambian los miembros de la sala. */
@@ -217,6 +246,7 @@ G.Net = (() => {
 
   function opened(u, p) {
     clearTimeout(p.timer); p.mode = 'direct';
+    forget(u);
     // Aviso de que entendemos binario (las versiones viejas lo ignoran); hasta que el otro
     // mande el suyo, se le habla en JSON.
     try { p.dc.send(JSON.stringify({ k: 'net-cap', binary: G.NetCodec.version })); } catch (e) { /* el JSON sigue valiendo */ }
@@ -225,7 +255,13 @@ G.Net = (() => {
     emitPeer(u);
   }
 
-  function closed(u, p) { if (p.mode === 'direct') { p.mode = 'connecting'; useRelay(u); } }
+  function forget(u) { clearTimeout(recall.get(u)); recall.delete(u); }
+
+  function closed(u, p) {
+    if (p.mode !== 'direct') return;
+    if (!recall.has(u)) recall.set(u, setTimeout(() => recall.delete(u), GIVEUP_MS));
+    p.mode = 'connecting'; useRelay(u);
+  }
 
   /** PeerJS: hasta que abre, el canal es suyo; después lo lleva net.js como cualquier otro. */
   function attach(u, p, conn) {
@@ -260,7 +296,9 @@ G.Net = (() => {
     hangup(p);
     emitPeer(u);
     if (tr && (tr.hostDials ? isHost : !isHost)) {
-      p.timer = setTimeout(() => { if (peers.get(u) === p && p.mode === 'failed' && roomId) { drop(u, true); connect(u); } }, tr.retry);
+      // A quien ya estaba conectado (se ha cortado en plena partida), enseguida.
+      const wait = recall.has(u) ? Math.min(RECALL_MS, tr.retry) : tr.retry;
+      p.timer = setTimeout(() => { if (peers.get(u) === p && p.mode === 'failed' && roomId) { drop(u, true); connect(u); } }, wait);
     }
   }
 
@@ -333,7 +371,7 @@ G.Net = (() => {
     hangup(p);
     peers.delete(u);
     pendingIce.delete(u);
-    if (!silent) emitPeer(u);
+    if (!silent) { forget(u); emitPeer(u); }
   }
 
   // ---------------- envío / recepción ----------------
@@ -344,11 +382,14 @@ G.Net = (() => {
     return true;
   }
 
+  /** @returns true si ha salido (o va por el relé); false si no hay canal o está atascado. */
   function send(to, msg) {
-    if (!roomId) return;
+    if (!roomId) return false;
     const p = peers.get(to);
     stats.sent++;
     if (p && p.dc && p.dc.readyState === 'open') {
+      // Atascado: no se añade más (pasados los 16 MB Chrome cierra el canal). Quien llama decide qué hacer.
+      if (p.dc.bufferedAmount > BUF_MAX) { stats.held++; return false; }
       try {
         const json = JSON.stringify(msg), jsonBytes = G.NetCodec.size(json);
         const packed = p.binaryVersion === G.NetCodec.version && msg && msg.k === 'f'
@@ -358,16 +399,17 @@ G.Net = (() => {
         stats.sentBytes += binary ? packed.byteLength : jsonBytes;
         stats.jsonBytes += jsonBytes;
         if (binary) stats.binarySent++;
-        return;
+        return true;
       } catch (e) { /* cae al relé */ }
     }
     // Sin relé, los datos de la partida no van por la base de datos (se pierden: esa
     // pareja no está conectada). Sólo pasa el aviso de empezar (y nada con PeerJS).
-    if (!ALLOW_RELAY && !(msg && msg.k === 'start')) return;
-    if (relayPush(to, { f: uid, d: msg })) stats.relaySent++;
+    if (!ALLOW_RELAY && !(msg && msg.k === 'start')) return false;
+    if (relayPush(to, { f: uid, d: msg })) { stats.relaySent++; return true; }
+    return false;
   }
 
-  function toHost(msg) { if (!isHost && hostUid) send(hostUid, msg); }
+  function toHost(msg) { return !isHost && !!hostUid && send(hostUid, msg); }
   /** A todos los de la sala (no a quien aún llama a la puerta). */
   function broadcast(msg, except) { for (const [u, p] of peers) if (u !== except && !p.knock) send(u, msg); }
 
@@ -387,6 +429,11 @@ G.Net = (() => {
     mode(u) { const p = peers.get(u); return p ? p.mode : 'closed'; },
     /** ¿Va por el relé (o no hay conexión)? Entonces se manda menos a menudo. */
     slow(u) { const p = peers.get(u); return !p || p.mode !== 'direct'; },
+    /** Bytes que esperan a salir hacia `u` (Infinity si no hay canal abierto). */
+    backlog(u) { const p = peers.get(u); return p && p.dc && p.dc.readyState === 'open' ? p.dc.bufferedAmount : Infinity; },
+    BUF_HIGH,
+    /** ¿Se está cerrando la sala? (lo que se cuelga ahora es porque te vas tú, no un corte) */
+    get closing() { return closing; },
     peers() { return [...peers.keys()]; },
     get open_() { return !!roomId; },
     /** El transporte de la sala abierta (null si no hay). */

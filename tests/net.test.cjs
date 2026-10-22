@@ -356,8 +356,8 @@ test('representative busy host payload saves at least 30%; all savings are lossl
 test('real Coop.tick frames pass through the codec without changing gameplay fields', () => {
   for (const host of [true, false]) {
     const sent = [], G = {};
-    G.Net = { uid: host ? 'host' : 'guest', on() {}, onPeer() {}, slow: () => false,
-      send: (uid, f) => sent.push(f), toHost: f => sent.push(f) };
+    G.Net = { uid: host ? 'host' : 'guest', on() {}, onPeer() {}, slow: () => false, backlog: () => 0, BUF_HIGH: 65536,
+      send: (uid, f) => !!sent.push(f), toHost: f => !!sent.push(f) };
     G.Player = class { constructor() { this.maxHp = 300; } };
     G.DEX_BY = { 25: { dex: 25 } }; G.baseStartOf = () => 'thundershock';
     G.Sprites = { preload() {} }; G.U = { dist2: (x, y, a, b) => (x - a) ** 2 + (y - b) ** 2 };
@@ -381,16 +381,23 @@ test('real Coop.tick frames pass through the codec without changing gameplay fie
 });
 
 // Real js/net/coop.js with a fake network, clock and game: `uid` plays in a room of host + a + b.
-function coopSim(uid) {
-  const sent = [], said = [], lost = [], waits = [], clock = { now: 0 }, net = {}, G = {};
+// net.jam[uid] = bytes stuck on the way to uid; net.down[uid] = sending to uid fails; net.closing = you are leaving.
+// opt.enemies: the game's enemies (EnemyMgr.all/get/removeRemote use them).
+function coopSim(uid, opt = {}) {
+  const sent = [], said = [], lost = [], waits = [], clock = { now: 0 }, net = { jam: {}, down: {} }, G = {};
   G.Net = { uid, on: fn => { net.msg = fn; }, onPeer: fn => { net.peer = fn; }, slow: () => false,
-    send: (to, f) => sent.push([to, f]), toHost: f => sent.push(['host', f]) };
+    BUF_HIGH: 65536, backlog: u => net.jam[u] || 0, get closing() { return !!net.closing; },
+    send: (to, f) => !net.down[to] && !!sent.push([to, f]), toHost: f => !net.down.host && !!sent.push(['host', f]) };
   G.Player = class { constructor() { this.maxHp = 300; } };
   G.DEX_BY = { 25: { dex: 25 } }; G.baseStartOf = () => 'thundershock';
   G.Sprites = { preload() {} }; G.Social = { me: null };
   G.U = { dist2: (x, y, a, b) => (x - a) ** 2 + (y - b) ** 2, clamp: (v, a, b) => Math.max(a, Math.min(b, v)) };
   const enemy = (id, x, y) => ({ id, x, y, hp: 50, anim: { cur: 'Walk', dir: 0 } });
-  G.EnemyMgr = { all: () => [enemy(1, 0, 0), enemy(2, 3000, 0)], get: () => null };
+  const list = opt.enemies;
+  G.EnemyMgr = list
+    ? { all: () => list, get: id => list.find(e => e.id === id) || null,
+        removeRemote: id => { const i = list.findIndex(e => e.id === id); if (i >= 0) list.splice(i, 1); } }
+    : { all: () => [enemy(1, 0, 0), enemy(2, 3000, 0)], get: () => null };
   G.Judgment = { netState: () => null }; G.Projectiles = { clearOrbs() {} };
   G.Spawner = { say: t => said.push(t) };
   new Function('G', 'document', 'performance', source('js/net/coop.js'))(G, { addEventListener() {} }, { now: () => clock.now });
@@ -438,13 +445,16 @@ test('host lists enemies and damage numbers around the point a downed guest is w
 test("host tells everyone when a teammate leaves ('gone'); guests drop it, also if that notice is lost", () => {
   const h = coopSim('host');
   h.net.msg('a', { k: 'f', p: h.state(10, 0), ev: [] }); h.net.msg('b', { k: 'f', p: h.state(20, 0), ev: [] });
-  h.net.peer('a', 'closed');
+  h.net.msg('a', { k: 'f', p: h.state(10, 0), ev: [['bye']] });       // leaving: gone at once
   assert.equal(h.C.mate('a').connected, false); assert.equal(h.C.players().length, 2);
   assert.deepEqual(h.to('a').at(-1).ev.at(-1), ['gone', 'a']);        // also to the one who left, in case it is still there
   h.C.tick(1);
   const fb = h.to('b').at(-1);
   assert.ok(fb.ev.some(e => e[0] === 'gone' && e[1] === 'a')); assert.deepEqual(Object.keys(fb.p), ['host']);
   assert.ok(h.said.includes('Ana ha dejado la partida'));
+  assert.equal(h.C.alone, false);
+  h.net.closing = true; h.net.peer('b', 'closed');                     // you close the room: nobody to wait for
+  assert.equal(h.C.mate('b').connected, false); assert.equal(h.C.alone, true);
 
   const g = coopSim('b');
   assert.equal(g.C.fresh(g.C.mate('a')), false);                       // nothing heard of Ana yet
@@ -472,6 +482,95 @@ test("host tells everyone when a teammate leaves ('gone'); guests drop it, also 
   const me = coopSim('b');
   me.net.msg('host', me.hostFrame({ host: me.state(0, 0) }, [['gone', 'b'], ['heal', 0.3]]));
   assert.equal(me.C.active, false); assert.deepEqual(me.lost, ['Se ha perdido la conexión con el anfitrión.']);
+});
+
+test('host waits RECONNECT_MS for a teammate whose connection drops, keeping what it missed', () => {
+  const h = coopSim('host');
+  h.net.msg('a', { k: 'f', p: h.state(10, 0), ev: [] }); h.net.msg('b', { k: 'f', p: h.state(20, 0), ev: [] });
+  h.C.tick(1); h.sent.length = 0;
+  h.clock.now = 1000; h.net.peer('a', 'failed');
+  assert.equal(h.C.mate('a').connected, true); assert.equal(h.C.players().length, 3);
+  assert.ok(h.said.includes('Ana ha perdido la conexión: esperando a que vuelva…'));
+  // While cut: the lasting notices are kept for later, what is only seen for a moment is not.
+  h.C.enemyAdded({ id: 5, dex: 25, x: 1, y: 2, maxHp: 40, dmg: 3, behavior: 'chase' });
+  h.C.cast(h.C.local, { id: 'thundershock', lvl: 1 });
+  h.C.hurtShown({ id: 1, x: 0, y: 0 }, 9, '#fff');
+  h.C.tick(1);
+  assert.equal(h.to('a').length, 0);                                     // nothing goes to a cut teammate
+  assert.ok(h.to('b').at(-1).ev.some(e => e[0] === 'c'));               // the others still get everything
+  h.clock.now = 15000; h.net.peer('a', 'closed'); h.net.peer('a', 'direct');    // net.js replaced the channel: back
+  assert.ok(h.said.includes('Ana ha vuelto a la partida'));
+  h.C.tick(1);
+  const ev = h.to('a').at(-1).ev;
+  assert.ok(ev.some(e => e[0] === 'ne' && e[1] === 5)); assert.ok(!ev.some(e => e[0] === 'c' || e[0] === 'hn'));
+  // Cut for good: gone after RECONNECT_MS.
+  h.clock.now = 20000; h.net.peer('a', 'failed');
+  h.clock.now = 39000; h.C.tick(1); assert.equal(h.C.mate('a').connected, true);
+  h.clock.now = 40001; h.C.tick(1);
+  assert.equal(h.C.mate('a').connected, false); assert.ok(h.said.includes('Ana ha dejado la partida'));
+  assert.ok(h.to('b').some(f => f.ev.some(e => e[0] === 'gone' && e[1] === 'a')));
+});
+
+test('a guest whose connection to the host drops waits RECONNECT_MS before its run ends', () => {
+  const g = coopSim('a');
+  g.net.msg('host', g.hostFrame({ host: g.state(0, 0) }));
+  g.sent.length = 0;
+  g.net.down.host = true; g.net.peer('host', 'failed');
+  g.C.toHost(['lp']);                                                    // a pick while cut: it waits, it is not lost
+  g.clock.now = 19000; g.C.tick(1);
+  assert.equal(g.C.active, true); assert.deepEqual(g.lost, []); assert.equal(g.sent.length, 0);
+  g.net.down.host = false; g.net.peer('host', 'direct');
+  assert.equal(g.sent.length, 1); assert.deepEqual(g.sent[0][1].ev, [['lp']]);     // sent as soon as it is back
+  g.clock.now = 30000; g.net.peer('host', 'failed');
+  g.clock.now = 50001; g.C.tick(1);
+  assert.equal(g.C.active, false); assert.deepEqual(g.lost, ['Se ha perdido la conexión con el anfitrión.']);
+});
+
+test('a jammed connection gets no new frames until it drains, and nothing lasting is lost', () => {
+  const h = coopSim('host');
+  h.net.msg('a', { k: 'f', p: h.state(10, 0), ev: [] }); h.net.msg('b', { k: 'f', p: h.state(20, 0), ev: [] });
+  h.C.tick(1); h.sent.length = 0;
+  h.net.jam.a = 200000;
+  h.C.enemyAdded({ id: 5, dex: 25, x: 1, y: 2, maxHp: 40, dmg: 3, behavior: 'chase' });
+  h.C.hurtShown({ id: 1, x: 0, y: 0 }, 9, '#fff');                      // damage numbers skip a jammed teammate
+  h.C.tick(1); h.C.tick(1);
+  assert.equal(h.to('a').length, 0); assert.equal(h.to('b').length, 2);
+  h.net.jam.a = 0; h.C.tick(1);
+  const ev = h.to('a').at(-1).ev;
+  assert.ok(ev.some(e => e[0] === 'ne' && e[1] === 5)); assert.ok(!ev.some(e => e[0] === 'hn'));
+  // A frame that cannot go out (channel full or closed) puts its notices back for the next one.
+  h.net.down.a = true; h.C.enemyAdded({ id: 6, dex: 25, x: 1, y: 2, maxHp: 40, dmg: 3, behavior: 'chase' }); h.C.tick(1);
+  h.net.down.a = false; h.C.tick(1);
+  assert.ok(h.to('a').at(-1).ev.some(e => e[0] === 'ne' && e[1] === 6));
+  // At most 400 notices per frame; the rest go in the next ones.
+  for (let i = 0; i < 1000; i++) h.C.say('x', 1);
+  h.C.tick(1); assert.equal(h.to('a').at(-1).ev.length, 400);
+  h.C.tick(1); h.C.tick(1); assert.equal(h.to('a').at(-1).ev.length, 200);
+});
+
+test('guests ask for enemies they never heard of and drop copies the host no longer has', () => {
+  const ghost = { id: 9, x: 100, y: 0, remote: true, dead: false, net: {} };
+  const far = { id: 10, x: 3000, y: 0, remote: true, dead: false, net: {} };
+  const list = [ghost, far];
+  const g = coopSim('a', { enemies: list });
+  const frame = () => g.net.msg('host', Object.assign(g.hostFrame({ host: g.state(0, 0) }), { e: [[7, 50, 0, 10, 0, 0, 0]] }));
+  frame(); g.C.tick(1);
+  assert.deepEqual(g.sent.at(-1)[1].ev, [['rq', [7]]]);
+  frame(); g.C.tick(1);
+  assert.deepEqual(g.sent.at(-1)[1].ev, []);                            // not again straight away
+  g.clock.now = 2500; frame(); g.C.tick(1);
+  assert.deepEqual(g.sent.at(-1)[1].ev, [['rq', [7]]]);
+  // id 9 is near and never comes in 'e' (its 'ed' was lost): gone after 30 frames; id 10 is far: kept.
+  for (let i = 0; i < 26; i++) frame();
+  assert.ok(list.includes(ghost));
+  frame();
+  assert.ok(!list.includes(ghost)); assert.ok(list.includes(far));
+  // The host answers 'rq' with the enemy, only to whoever asked.
+  const h = coopSim('host', { enemies: [{ id: 7, dex: 25, x: 50, y: 0, hp: 40, maxHp: 40, dmg: 3, behavior: 'chase', dead: false, anim: { cur: 'Walk', dir: 0 } }] });
+  h.net.msg('a', { k: 'f', p: h.state(10, 0), ev: [['rq', [7, 8]]] }); h.net.msg('b', { k: 'f', p: h.state(20, 0), ev: [] });
+  h.C.tick(1);
+  assert.deepEqual(h.to('a').at(-1).ev, [['ne', 7, 25, 50, 0, 0, 0, 40, 3, 'chase']]);
+  assert.deepEqual(h.to('b').at(-1).ev, []);
 });
 
 test('host drops a teammate with no first frame after 10 s, never one whose tab merely went quiet', () => {
