@@ -865,6 +865,7 @@ G.I18n.add({
   'AUTO se pone {x}': 'AUTO equips {x}',
   'AUTO no se pone {x}': 'AUTO skips {x}',
   'AUTO une {x}': 'AUTO bonds {x}',
+  'AUTO cambia las cartas': 'AUTO rerolls the cards',
   'Has usado el modo automático: esta partida no va al ranking.': 'You used auto mode: this run doesn’t go to the leaderboard.',
   'Un compañero ha usado el modo automático: esta partida no va al ranking.': 'A teammate used auto mode: this run doesn’t go to the leaderboard.',
   'modo automático (AUTO)': 'auto mode (AUTO)',

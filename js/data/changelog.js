@@ -6,6 +6,12 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
+  { d: '2026-10-22', title: ['Modo automático más listo', 'Smarter auto mode'], new: [
+    ['Modo automático más listo: va a por los cofres y los rompe de verdad (les apunta), abre los cofres con candado, usa los altares y recoge objetos, tickets e imanes desde casi dos pantallas, rodeando paredes y sin meterse en la horda. Si no hay nada cerca, explora zonas nuevas. Un anillo suave en el suelo marca a qué va.',
+     'Smarter auto mode: it goes for chests and really breaks them (it aims at them), opens locked chests, uses altars and picks up items, tickets and magnets from almost two screens away, going around walls and without running into the horde. When nothing is near, it explores new areas. A faint ring on the ground shows where it is heading.'],
+    ['El modo automático elige mejor las cartas: arma la partida alrededor de su ataque más fuerte con tu Pokémon (su lado físico o especial, el monotipo, cómo rinde a distancia), lo lleva al máximo y lo evoluciona, coge vida y defensa cuando le están haciendo daño, valora los objetos según cómo juega y cambia las cartas si ninguna sirve.',
+     'Auto mode picks better cards: it builds the run around your Pokémon\'s strongest attack (its physical or special side, the mono-type bonus, how well it works at range), takes it to max level and evolves it, takes HP and defence when it is getting hurt, judges items by how it plays and rerolls the cards when none is useful.']
+  ] },
   { d: '2026-10-21', title: ['Jugar en grupo con código de sala', 'Group play with room codes'], new: [
     ['Modo automático: con el botón AUTO (o la tecla T, o X en el mando) tu Pokémon juega solo: esquiva enemigos, disparos y avisos del suelo, recoge experiencia y objetos, abre cofres, levanta a los compañeros caídos y elige por ti las cartas, los objetos y los vínculos. Si te mueves tú, mandas tú, y AUTO vuelve al soltar. Las partidas con AUTO no van al ranking; lo demás cuenta igual.',
      'Auto mode: with the AUTO button (or the T key, or X on a controller) your Pokémon plays by itself: it dodges enemies, shots and ground warnings, collects experience and items, opens chests, revives downed teammates and picks your cards, items and bonds for you. If you move, you take over, and AUTO comes back when you let go. Runs with AUTO don\'t go to the leaderboard; everything else counts as usual.'],

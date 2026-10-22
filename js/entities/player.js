@@ -407,13 +407,15 @@ G.Player = class Player {
     //   cuerpo a cuerpo y el resto:   lo que te toca > el jefe > el más cercano
     // Con una horda encima casi siempre te toca algo; si eso ganara siempre,
     // los ataques a distancia no le darían nunca al jefe.
-    // Sin enemigos, apunta a la roca o cofre más cercano.
+    // Sin enemigos, apunta a la roca o cofre más cercano. Con el modo automático,
+    // al cofre al que va (si nada te toca ni hay un jefe a tiro): si no, no se rompe.
     const all = G.EnemyMgr.all();
     const m = this.activeMove();
     const ranged = !!m && (m.kind === 'projectile' || m.kind === 'beam');
     const threat = G.Projectiles.nearest(all, this.x, this.y, this.r + 24);
     const boss = all.find(e => e.boss && !e.dead && G.U.dist(this.x, this.y, e.x, e.y) < 330);
     const tg = (ranged ? boss || threat : threat || boss)
+            || G.Auto.aimAt(this)
             || G.Projectiles.nearest(all, this.x, this.y, 520)
             || G.World.nearestBreakable(this.x, this.y, 200);
     // Apuntar a mano (Ajustes > Accesibilidad): hacia el ratón o el stick derecho.

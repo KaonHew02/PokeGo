@@ -12,6 +12,8 @@
  *
  * Coste: R=28 casillas de radio → 57×57 = 3.249 casillas por jugador, cada
  * 0,35 s. Los enemigos fuera del campo (muy lejos) van en línea recta.
+ * El modo automático usa el mismo campo al revés (route): cómo llegar andando
+ * desde tu Pokémon hasta un cofre o un altar, rodeando lo que haya en medio.
  */
 G.Path = (() => {
   const R = 28, N = R * 2 + 1, EVERY = 0.35;
@@ -117,7 +119,57 @@ G.Path = (() => {
     return true;
   }
 
+  /**
+   * Modo automático (autopilot.js): el camino andando desde el jugador hasta
+   * (x, y) por su campo. Devuelve undefined si no se sabe (sin campo, o (x, y)
+   * fuera de él), null si no hay camino, o { len, wx, wy }: lo que hay que
+   * andar (px) y, con `wp`, el punto al que ir ahora (el más lejano del camino
+   * al que se llega en línea recta; si se ve el final, (x, y)). Si (x, y) es un
+   * objeto sólido (un cofre, un altar), vale la casilla de al lado más cercana.
+   */
+  function route(pl, x, y, wp = false) {
+    const f = fields.get(pl);
+    if (!f) return undefined;
+    const TS = G.World.TS;
+    let tx = Math.floor(x / TS) - f.ox, ty = Math.floor(y / TS) - f.oy;
+    if (tx < 1 || ty < 1 || tx >= N - 1 || ty >= N - 1) return undefined;
+    let d = f.dist[ty * N + tx];
+    if (d === UNSEEN) {
+      let bx = tx, by = ty;
+      for (const [a, b] of D8) {
+        const v = f.dist[(ty + b) * N + tx + a];
+        if (v < d) { d = v; bx = tx + a; by = ty + b; }
+      }
+      if (d === UNSEEN) return null;
+      tx = bx; ty = by;
+    }
+    const out = { len: d * TS * 1.1, wx: x, wy: y };
+    if (!wp || d <= 1 || clearLine(f, pl.x, pl.y, (f.ox + tx + 0.5) * TS, (f.oy + ty + 0.5) * TS, pl.r)) return out;
+    // Del final hacia el jugador, bajando pasos (sin cortar esquinas, como los enemigos).
+    const path = [];
+    let cx = tx, cy = ty;
+    while (d > 1 && path.length < 120) {
+      let nx = -1, ny = -1;
+      for (let k = 0; k < 8; k++) {
+        const x2 = cx + D8[k][0], y2 = cy + D8[k][1];
+        if (x2 < 0 || y2 < 0 || x2 >= N || y2 >= N || f.dist[y2 * N + x2] !== d - 1) continue;
+        if (k >= 4 && (!f.open[cy * N + x2] || !f.open[y2 * N + cx])) continue;
+        nx = x2; ny = y2; break;
+      }
+      if (nx < 0) break;
+      cx = nx; cy = ny; d--;
+      path.push(cx, cy);
+    }
+    // El punto al que ir: desde el jugador hacia fuera, el último que se ve en línea recta.
+    for (let i = path.length - 2, n = 0; i >= 0 && n < 12; i -= 2, n++) {
+      const px = (f.ox + path[i] + 0.5) * TS, py = (f.oy + path[i + 1] + 0.5) * TS;
+      if (n > 0 && !clearLine(f, pl.x, pl.y, px, py, pl.r)) break;
+      out.wx = px; out.wy = py;
+    }
+    return out;
+  }
+
   function clear() { fields.clear(); timer = 0; }
 
-  return { update, dirFor, clear };
+  return { update, dirFor, route, clear };
 })();

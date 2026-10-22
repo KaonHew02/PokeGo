@@ -846,6 +846,7 @@ G.Game = (() => {
     G.Hazards.draw(ctx);
     G.Combat.drawGroundFields(ctx);
     G.Pickups.draw(ctx);
+    if (pl && state !== 'ui') G.Auto.drawMark(ctx);     // modo automático: a qué va (anillo suave)
 
     // Todo lo que tiene "pies" se ordena por Y: objetos, enemigos, jugador.
     const items = [];

@@ -406,5 +406,5 @@ G.RunUI = (() => {
     $('btn-quit').onclick = onQuit;
   }
 
-  return { showLevelUp, reroll, showItemChoice, chooseItem, showBond, pickBond, bondBack, pick, pending, setWaiting, closeLevelUp, showOver, wirePause, showPause };
+  return { showLevelUp, reroll, rerollsLeft, showItemChoice, chooseItem, showBond, pickBond, bondBack, pick, pending, setWaiting, closeLevelUp, showOver, wirePause, showPause };
 })();
