@@ -262,6 +262,8 @@ G.I18n.add({
   'Leer, pensar, estar tranquilo.': 'Reading, thinking, being calm.',
   'No te lo piensas dos veces cuando alguien necesita ayuda.': 'You don\'t think twice when someone needs help.',
   'Tus amigos saben que pueden contar contigo siempre.': 'Your friends know they can always count on you.',
+  // rasgos de la personalidad (test inicial)
+  'Valiente': 'Brave', 'Impulsivo': 'Impulsive', 'Prudente': 'Cautious', 'Leal': 'Loyal', 'Paciente': 'Patient', 'Dulce': 'Sweet', 'Tímido': 'Shy', 'Travieso': 'Mischievous', 'Sereno': 'Serene', 'Astuto': 'Clever', 'Alegre': 'Cheerful', 'Tenaz': 'Tenacious', 'Orgulloso': 'Proud', 'Solitario': 'Loner', 'Tranquilo': 'Calm', 'Caótico': 'Chaotic',
   'Mides cada paso antes de darlo.': 'You measure every step before taking it.', 'Contagias energía allá donde vas.': 'You spread energy wherever you go.',
   'Mantienes la calma cuando todo se complica.': 'You keep calm when things get complicated.',
   'Actúas primero y piensas después. ¡A veces sale bien!': 'You act first and think later. Sometimes it works!',

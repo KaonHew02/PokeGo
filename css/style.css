@@ -68,7 +68,7 @@ input { font: inherit; }
 .scr.hidden { display: none; }
 /* Pantallas que se abren con la barra superior a la vista: empiezan debajo de ella. */
 @media (min-height: 521px) {
-  #scr-goals, #scr-dex, #scr-upgrades, #scr-gacha, #scr-friends, #scr-rank, #scr-lobby, #scr-profile { padding-top: 66px; }
+  #scr-goals, #scr-dex, #scr-upgrades, #scr-gacha, #scr-friends, #scr-rank, #scr-lobby, #scr-profile, #scr-shop, #scr-news { padding-top: calc(66px + var(--sa-t)); }
 }
 .scr.dim { background: radial-gradient(circle at 50% 40%, rgba(10,20,50,.55), rgba(3,6,16,.88)); }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
@@ -517,7 +517,7 @@ kbd {
 }
 
 .toast {
-  position: fixed; left: 50%; bottom: calc(30px + var(--sa-b)); transform: translateX(-50%); z-index: 60;
+  position: fixed; left: 50%; bottom: calc(30px + var(--sa-b)); transform: translateX(-50%); z-index: 60; pointer-events: none;
   padding: 10px 18px; border-radius: 10px;
   background: rgba(10,20,50,.95); border: 2px solid var(--edge);
   text-shadow: 2px 2px 0 var(--shadow); animation: pop .2s ease-out;
@@ -529,6 +529,7 @@ kbd {
 
 @media (max-width: 760px) and (min-height: 521px) {
   #scr-menu { flex-direction: column; overflow-y: auto; }
+  .menu-left { padding-top: calc(60px + var(--sa-t)); }               /* (el título quedaba debajo de la barra de arriba) */
   .menu-right { width: 100%; background: rgba(5,10,25,.7); }
   .split { grid-template-columns: 1fr; }
   .logo .t1 { font-size: 34px; }
@@ -744,7 +745,7 @@ a.plink { color: inherit; text-decoration: none; border-bottom: 1px dotted rgba(
 a.plink:hover { color: var(--gold); }
 #user-pill { cursor: pointer; }
 .ach-pop {
-  position: fixed; left: 50%; top: calc(64px + var(--sa-t)); transform: translateX(-50%); z-index: 80;
+  position: fixed; left: 50%; top: calc(64px + var(--sa-t)); transform: translateX(-50%); z-index: 80; pointer-events: none;
   display: flex; gap: 10px; align-items: center; padding: 10px 16px; animation: pop .2s ease-out;
   border-color: var(--gold) !important;
 }
@@ -863,7 +864,7 @@ a.btn { text-decoration: none; display: inline-block; color: var(--ink); }
   .menu-left { padding: calc(50px + var(--sa-t)) 8px calc(6px + var(--sa-b)) calc(8px + var(--sa-l)); }
   .menu-left .logo { margin-bottom: 2px; }
   .menu-left .logo .t1 { font-size: 28px; }
-  .splash { top: 50%; font-size: 9px; max-width: 10em; margin-right: -3.6em; }
+  .splash { display: none; }                      /* tapaba el botón Jugar */
   .logo .t2 { font-size: 10px; margin-top: 2px; letter-spacing: 2px; }
   #menu-partner { height: min(34vh, 130px); width: auto; }
   .partner-card { margin-top: 2px; }

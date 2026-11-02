@@ -386,8 +386,12 @@ G.Player = class Player {
   addBuff(stat, amount, dur, maxStacks) {
     const b = this.buffs[stat];
     if (!b) return;
+    const n = Math.min(maxStacks, b.n + 1);
+    // Una subida más floja no pisa una mejor que ya está puesta (Armadura Frágil
+    // al recibir un golpe dejaba en una las cargas de Agilidad).
+    if (b.n > 0 && b.amount * b.n > amount * n) return;
     b.amount = amount;
-    b.n = Math.min(maxStacks, b.n + 1);
+    b.n = n;
     b.t = dur;
   }
 

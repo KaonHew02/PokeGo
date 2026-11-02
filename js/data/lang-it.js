@@ -248,6 +248,8 @@ G.I18n.add({
   'Leer, pensar, estar tranquilo.': 'Leggere, pensare, stare tranquillo.',
   'No te lo piensas dos veces cuando alguien necesita ayuda.': 'Non ci pensi due volte quando qualcuno ha bisogno di aiuto.',
   'Tus amigos saben que pueden contar contigo siempre.': 'I tuoi amici sanno che possono sempre contare su di te.',
+  // rasgos de la personalidad (test inicial)
+  'Valiente': 'Coraggioso', 'Impulsivo': 'Impulsivo', 'Prudente': 'Prudente', 'Leal': 'Leale', 'Paciente': 'Paziente', 'Dulce': 'Dolce', 'Tímido': 'Timido', 'Travieso': 'Birichino', 'Sereno': 'Sereno', 'Astuto': 'Astuto', 'Alegre': 'Allegro', 'Tenaz': 'Tenace', 'Orgulloso': 'Orgoglioso', 'Solitario': 'Solitario', 'Tranquilo': 'Tranquillo', 'Caótico': 'Caotico',
   'Mides cada paso antes de darlo.': 'Calcoli ogni passo prima di farlo.',
   'Contagias energía allá donde vas.': 'Trasmetti energia ovunque tu vada.',
   'Mantienes la calma cuando todo se complica.': 'Mantieni la calma quando le cose si complicano.',
