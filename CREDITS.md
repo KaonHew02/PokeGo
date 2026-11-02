@@ -147,6 +147,10 @@ licencia en `assets/fonts/OFL.txt`). El juego usa una versión modificada,
 en `js/vendor/peerjs.min.js` sin cambios: sólo para que los navegadores se encuentren al jugar
 en grupo con código de sala (`js/net/coderoom.js`).
 
+[Firebase JS SDK](https://github.com/firebase/firebase-js-sdk) 13.0.0 (licencia Apache 2.0,
+© Google LLC), las versiones *compat* de app, auth, firestore y database en `js/vendor/firebase/`
+sin cambios: van con el juego para poder entrar en la cuenta y jugar sin conexión (`js/core/db.js`).
+
 ## Marca
 
 Pokémon es propiedad de Nintendo, Creatures Inc. y GAME FREAK.

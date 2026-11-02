@@ -48,6 +48,19 @@ G.Sprites = (() => {
     return !!m.a[anim] && !(shiny && m.sm && m.sm.includes(anim));
   }
 
+  /** Todas las hojas que puede pedir el juego (para bajarlas de una vez: jugar sin conexión). */
+  function files() {
+    const out = [];
+    for (const dex in G.SPRITE_META) {
+      const m = G.SPRITE_META[dex];
+      for (const anim in m.a) {
+        out.push(`assets/pokemon/${dex}/${anim}.png`);
+        if (m.sh && has(m, anim, true)) out.push(`assets/pokemon/${dex}/s/${anim}.png`);
+      }
+    }
+    return out;
+  }
+
   function animName(dex, anim, shiny = false) {
     const m = meta(dex);
     if (!m) return null;
@@ -278,6 +291,6 @@ G.Sprites = (() => {
     }
   }
 
-  return { PX, meta, hasShiny, hovers, white, animMeta, sheet, preload, dirFromAngle, bodyRadius, bodyHeight, playerScale, playerRadius,
+  return { PX, meta, hasShiny, hovers, white, animMeta, sheet, preload, files, dirFromAngle, bodyRadius, bodyHeight, playerScale, playerRadius,
            drawShadow, Animator, ANIMS, get sheetCount() { return sheets.size; } };
 })();

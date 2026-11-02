@@ -6,6 +6,15 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
+  { d: '2026-11-02', title: ['Jugar sin conexión y en iPhone', 'Offline play and iPhone'], new: [
+    ['Jugar sin conexión: sin internet entras igual en tu cuenta y juegas con la partida guardada en este aparato; al volver la conexión se sube sola y se junta con la de la nube, sin perder nada. Para ver todos los Pokémon sin conexión, descarga antes sus imágenes en Ajustes > Cuenta. El ranking, los amigos y el juego en grupo siguen necesitando conexión.',
+     'Offline play: without internet you still get into your account and play with the save on this device; when the connection comes back it uploads by itself and merges with the cloud, without losing anything. To see every Pokémon offline, download their images first in Settings > Account. Leaderboards, friends and group play still need a connection.'],
+    ['iPhone: el juego explica cómo instalarlo en la pantalla de inicio (Compartir → Añadir a pantalla de inicio) para jugar a pantalla completa, sin las barras de Safari.',
+     'iPhone: the game explains how to install it on the Home Screen (Share → Add to Home Screen) to play fullscreen, without Safari’s bars.']
+  ], fix: [
+    ['iPhone en horizontal: los botones de arriba, el menú y los avisos ya no quedan debajo de la muesca ni de la barra de inicio.',
+     'iPhone in landscape: the top buttons, the menu and the pop-ups no longer sit under the notch or the home bar.']
+  ] },
   { d: '2026-10-23', title: ['Jugar en grupo con cualquier conexión', 'Group play on any connection'], new: [
     ['Cooperativo: si vuestras redes no dejan conectaros directamente (pasa con datos móviles y algunos routers: la sala se quedaba en «Conectando…»), la partida pasa ahora por un servidor puente (TURN), cifrada. Si podéis conectar directamente, todo sigue igual. En la sala, el anfitrión ve «Conectado (por servidor)» cuando va por el puente.',
      'Co-op: if your networks cannot connect to each other directly (it happens with mobile data and some routers: the room got stuck on "Connecting…"), the game now goes through a relay server (TURN), encrypted. If you can connect directly, nothing changes. In the room, the host sees "Connected (via server)" when it goes through the relay.']

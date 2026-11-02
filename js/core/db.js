@@ -32,7 +32,9 @@ G.DB = (() => {
   const K_CLOUD = 'ps.cloud.', K_MIGRATED = 'ps.migrated.';
   const VERSION = 3;
   const START_COINS = 500;
-  const SDK = 'https://www.gstatic.com/firebasejs/13.0.0/';
+  // Firebase 13.0.0 va con el juego (antes, de gstatic): sin conexión también se
+  // entra en la cuenta y se juega con su copia en este aparato (ver openCloud).
+  const SDK = 'js/vendor/firebase/';
   const NAME_DOMAIN = 'jugadores.pokego-ec220.firebaseapp.com';   // sólo para el email interno: no cambiar con cuentas creadas
 
   let mode = 'local';       // 'cloud' | 'local'
@@ -562,6 +564,8 @@ G.DB = (() => {
     });
     // Al cerrar o recargar la página, lo pendiente se sube siempre.
     addEventListener('pagehide', () => { if (pending) pushNow(); });
+    // Al volver la conexión, lo jugado sin ella se sube (y se junta con la nube) enseguida.
+    addEventListener('online', () => { if (pending && save && !guest) { fails = 0; pushNow(); } });
     return true;
   }
 
@@ -601,13 +605,20 @@ G.DB = (() => {
   const docRef = () => fs.collection('saves').doc(uid);
   const plain = s => JSON.parse(JSON.stringify(s));      // Firestore no admite undefined
 
-  /** Abre la partida de la nube de un usuario recién autenticado. */
+  /**
+   * Abre la partida de la nube de un usuario recién autenticado. Sin conexión (o
+   * si la nube no contesta en OPEN_WAIT) se entra con la copia de este aparato:
+   * se juega igual y se sube al volver la conexión. Sin copia, no se puede.
+   */
+  const OPEN_WAIT = 8000;
   async function openCloud(u, opts = {}) {
     uid = u.uid;
     const cached = read(K_CLOUD + uid);
     let remote = null, online = true;
     try {
-      const snap = await docRef().get();
+      if (cached && navigator.onLine === false) throw { code: 'unavailable' };
+      const get = docRef().get();
+      const snap = await (cached ? Promise.race([get, new Promise((_, rej) => setTimeout(() => rej({ code: 'unavailable' }), OPEN_WAIT))]) : get);
       remote = snap.exists ? snap.data().save : null;
     } catch (e) {
       if (!cached) throw e;                // sin conexión y sin copia: no hay nada que abrir
@@ -849,7 +860,7 @@ G.DB = (() => {
     if (mode === 'local') return write(K_SAVE + key, save);
     write(K_CLOUD + uid, save);
     pending = true;
-    setSync('pending');
+    setSync(navigator.onLine === false ? 'offline' : 'pending');
     schedulePush(PUSH_EVERY);          // si ya había una subida programada, se queda la de antes
     return true;
   }

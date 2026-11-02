@@ -32,8 +32,9 @@ html = html.replace(MANIFEST, '').replace(COVER, '');
 // Lo que carga la página (scripts, estilos, iconos, fuentes)...
 const files = new Set(['favicon.ico', 'version.json']);
 for (const m of html.matchAll(/(?:src|href)="([^"#:?]+\.[a-z0-9]+)(?:\?[^"]*)?"/g)) files.add(m[1]);
-// ...y lo que se pide luego: los idiomas (locales.js) y los sprites de los Pokémon.
-const dirs = ['css', 'js/lang', 'assets/fonts', 'assets/icons', 'assets/pokemon'];
+// ...y lo que se pide luego: los idiomas (locales.js), Firebase (db.js) y PeerJS (coderoom.js),
+// y los sprites de los Pokémon.
+const dirs = ['css', 'js/lang', 'js/vendor', 'assets/fonts', 'assets/icons', 'assets/pokemon'];
 
 fs.rmSync(WWW, { recursive: true, force: true });
 fs.mkdirSync(WWW, { recursive: true });

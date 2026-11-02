@@ -117,7 +117,7 @@ G.Touch = (() => {
     if (safe) return safe;
     const d = document.createElement('div');
     d.style.cssText = 'position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;' +
-      'padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+      'padding:var(--sa-t) var(--sa-r) var(--sa-b) var(--sa-l)';     // (style.css)
     document.body.appendChild(d);
     const cs = getComputedStyle(d);
     safe = { top: parseFloat(cs.paddingTop) || 0, right: parseFloat(cs.paddingRight) || 0,

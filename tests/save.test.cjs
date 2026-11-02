@@ -415,3 +415,27 @@ test('dev.html loads the backup scripts in order and allows only the Google Iden
   assert.ok(!/connect-src|default-src|frame-src/.test(csp), 'Drive API calls and the Google window need no other directive');
   assert.ok(fs.existsSync(path.join(root, 'docs', 'GOOGLE_DRIVE.md')));
 });
+
+test('offline: Firebase comes with the game (not a CDN), the app copies it, and every sprite sheet is listed', () => {
+  const sdk = /const SDK = '([^']+)'/.exec(source('js/core/db.js'))[1];
+  assert.equal(sdk, 'js/vendor/firebase/');
+  for (const f of ['app', 'auth', 'firestore', 'database']) assert.ok(fs.existsSync(path.join(root, sdk, `firebase-${f}-compat.js`)), f);
+  assert.ok(/'js\/vendor'/.test(source('tools/build_app.js')), 'the APK needs js/vendor (Firebase and PeerJS)');
+  // "Download images" fills sw.js's sprite cache: same name in both places.
+  const art = f => /const ART = '([^']+)'/.exec(source(f)) || /ART = '([^']+)'/.exec(source(f));
+  assert.equal(art('js/ui/settings-ui.js')[1], art('sw.js')[1]);
+  // G.Sprites.files() = exactly the PNGs in assets/pokemon (the "Download images" list).
+  const ctx = { G: {}, window: {}, document: { createElement: () => ({ getContext: () => ({}) }) }, Image: function () {}, performance, console };
+  vm.createContext(ctx);
+  vm.runInContext(source('js/data/sprites-meta.js'), ctx);
+  vm.runInContext(source('js/core/sprites.js'), ctx);
+  const listed = [...ctx.G.Sprites.files()].sort();
+  const onDisk = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(path.join(root, d), { withFileTypes: true })) {
+      if (e.isDirectory()) walk(d + '/' + e.name); else if (e.name.endsWith('.png')) onDisk.push(d + '/' + e.name);
+    }
+  })('assets/pokemon');
+  assert.equal(listed.length, onDisk.length);
+  assert.deepEqual(listed, onDisk.sort());
+});

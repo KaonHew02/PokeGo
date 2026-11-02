@@ -71,7 +71,12 @@ for (const [i, lang] of langs.entries()) {
     if (lang !== 'es') assert.ok(!body.innerHTML.includes('Debido a problemas'));
     if (lang !== 'es' && lang !== 'en') assert.ok(!body.innerHTML.includes('Because of problems') && body.attrs.translate === 'no');
     if (lang === 'es' || lang === 'en') assert.equal(node('savenote-title').textContent, lang === 'es' ? 'Importante: guarda tu partida' : 'Important: save your game');
-    else assert.equal(node('savenote-title').textContent, 'Importante: guarda tu partida');
+    else {
+      // La caja es translate="no": el título y el botón salen ya traducidos.
+      assert.equal(node('savenote-title').textContent, b.G.T('Importante: guarda tu partida'));
+      assert.notEqual(node('savenote-title').textContent, 'Importante: guarda tu partida');
+      assert.equal(node('savenote-ok').textContent, b.G.T('Entendido'));
+    }
     assert.equal(b.G.LoginUI.updateNotices(), false);
     b.G.DB.save.stats.runs = 1;
     assert.equal(b.G.LoginUI.updateNotices(), true);

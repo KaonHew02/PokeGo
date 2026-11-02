@@ -1070,5 +1070,12 @@ G.I18n.add({
   // ---------------- Tienda Kecleon, naturalezas y habilidades (20-10-2026) ----------------
   "Objetos: {x} · MT: {x}": "Items: {x} · TMs: {x}",
   // ---- PokéGo: app de Android ----
-  'Pulsa Atrás otra vez para salir': 'Press Back again to exit'
+  'Pulsa Atrás otra vez para salir': 'Press Back again to exit',
+  // ---- PokéGo: jugar sin conexión ----
+  "Jugar sin conexión": "Play offline",
+  "Sin conexión se puede jugar igual: con cuenta, la partida se guarda en este aparato y se sube a la nube al volver la conexión. Para ver todos los Pokémon, descarga antes sus imágenes (unos 76 MB).": "You can play without a connection too: with an account, your game is saved on this device and uploaded to the cloud when the connection comes back. To see every Pokémon, download their images first (about 76 MB).",
+  "Descargar imágenes": "Download images",
+  "Descargando imágenes… {x} %": "Downloading images… {x}%",
+  "Imágenes descargadas: puedes jugar sin conexión en este aparato.": "Images downloaded: you can play offline on this device.",
+  "La descarga no ha terminado. Vuelve a probar con conexión.": "The download did not finish. Try again with a connection."
 });

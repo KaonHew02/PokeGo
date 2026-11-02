@@ -25,6 +25,9 @@ la web no hace nada:
   de una app). Se entra con nombre y contraseña, o como invitado.
 - La nube (Firebase) funciona igual: la app abre el juego en
   `https://localhost`, que ya está en `HOSTS` (`js/core/db.js`).
+- **Sin conexión** se juega igual que en la web (ver `CLAUDE.md`): la app ya
+  lleva dentro Firebase (`js/vendor`) y todos los sprites, así que no hace falta
+  "Descargar imágenes".
 
 ## Lo que hace falta (una vez)
 

@@ -56,7 +56,8 @@ G.LoginUI = (() => {
    */
   let offered = false;
   function offerRecovery() {
-    if (offered || G.DB.mode !== 'cloud' || !G.DB.fb || !G.DB.nameAccount || G.DB.hasGoogle || G.Native.app) return;
+    // (Sin conexión no se puede vincular: se ofrece la próxima vez.)
+    if (offered || G.DB.mode !== 'cloud' || !G.DB.fb || !G.DB.nameAccount || G.DB.hasGoogle || G.Native.app || navigator.onLine === false) return;
     try { if (localStorage.getItem('ps.recover.no.' + G.DB.fb.uid)) return; } catch (e) { /* nada */ }
     offered = true;
     $('rec-err').textContent = '';
@@ -81,7 +82,15 @@ G.LoginUI = (() => {
       body: ['<p>Hemos ajustado la <b>Sentencia de Arceus</b>: huir corriendo con toda la velocidad subida y el veneno ya no sirven para aguantar para siempre.</p>' +
              '<p>Para que todos compitáis en igualdad, <b>todos los rankings empiezan de cero</b> (hoy, semana, mes, año e histórico). ¡A por el primer puesto!</p>',
              '<p>We have adjusted the <b>Judgment of Arceus</b>: running away with maxed-out speed and poison no longer let you last forever.</p>' +
-             '<p>So everyone competes on equal terms, <b>all leaderboards start from scratch</b> (daily, weekly, monthly, yearly and all-time). Go for first place!</p>'] }
+             '<p>So everyone competes on equal terms, <b>all leaderboards start from scratch</b> (daily, weekly, monthly, yearly and all-time). Go for first place!</p>'] },
+    { key: 'ps.iosnote.1', when: () => G.SettingsUI.iosTip(),   // iPhone: instalarlo en la pantalla de inicio (02-11-2026)
+      title: ['Juega a pantalla completa en tu iPhone', 'Play fullscreen on your iPhone'],
+      body: ['<p>En iPhone, Safari no deja poner las webs a pantalla completa, pero puedes instalar PokéGo como una app:</p>' +
+             '<p>1. Pulsa <b>Compartir</b> (si no lo ves, está en el menú <b>...</b>).<br>2. Elige <b class="gold">Añadir a pantalla de inicio</b>.<br>3. Abre PokéGo desde el icono nuevo: se juega a pantalla completa, sin las barras de Safari.</p>' +
+             '<p>El icono es como otro navegador: vuelve a entrar con tu nombre y contraseña.</p>',
+             '<p>On iPhone, Safari does not let websites go fullscreen, but you can install PokéGo as an app:</p>' +
+             '<p>1. Tap <b>Share</b> (if you cannot see it, it is in the <b>...</b> menu).<br>2. Choose <b class="gold">Add to Home Screen</b>.<br>3. Open PokéGo from the new icon: it plays fullscreen, without Safari’s bars.</p>' +
+             '<p>The icon works like a separate browser: log in again with your name and password.</p>'] }
   ];
   /** → true si se ha enseñado alguno. */
   function updateNotices() {
@@ -92,12 +101,14 @@ G.LoginUI = (() => {
       const n = queue.shift();
       if (!n) { $('scr-savenote').classList.add('hidden'); return; }
       try { localStorage.setItem(n.key, '1'); } catch (e) { /* nada */ }
-      $('savenote-title').textContent = n.title[en];
       // Otros idiomas: el aviso entero va traducido en su diccionario (por trozos sale raro); si falta, en inglés.
+      // (La caja es translate="no": el título y el botón también se traducen aquí.)
       const other = G.I18n.lang !== 'es' && !en, body = $('savenote-body');
+      const say = (es, eng) => !other ? (en ? eng : es) : G.I18n.has(es) ? G.T(es) : eng;
+      $('savenote-title').textContent = say(n.title[0], n.title[1]);
       if (other) body.setAttribute('translate', 'no');
-      body.innerHTML = !other ? n.body[en] : G.I18n.has(n.body[0]) ? G.T(n.body[0]) : n.body[1];
-      $('savenote-ok').textContent = en ? 'Got it' : 'Entendido';
+      body.innerHTML = say(n.body[0], n.body[1]);
+      $('savenote-ok').textContent = say('Entendido', 'Got it');
     };
     $('savenote-ok').onclick = next;
     next();

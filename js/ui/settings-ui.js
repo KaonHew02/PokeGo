@@ -159,7 +159,7 @@ G.SettingsUI = (() => {
       box.innerHTML = section('Cuenta', 'Estás jugando como <b>invitado</b>: tu progreso no se guarda al salir.')
         + `<button class="btn gold" id="set-login">Crear cuenta o entrar</button>`
         + section('Copia de seguridad', 'Como invitado, descarga tu partida y luego impórtala al crear una cuenta.')
-        + backupHtml(false);
+        + backupHtml(false) + offlineHtml();
       return;
     }
     const nick = G.Social.me ? G.Social.me.name : (G.DB.user || '');
@@ -173,8 +173,71 @@ G.SettingsUI = (() => {
            <button class="btn danger" id="set-delete">Borrar cuenta</button>
          </div><p class="note" id="set-msg"></p>`
       + section('Copia de seguridad', 'Descarga tu partida en un archivo y guárdalo donde quieras (por ejemplo, en Google Drive). Para recuperarla, impórtala aquí, en este u otro navegador.')
-      + backupHtml(true) + driveHtml();
+      + backupHtml(true) + driveHtml() + offlineHtml();
     G.Drive.preload();       // el script de Google, ya: al pulsar, la ventana tiene que abrirse al momento
+  }
+
+  // ---------------- jugar sin conexión (sólo en la web) ----------------
+  // La partida ya se juega sin conexión (db.js: se sube al volver). En la web faltan
+  // los sprites que aún no han salido nunca: sw.js guarda cada uno al verlo, y aquí se
+  // bajan todos de una vez a esa misma caché. La app de Android ya los lleva dentro.
+  const ART = 'ps-art-v1';                // (la caché de sprites de sw.js)
+  const offlineOk = () => !G.Native.app && typeof caches !== 'undefined' && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol);
+  let dl = null;                          // descarga en marcha: { done, total }
+
+  function offlineHtml() {
+    if (!offlineOk()) return '';
+    return section('Jugar sin conexión', 'Sin conexión se puede jugar igual: con cuenta, la partida se guarda en este aparato y se sube a la nube al volver la conexión. Para ver todos los Pokémon, descarga antes sus imágenes (unos 76 MB).')
+      + '<div class="row wrap" style="gap:8px"><button class="btn" id="set-offline">Descargar imágenes</button></div><p class="note" id="set-offline-msg"></p>';
+  }
+
+  async function missingArt() {
+    const c = await caches.open(ART);
+    const have = new Set((await c.keys()).map(r => r.url));
+    return { c, todo: G.Sprites.files().map(f => new URL(f, location.href).href).filter(u => !have.has(u)) };
+  }
+
+  /** Cómo va: descargando, ya descargadas o (si no) el botón. */
+  function offlineShow(text) {
+    const b = $('set-offline'), m = $('set-offline-msg');
+    if (!b) return;
+    if (dl) { b.disabled = true; m.textContent = `Descargando imágenes… ${Math.floor(dl.done * 100 / (dl.total || 1))} %`; return; }
+    b.disabled = false;
+    if (text) m.textContent = text;
+  }
+
+  async function downloadArt() {
+    if (dl) return;
+    // Que el navegador no la borre si se queda sin sitio (si lo permite).
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* nada */ }
+    const { c, todo } = await missingArt();
+    dl = { done: 0, total: todo.length };
+    offlineShow();
+    let i = 0, failed = 0;
+    const worker = async () => {
+      while (i < todo.length && failed < 20) {
+        const u = todo[i++];
+        try { const r = await fetch(u); if (!r.ok) throw new Error(r.status); await c.put(u, r); } catch (e) { failed++; }
+        if (++dl.done % 40 === 0) offlineShow();
+      }
+    };
+    await Promise.all([1, 2, 3, 4, 5, 6].map(worker));
+    dl = null;
+    const left = (await missingArt()).todo.length;
+    offlineShow(left ? 'La descarga no ha terminado. Vuelve a probar con conexión.' : 'Imágenes descargadas: puedes jugar sin conexión en este aparato.');
+    if (!left) $('set-offline') && $('set-offline').classList.add('hidden');
+  }
+
+  function wireOffline() {
+    const b = $('set-offline');
+    if (!b) return;
+    b.onclick = downloadArt;
+    if (dl) { offlineShow(); return; }
+    missingArt().then(({ todo }) => {
+      if (todo.length || !$('set-offline')) return;
+      $('set-offline').classList.add('hidden');
+      offlineShow('Imágenes descargadas: puedes jugar sin conexión en este aparato.');
+    }).catch(() => {});
   }
 
   // ---------------- copia de seguridad (archivo y Google Drive) ----------------
@@ -383,6 +446,7 @@ G.SettingsUI = (() => {
       G.Flow.toLogin();
     };
     wireBackup();
+    wireOffline();
   }
 
   /** Cerrar sesión (si estás en una partida, se abandona). */
@@ -393,5 +457,7 @@ G.SettingsUI = (() => {
     G.DB.logout().then(() => G.Flow.toLogin());
   }
 
-  return { init, open, close, get isOpen() { return isOpen(); } };
+  return { init, open, close, get isOpen() { return isOpen(); },
+    /** iPhone en Safari, sin abrir desde la pantalla de inicio (ver el aviso en login.js). */
+    iosTip };
 })();
