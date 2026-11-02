@@ -888,6 +888,8 @@ G.I18n.add({
   // ---- PokéGo: cortes en el cooperativo ----
   '{x} ha perdido la conexión: esperando a que vuelva…': '{x} lost connection: waiting for them to come back…',
   '{x} ha vuelto a la partida': '{x} is back in the game',
+  'Puente para jugar en grupo: si vuestras redes no dejan conectar directamente, la partida puede pasar por un servidor puente (TURN) de Metered (metered.ca). Va cifrada de un navegador a otro: el puente no puede leerla.':
+    'Relay for group play: if your networks cannot connect directly, the game may go through a relay server (TURN) run by Metered (metered.ca). It is encrypted from one browser to the other: the relay cannot read it.',
   // ---- fin cortes ----
 
   // ---------------- Tienda Kecleon, naturalezas y habilidades (20-10-2026) ----------------

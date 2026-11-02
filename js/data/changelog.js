@@ -6,6 +6,10 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
+  { d: '2026-10-23', title: ['Jugar en grupo con cualquier conexión', 'Group play on any connection'], new: [
+    ['Cooperativo: si vuestras redes no dejan conectaros directamente (pasa con datos móviles y algunos routers: la sala se quedaba en «Conectando…»), la partida pasa ahora por un servidor puente (TURN), cifrada. Si podéis conectar directamente, todo sigue igual. En la sala, el anfitrión ve «Conectado (por servidor)» cuando va por el puente.',
+     'Co-op: if your networks cannot connect to each other directly (it happens with mobile data and some routers: the room got stuck on "Connecting…"), the game now goes through a relay server (TURN), encrypted. If you can connect directly, nothing changes. In the room, the host sees "Connected (via server)" when it goes through the relay.']
+  ] },
   { d: '2026-10-22', title: ['La gran actualización: Tienda Kecleon', 'The big update: Kecleon Shop'], new: [
     ['Mejora nueva: Tienda Kecleon (botón en el menú) con Mentas, Cápsulas Habilidad y 8 MT nuevas cada día. Cada Pokémon tiene ahora su naturaleza (±10 % a dos stats) y su habilidad, con efecto en la partida; se ven y se cambian en su ficha de la colección. Las MT enseñan para siempre ataques de fuera de sus tipos, pero sólo si los aprende en los juegos (Mewtwo puede aprender Bola Sombra; Psyduck no puede aprender Lanzallamas). Gracias a TheAdro7 por la idea y el trabajo de base.',
      'New: the Kecleon Shop (button in the menu) with Mints, Ability Capsules and 8 new TMs every day. Every Pokémon now has its own nature (±10% to two stats) and ability, with an effect in the run; you can see and change them on its page in the collection. TMs permanently teach moves outside its types, but only if it learns them in the games (Mewtwo can learn Shadow Ball; Psyduck cannot learn Flamethrower). Thanks to TheAdro7 for the idea and the groundwork.'],

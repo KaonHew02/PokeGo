@@ -198,7 +198,7 @@
           : mode === 'failed' ? ['No se pudo conectar con el anfitrión (reintentando…)', 'bad'] : ['Conectando con el anfitrión…', 'wait'];
       }
       if (m.uid === room.host) return ['Anfitrión', ''];
-      return mode === 'direct' ? ['Conectado', ''] : mode === 'relay' ? ['Conectado (por servidor)', '']
+      return mode === 'direct' ? [G.Net.viaTurn(m.uid) ? 'Conectado (por servidor)' : 'Conectado', ''] : mode === 'relay' ? ['Conectado (por servidor)', '']
         : mode === 'failed' ? ['No se pudo conectar (reintentando…)', 'bad'] : ['Conectando…', 'wait'];
     }
 

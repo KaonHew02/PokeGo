@@ -151,6 +151,54 @@ test('cloud without Realtime Database (no databaseURL): opening a room does noth
   assert.doesNotThrow(() => { G.Net.open('room', true, 'u'); G.Net.syncMembers(['u', 'x']); G.Net.send('x', { k: 'start' }); });
 });
 
+// With js/core/turn-config.js filled in (G.TURN_URL), every connection also carries the TURN
+// servers from that address (asked once, cleaned); if they do not come, it goes on with STUN only.
+async function turnRoom(reply) {
+  const configs = [], calls = [];
+  class PC {
+    constructor(c) { configs.push(c); }
+    createDataChannel() { return { readyState: 'connecting', send() {}, close() {} }; }
+    createOffer() { return Promise.resolve({ type: 'offer' }); }
+    setLocalDescription() { this.localDescription = { toJSON: () => ({ type: 'offer' }) }; return Promise.resolve(); }
+    close() {}
+  }
+  const G = { NetCodec: codec(), TURN_URL: 'https://pokego.metered.live/api/v1/turn/credentials?apiKey=k',
+    DB: { fb: { uid: 'host', rtdb: { ref: () => ({ on() {}, off() {}, push: () => Promise.resolve() }) } } } };
+  const fetch = async url => { calls.push(url); return reply(); };
+  const warn = console.warn; console.warn = () => {};
+  try {
+    new Function('G', 'RTCPeerConnection', 'setTimeout', 'clearTimeout', 'fetch', source('js/net/net.js'))(G, PC, () => 1, () => {}, fetch);
+    G.Net.open('room', true, 'host'); G.Net.syncMembers(['host', 'a']); G.Net.syncMembers(['host', 'a']);
+    await flush();
+    G.Net.syncMembers(['host', 'a', 'b']);
+    await flush();
+  } finally { console.warn = warn; }
+  return { configs, calls, stun: G.Net.ICE.map(s => s.urls) };
+}
+
+test('with a TURN address, connections also carry its TURN servers, cleaned; without an answer, STUN only', async () => {
+  const good = await turnRoom(() => ({ ok: true, json: async () => [
+    { urls: 'stun:stun.relay.metered.ca:80' },
+    { urls: 'turn:global.relay.metered.ca:80', username: 'u1', credential: 'c1' },
+    { urls: ['turns:global.relay.metered.ca:443?transport=tcp', 'https://evil.example'], username: 'u1', credential: 'c1' },
+    { urls: 'turn:no-password.example:80' },
+    { urls: 'javascript:alert(1)', username: 'u', credential: 'c' }] }));
+  assert.equal(good.calls.length, 1);                                    // asked once for the whole room
+  assert.equal(good.configs.length, 2);                                  // one connection each (a, b): no double offer to a
+  for (const c of good.configs) {
+    assert.deepEqual(c.iceServers, [...good.stun.map(urls => ({ urls })),
+      { urls: ['stun:stun.relay.metered.ca:80'] },
+      { urls: ['turn:global.relay.metered.ca:80'], username: 'u1', credential: 'c1' },
+      { urls: ['turns:global.relay.metered.ca:443?transport=tcp'], username: 'u1', credential: 'c1' }]);
+  }
+  for (const reply of [() => ({ ok: false, status: 401 }), () => ({ ok: true, json: async () => ({ error: 'bad key' }) }),
+                       () => { throw Error('offline'); }]) {
+    const bad = await turnRoom(reply);
+    assert.equal(bad.configs.length, 2);
+    for (const c of bad.configs) assert.deepEqual(c.iceServers, bad.stun.map(urls => ({ urls })));
+  }
+});
+
 // ---------------- salas con código (coderoom.js + net.js con un PeerJS falso) ----------------
 
 const CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{5}$/;
