@@ -1068,5 +1068,7 @@ G.I18n.add({
   "Tu Mochila está vacía.": "Your Bag is empty.",
   "Ir a la Tienda Kecleon": "Go to the Kecleon Shop",
   // ---------------- Tienda Kecleon, naturalezas y habilidades (20-10-2026) ----------------
-  "Objetos: {x} · MT: {x}": "Items: {x} · TMs: {x}"
+  "Objetos: {x} · MT: {x}": "Items: {x} · TMs: {x}",
+  // ---- PokéGo: app de Android ----
+  'Pulsa Atrás otra vez para salir': 'Press Back again to exit'
 });

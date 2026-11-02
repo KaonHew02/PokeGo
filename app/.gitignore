@@ -1,0 +1,3 @@
+# Se genera con node tools/build_app.js (copia de la web)
+www/
+node_modules/

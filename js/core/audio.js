@@ -502,6 +502,8 @@ G.Audio = (() => {
 
   return {
     music, sfx, setVolume, toggleMute, unlock, debugMeter, debugStream,
+    /** La app, en segundo plano: calla todo hasta que vuelve (ver native.js). */
+    sleep(on) { if (ctx) (on ? ctx.suspend() : ctx.resume()).catch(() => {}); },
     /** ¿Ya puede sonar? (el navegador sólo deja tras tocar algo, salvo excepciones) */
     canPlay() { return !!ctx && ctx.state === 'running'; },
     get settings() { return settings; },

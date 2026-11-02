@@ -24,7 +24,7 @@ G.Drive = (() => {
   let client = null, loadP = null, token = '', exp = 0, pend = null;
 
   const configured = () => !!G.GOOGLE_CLIENT_ID;
-  const enabled = () => configured() && /^https?:$/.test(location.protocol);
+  const enabled = () => configured() && /^https?:$/.test(location.protocol) && !G.Native.app;
   const fail = why => ({ ok: false, why });
   const hasToken = () => !!token && Date.now() < exp;
   const account = () => String(G.DB.user || '').toLowerCase();

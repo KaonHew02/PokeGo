@@ -38,7 +38,8 @@ G.SettingsUI = (() => {
   const isOpen = () => !$('scr-settings').classList.contains('hidden');
 
   // ---------------- pantalla completa ----------------
-  function canFull() { return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }
+  // (La app de Android ya va a pantalla completa: ni botón ni opción.)
+  function canFull() { return !G.Native.app && !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }
   function isFull() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
   // iPhone: Safari no deja poner una web a pantalla completa (por eso a veces
   // no salía la opción). Sí se puede abriéndola desde la pantalla de inicio.
@@ -209,7 +210,8 @@ G.SettingsUI = (() => {
   function driveHtml() {
     if (!G.Drive.enabled) {
       // Sin ID de cliente (google-config.js) no sale nada: configurarlo es cosa de quien publica el juego.
-      return G.Drive.configured
+      // En la app tampoco: "Descargar partida" ya deja guardarla en Drive al compartirla.
+      return G.Drive.configured && !G.Native.app
         ? section('Google Drive') + '<p class="note">Google Drive sólo funciona con el juego abierto desde una web, no con doble clic.</p>' : '';
     }
     const at = G.Drive.lastAt(), off = inRun() ? 'disabled' : '';
@@ -300,6 +302,11 @@ G.SettingsUI = (() => {
     if (ex) ex.onclick = () => {
       const d = backupFile();
       if (!d) return;
+      // En la app no hay descargas: se comparte el archivo (Drive, Archivos, WhatsApp...).
+      if (G.Native.app) {
+        G.Native.shareFile(d.name, d.json).catch(e => { if (!/cancel/i.test(e && e.message)) G.UI.toast('No se pudo compartir el archivo.'); });
+        return;
+      }
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([d.json], { type: 'application/json' }));
       a.download = d.name;

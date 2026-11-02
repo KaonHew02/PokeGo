@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- El azul de fondo del juego: pantalla de carga y mientras se abre la página -->
+    <color name="pokego_background">#0A1430</color>
+</resources>

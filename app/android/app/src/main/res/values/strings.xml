@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PokéGo</string>
+    <string name="title_activity_main">PokéGo</string>
+    <string name="package_name">io.github.kaonhew02.pokego</string>
+    <string name="custom_url_scheme">io.github.kaonhew02.pokego</string>
+</resources>

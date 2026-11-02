@@ -19,8 +19,9 @@
  *     se termina como al abandonarla (se guardan monedas, tickets, récords y
  *     ranking), sube a la nube y se recarga. Sólo la entienden los jugadores
  *     que ya tengan este updater.js (desde el 15-10-2026).
- * Sólo funciona en la web publicada (con app.min.js); en dev.html o con
- * doble clic (file://) no hace nada.
+ * Sólo funciona en la web publicada (con app.min.js); en dev.html, con
+ * doble clic (file://) o en la app de Android (lleva el juego dentro: se
+ * actualiza instalando la nueva) no hace nada.
  */
 G.Updater = (() => {
   const EVERY = 5 * 60 * 1000, COUNTDOWN = 5, FORCED = 10;
@@ -99,7 +100,7 @@ G.Updater = (() => {
   }
 
   function init() {
-    if (!mine || !location.protocol.startsWith('http')) return;
+    if (!mine || !location.protocol.startsWith('http') || G.Native.app) return;
     clearInterval(timer);
     timer = setInterval(loop, 2000);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - lastCheck > 60000) check(); });

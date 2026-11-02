@@ -272,6 +272,8 @@ G.Pad = (() => {
 
   return {
     poll, rumble,
+    /** Como B: cierra la ventana de arriba o, si no tiene botón, Esc (también el Atrás de la app). */
+    back, topScreen,
     /** Vector de movimiento del stick (sólo en la partida). */
     vector() { return vec; },
     /** Stick derecho, si se está empujando: [x, y] o null; y cuándo se usó por última vez. */

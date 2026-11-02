@@ -1,0 +1,21 @@
+{
+  "name": "pokego-app",
+  "private": true,
+  "description": "PokéGo para Android: el mismo juego que la web, empaquetado con Capacitor.",
+  "license": "SEE LICENSE IN ../LICENSE",
+  "scripts": {
+    "www": "node ../tools/build_app.js",
+    "sync": "npm run www && npx cap sync android",
+    "apk": "npm run sync && cd android && .\\gradlew.bat assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.0",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.0"
+  }
+}

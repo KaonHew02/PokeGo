@@ -56,7 +56,7 @@ G.LoginUI = (() => {
    */
   let offered = false;
   function offerRecovery() {
-    if (offered || G.DB.mode !== 'cloud' || !G.DB.fb || !G.DB.nameAccount || G.DB.hasGoogle) return;
+    if (offered || G.DB.mode !== 'cloud' || !G.DB.fb || !G.DB.nameAccount || G.DB.hasGoogle || G.Native.app) return;
     try { if (localStorage.getItem('ps.recover.no.' + G.DB.fb.uid)) return; } catch (e) { /* nada */ }
     offered = true;
     $('rec-err').textContent = '';
@@ -130,7 +130,8 @@ G.LoginUI = (() => {
     G.UI.chrome(false);
     G.UI.show('scr-login');
     if (!G.DB.storageOk) $('login-err').textContent = 'Este navegador no deja guardar datos: juega como invitado.';
-    $('btn-google').classList.toggle('hidden', G.DB.mode !== 'cloud');
+    // (Google no deja entrar desde la ventana de una app: en la app de Android, sólo nombre y contraseña.)
+    $('btn-google').classList.toggle('hidden', G.DB.mode !== 'cloud' || G.Native.app);
     $('login-mode').textContent = modeNote();
     setTimeout(() => $('f-user').focus(), 50);
   }

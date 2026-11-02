@@ -7,11 +7,12 @@ const root = path.join(__dirname, '..');
 const source = f => fs.readFileSync(path.join(root, f), 'utf8');
 // Sin firebase-config.js: estas pruebas son del modo local, tenga o no nube el juego publicado
 // (con la nube, DB.ready() esperaría al SDK de Firebase, que aquí no carga nunca).
-const SCRIPTS = ['js/core/google-config.js', 'js/data/pokedex.js', 'js/core/db.js', 'js/core/gdrive.js'];
+const SCRIPTS = ['js/core/google-config.js', 'js/data/pokedex.js', 'js/core/db.js', 'js/core/gdrive.js', 'js/core/native.js'];
 const CODE = SCRIPTS.map(f => [f, source(f)]);
 
 // Un navegador de mentira por "origen" (cada uno con su localStorage, como localhost y 127.0.0.1).
-function browser(origin = 'http://localhost:8123') {
+// native: dentro de la app de Android (Capacitor, ver js/core/native.js).
+function browser(origin = 'http://localhost:8123', native = false) {
   const storage = {}, scripts = [];
   const u = new URL(origin);
   const ctx = {
@@ -24,6 +25,7 @@ function browser(origin = 'http://localhost:8123') {
     document: { addEventListener() {}, createElement: () => ({ remove() {} }), head: { appendChild: el => scripts.push(el) } }
   };
   ctx.window = ctx;
+  if (native) ctx.Capacitor = { isNativePlatform: () => true, Plugins: {} };
   ctx.G.FIREBASE_CONFIG = null;
   vm.createContext(ctx);
   for (const [f, code] of CODE) vm.runInContext(code, ctx, { filename: f });
@@ -393,6 +395,14 @@ test('Drive is off without a client id or outside http(s)', () => {
   f.G.GOOGLE_CLIENT_ID = 'x.apps.googleusercontent.com';
   assert.equal(f.G.Drive.configured, true); assert.equal(f.G.Drive.enabled, false);
   return f.G.Drive.preload().then(ok => { assert.equal(ok, false); assert.equal(f.scripts.length, 0); });
+});
+
+test('Drive is off inside the Android app (Google does not allow its sign-in window there)', () => {
+  const web = browser('https://localhost'), app = browser('https://localhost', true);
+  assert.equal(web.G.Native.app, false); assert.equal(app.G.Native.app, true);
+  web.G.GOOGLE_CLIENT_ID = app.G.GOOGLE_CLIENT_ID = 'x.apps.googleusercontent.com';
+  assert.equal(web.G.Drive.enabled, true);
+  assert.equal(app.G.Drive.configured, true); assert.equal(app.G.Drive.enabled, false);
 });
 
 test('dev.html loads the backup scripts in order and allows only the Google Identity script origin', () => {
