@@ -6,6 +6,21 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
+  { d: '2026-11-02', title: ['Arreglos de PokéSurvivor', 'Fixes from PokéSurvivor'], chg: [
+    ['Puño Meteoro pega menos: 24 de daño en vez de 34 y una zona un poco más pequeña. Al máximo y evolucionado hacía casi el doble que Avalancha; ahora están a la par.',
+     'Meteor Mash hits less hard: 24 damage instead of 34 and a slightly smaller area. Maxed and evolved it did almost twice as much as Rock Slide; now they are on a par.']
+  ], fix: [
+    ['Armadura Frágil, Impasible y Cobardía ya no te quitan las cargas de Agilidad (u otra subida de velocidad mejor) al recibir un golpe: antes las dejaban en una.',
+     'Weak Armor, Steadfast and Rattled no longer take away your Agility charges (or another better speed boost) when you get hit: before, they left just one.'],
+    ['Test inicial: los rasgos de tu personalidad («Paciente», «Tenaz»…) salían en español en todos los idiomas. Ya salen traducidos.',
+     'Starting quiz: your personality traits ("Patient", "Tenacious"…) showed in Spanish in every language. Now they are translated.'],
+    ['En la pausa, la Defensa y la Defensa Especial de los Pokémon con naturaleza salían con decimales de más (55.00000000000001).',
+     'In the pause screen, the Defense and Special Defense of Pokémon with a nature showed too many decimals (55.00000000000001).'],
+    ['Móvil: los avisos de abajo y los de logros ya no se quedan con los toques (tapaban los ataques); en horizontal, la frase del título ya no tapa el botón Jugar; en vertical, el título ya no queda debajo de la barra de arriba; y las ventanas de la Tienda Kecleon y de Novedades empiezan debajo de la barra de arriba, como las demás.',
+     'Mobile: the notices at the bottom and the achievement pop-ups no longer catch your taps (they covered the moves); in landscape, the title phrase no longer covers the Play button; in portrait, the title no longer sits under the top bar; and the Kecleon Shop and News windows start below the top bar, like the others.'],
+    ['Estos arreglos vienen de PokéSurvivor, de JPTER78.',
+     'These fixes come from PokéSurvivor by JPTER78.']
+  ] },
   { d: '2026-10-22', title: ['La gran actualización: Tienda Kecleon', 'The big update: Kecleon Shop'], new: [
     ['Mejora nueva: Tienda Kecleon (botón en el menú) con Mentas, Cápsulas Habilidad y 8 MT nuevas cada día. Cada Pokémon tiene ahora su naturaleza (±10 % a dos stats) y su habilidad, con efecto en la partida; se ven y se cambian en su ficha de la colección. Las MT enseñan para siempre ataques de fuera de sus tipos, pero sólo si los aprende en los juegos (Mewtwo puede aprender Bola Sombra; Psyduck no puede aprender Lanzallamas). Gracias a TheAdro7 por la idea y el trabajo de base.',
      'New: the Kecleon Shop (button in the menu) with Mints, Ability Capsules and 8 new TMs every day. Every Pokémon now has its own nature (±10% to two stats) and ability, with an effect in the run; you can see and change them on its page in the collection. TMs permanently teach moves outside its types, but only if it learns them in the games (Mewtwo can learn Shadow Ball; Psyduck cannot learn Flamethrower). Thanks to TheAdro7 for the idea and the groundwork.'],
