@@ -14,6 +14,14 @@ G.Audio = (() => {
   let ctx = null, master, outNode, musicBus, sfxBus, reverb, wet;
   let settings = { music: 0.55, sfx: 0.7, muted: false };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { /* nada */ }
+  // Probando en local (localhost, la red de casa o con doble clic) se empieza
+  // siempre en silencio; el botón del altavoz lo enciende para esa vez. La web
+  // publicada y la app de Android (aunque vaya en https://localhost) suenan
+  // como las deje cada jugador.
+  const h = location.hostname;
+  const local = location.protocol === 'file:' || h === 'localhost' || h === '[::1]' || h.endsWith('.local')
+    || /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h);
+  if (local && !G.Native.app) settings.muted = true;
   let noiseBuf = null;
 
   function save() { try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) { /* nada */ } }
