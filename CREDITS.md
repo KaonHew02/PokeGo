@@ -140,6 +140,11 @@ Puño Meteoro más flojo, las subidas de velocidad que ya no se pisan, los rasgo
 personalidad traducidos, la Defensa sin decimales en la pausa y los avisos y ventanas
 que ya no tapan botones en el móvil.
 
+Arreglos de la partida guardada de PokéSurvivor del 02-11-2026 (vistos en su página de
+novedades y en su `sw.js`, y escritos de nuevo en el código de PokéGo): la copia del
+navegador que no se puede leer se aparta y se recupera en vez de perderse, y sin conexión
+la app abre la última versión del juego que se usó.
+
 ## Fuente
 
 [Pixelify Sans](https://github.com/eifetx/Pixelify-Sans) (SIL Open Font License 1.1,

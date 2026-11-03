@@ -29,7 +29,7 @@
  */
 G.DB = (() => {
   const K_ACC = 'ps.accounts', K_SES = 'ps.session', K_SAVE = 'ps.save.';
-  const K_CLOUD = 'ps.cloud.', K_MIGRATED = 'ps.migrated.';
+  const K_CLOUD = 'ps.cloud.', K_MIGRATED = 'ps.migrated.', K_RESCUE = 'ps.rescue.';
   const VERSION = 3;
   const START_COINS = 500;
   // Firebase 13.0.0 va con el juego (antes, de gstatic): sin conexión también se
@@ -48,8 +48,25 @@ G.DB = (() => {
   // ---------------- almacenamiento local seguro ----------------
 
   function read(k) {
-    try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }
-    catch (e) { storageOk = false; return null; }
+    let v;
+    try { v = localStorage.getItem(k); } catch (e) { storageOk = false; return null; }
+    if (!v) return null;
+    try { return JSON.parse(v); }
+    catch (e) {
+      // Copia que no se puede leer (2-11-2026, de PokéSurvivor): antes se trataba
+      // como vacía y la siguiente escritura la borraba. Ahora se aparta en
+      // ps.rescue.<clave> y rescue() la recupera cuando se pueda leer.
+      try { if (!localStorage.getItem(K_RESCUE + k)) localStorage.setItem(K_RESCUE + k, v); } catch (e2) { /* nada */ }
+      return null;
+    }
+  }
+  /** La copia apartada por read() de la clave k, si ya se puede leer: quien la use la fusiona y la quita. */
+  function rescue(k) {
+    let v = null;
+    try { v = localStorage.getItem(K_RESCUE + k); } catch (e) { return null; }
+    if (!v) return null;
+    try { const s = JSON.parse(v); return s && typeof s === 'object' && s.stats ? s : null; }
+    catch (e) { return null; }
   }
   function write(k, v) {
     const s = JSON.stringify(v);
@@ -420,14 +437,16 @@ G.DB = (() => {
   }
 
   function loadLocal(k, name) {
-    const s = read(K_SAVE + k);
-    return s ? migrate(s, name) : newSave(name);
+    const s = read(K_SAVE + k), r = rescue(K_SAVE + k);
+    const m = merge(s && fold(migrate(s, name)), r && fold(migrate(r, name)));
+    return m ? migrate(m, name) : newSave(name);
   }
 
   function beginLocal(k, name) {
     key = k; user = name; guest = false;
     save = fold(loadLocal(k, name));
     write(K_SES, k);
+    if (rescue(K_SAVE + k) && write(K_SAVE + k, save)) remove(K_RESCUE + K_SAVE + k);
   }
 
   async function registerLocal(name, pass) {
@@ -613,7 +632,9 @@ G.DB = (() => {
   const OPEN_WAIT = 8000;
   async function openCloud(u, opts = {}) {
     uid = u.uid;
-    const cached = read(K_CLOUD + uid);
+    const lost = rescue(K_CLOUD + uid);
+    const here = read(K_CLOUD + uid);
+    const cached = merge(here && migrate(here), lost && migrate(lost));
     let remote = null, online = true;
     try {
       if (cached && navigator.onLine === false) throw { code: 'unavailable' };
@@ -632,7 +653,7 @@ G.DB = (() => {
     }
     save = fold(migrate(s, s.name));
     key = uid; user = save.name; guest = false;
-    write(K_CLOUD + uid, save);
+    if (write(K_CLOUD + uid, save) && lost) remove(K_RESCUE + K_CLOUD + uid);
     lastPull = Date.now();
     // Sólo se sube si hay algo que la nube no tenga (cuenta nueva, progreso de
     // este ordenador sin subir...), y SIN esperar: antes el menú no salía hasta

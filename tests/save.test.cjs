@@ -122,6 +122,28 @@ test('importing into a played account merges: no owned Pokémon or coins are los
   same(Object.keys(b.G.DB.save.owned).sort(), ['1', '133', '25', '7']);
 });
 
+test('an unreadable save copy is kept aside, not overwritten, and merged back once it can be read', async () => {
+  const b = browser();
+  await account(b, 'Ash');
+  play(b, { earn: 300, owned: [25], runs: 2 });
+  const good = b.storage['ps.save.ash'];
+  await b.G.DB.logout();
+  // Una versión que no puede leer la copia: entra con la partida vacía, pero no la pierde.
+  b.storage['ps.save.ash'] = '{roto';
+  assert.equal((await b.G.DB.login('Ash', 'pass1234')).ok, true);
+  assert.equal(b.storage['ps.rescue.ps.save.ash'], '{roto');
+  assert.equal(b.G.DB.save.owned[25], undefined);
+  await b.G.DB.logout();
+  // Cuando la copia apartada se puede leer, se fusiona con la actual y se quita.
+  b.storage['ps.rescue.ps.save.ash'] = good;
+  assert.equal((await b.G.DB.login('Ash', 'pass1234')).ok, true);
+  assert.ok(b.G.DB.save.owned[25]);
+  assert.equal(b.G.DB.save.stats.runs, 2);
+  assert.equal(b.G.DB.save.coins, 800);
+  assert.equal(b.storage['ps.rescue.ps.save.ash'], undefined);
+  assert.ok(stored(b, 'Ash').owned[25]);
+});
+
 test('restoring your own older backup keeps everything earned since', async () => {
   const b = browser();
   await account(b, 'Ash');

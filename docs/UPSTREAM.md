@@ -8,12 +8,12 @@ reimplemented in PokéGo's own source from the readable material (the `novedades
 `js/lang/*.js` dictionaries, `css/style.css`, data pages). Upstream's deletion of its source is
 not a change to port.
 
-**Last reviewed upstream commit: `90cdd94` (2026-11-01, "Mejoras internas") — reviewed 2026-11-02.**
+**Last reviewed upstream commit: `c121040` (2026-11-02, "Ajuste interno") — reviewed 2026-11-03.**
 
 Previous baseline: `ce57853` (2026-10-21, "La gran actualización: Tienda Kecleon"), ported into
 PokéGo on 2026-10-22 (commit 49e3cbac, see CREDITS.md).
 
-License check (2026-11-02): `LICENSE`, `LICENSE-NONCOMMERCIAL.md` and the README's license
+License check (2026-11-03): `LICENSE`, `LICENSE-NONCOMMERCIAL.md` and the README's license
 section are unchanged since `ce57853`.
 
 ## Commits ce57853..90cdd94
@@ -30,7 +30,20 @@ section are unchanged since `ce57853`.
 | b742e437 | 2026-11-01 | Mejoras de estabilidad | Skipped: only obfuscated code changed, nothing readable to port |
 | 90cdd941 | 2026-11-01 | Mejoras internas | Skipped: only obfuscated code changed, nothing readable to port |
 
+## Commits 90cdd94..c121040
+
+| Commit | Date | Subject | Decision |
+|---|---|---|---|
+| 23c0d653 | 2026-11-02 | Arreglo: el progreso guardado en el navegador ya no se pierde al actualizar | Ported 2026-11-03 (see changelog entry below) |
+| ad6c0259 | 2026-11-02 | Aviso de directo y último vídeo: nueva fuente de datos | Skipped: promotion (live/video notice) and a deleted GitHub workflow |
+| c121040f | 2026-11-02 | Ajuste interno | Skipped: only obfuscated code changed, nothing readable to port |
+
 ## Changelog entries (upstream `novedades/`)
+
+### 2026-11-02 · Tu progreso, a salvo
+- An older cached version not recognising the browser's save copy and going back to the cloud one — **not applicable as such**: PokéGo always merges the device copy with the cloud (`merge` in `js/core/db.js`), it never just takes the cloud one.
+- An unreadable save copy is no longer deleted: kept aside and recovered later — **ported** 2026-11-03 (`read`/`rescue` in `js/core/db.js`, key `ps.rescue.<key>`, merged back in `loadLocal`/`beginLocal` and `openCloud`; test in `tests/save.test.cjs`).
+- Offline, the installed app opens the last version used — **ported** 2026-11-03 (`sw.js`, upstream's readable code).
 
 ### 2026-10-31 · Novedades también en el móvil
 - Menu news banner on mobile landscape — **skipped**: promotion banner.

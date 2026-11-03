@@ -6,6 +6,14 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
+  { d: '2026-11-03', title: ['Tu progreso, a salvo', 'Your progress, safe'], fix: [
+    ['Si alguna vez el juego no puede leer la copia de tu partida guardada en este aparato, ya no la pisa al guardar: la aparta y, en cuanto se pueda leer, la junta sola con lo que hayas jugado después, sin perder nada.',
+     'If the game ever can’t read the copy of your save kept on this device, it no longer overwrites it when saving: it keeps it aside and, as soon as it can be read, merges it by itself with what you played since, without losing anything.'],
+    ['Sin conexión, el juego instalado como app abre la última versión que usaste, no la de cuando lo instalaste.',
+     'Offline, the game installed as an app opens the last version you used, not the one from when you installed it.'],
+    ['Estos arreglos vienen de PokéSurvivor, de JPTER78.',
+     'These fixes come from PokéSurvivor by JPTER78.']
+  ] },
   { d: '2026-11-02', title: ['Jugar sin conexión y en iPhone', 'Offline play and iPhone'], new: [
     ['Jugar sin conexión: sin internet entras igual en tu cuenta y juegas con la partida guardada en este aparato; al volver la conexión se sube sola y se junta con la de la nube, sin perder nada. Para ver todos los Pokémon sin conexión, descarga antes sus imágenes en Ajustes > Cuenta. El ranking, los amigos y el juego en grupo siguen necesitando conexión.',
      'Offline play: without internet you still get into your account and play with the save on this device; when the connection comes back it uploads by itself and merges with the cloud, without losing anything. To see every Pokémon offline, download their images first in Settings > Account. Leaderboards, friends and group play still need a connection.'],
