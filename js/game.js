@@ -47,10 +47,22 @@ G.Game = (() => {
     requestAnimationFrame(loop);
   }
 
+  /**
+   * Móvil con calidad baja: la resolución interna baja a ×1. En automático ya no
+   * vuelve a subir en esta sesión (cambiar el tamaño del lienzo da un tirón, y
+   * si ha hecho falta bajar una vez, hará falta otra). Eligiendo calidad en
+   * Ajustes, manda lo elegido.
+   */
+  let lowRes = false;
+  function checkRes() {
+    const low = G.Settings.touch && G.Settings.fx === 0;
+    if (low !== lowRes && (low || G.Settings.get('quality') !== 'auto')) { lowRes = low; resize(); }
+  }
+
   function resize() {
     // Resolución interna como mucho ×1,5: en pantallas ×2 dibujar el doble de
     // píxeles era de lo que más costaba, y con el pixel art no se nota.
-    const d = Math.min(1.5, window.devicePixelRatio || 1);
+    const d = Math.min(lowRes ? 1 : 1.5, window.devicePixelRatio || 1);
     const cw = cv.clientWidth, ch = cv.clientHeight;
     if (!cw || !ch) return;
     G.Touch.resetSafe();
@@ -712,8 +724,16 @@ G.Game = (() => {
   // partida se da por terminada a los ~3 s y se guarda: tiempo, derrotados,
   // récords y ranking. Mejor eso que una pantalla negra y perderlo todo.
   let loopErrs = 0, errRun = 0;
+  // Móviles de 90 y 120 Hz: como mucho 60 fotogramas por segundo. El juego no gana nada con más,
+  // pero el móvil hacía el doble de trabajo, se calentaba y acababa yendo a tirones.
+  const FRAME_MS = 1000 / 60;
+  let nextFrame = 0;
   function loop(ts) {
     requestAnimationFrame(loop);
+    if (G.Settings.touch) {
+      if (ts < nextFrame - 1.5) return;
+      nextFrame = Math.max(nextFrame, ts - FRAME_MS) + FRAME_MS;
+    }
     try { frame(ts); errRun = 0; }
     catch (e) {
       if (loopErrs++ < 5) console.error('[Game] fallo en un fotograma:', e);
@@ -733,6 +753,8 @@ G.Game = (() => {
     const dt = Math.min(1 / 30, real) * speedK;
     last = ts;
     if (state === 'playing') G.Settings.sample(real);
+    G.Awake.tick(!!pl && state !== 'ui' && state !== 'over' && state !== 'paused');
+    checkRes();
     fpsAcc += real; fpsN++;
     if (fpsAcc >= 0.5) { fpsShown = Math.round(fpsN / fpsAcc); fpsAcc = 0; fpsN = 0; }
     frameDt = state === 'playing' ? dt : 0;

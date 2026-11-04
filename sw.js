@@ -1,6 +1,10 @@
 /* ============ sw.js — para poder instalar el juego como app ============
  * - Código del juego (html, js, css): primero la red, así cada actualización
- *   llega al momento; si no hay conexión, la última copia guardada.
+ *   llega al momento; si no hay conexión, la última copia guardada. La página
+ *   del juego se pregunta siempre al servidor: GitHub Pages deja guardarla 10
+ *   minutos, y al abrir el juego salía la versión de antes (el iPhone, desde la
+ *   pantalla de inicio, se quedaba con ella toda la partida).
+ * - version.json no pasa por aquí (lo mira updater.js, siempre de la red).
  * - Sprites, iconos y fuente: no cambian nunca, se sirven de la caché
  *   (se van guardando según se usan: no se descarga todo de golpe).
  * - Firebase y demás servicios de fuera no se tocan.
@@ -14,6 +18,8 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CODE && k !== ART).map(k => caches.delete(k))))
+    // (Antes se guardaba una copia de cada consulta de version.json: fuera.)
+    .then(() => caches.open(CODE)).then(c => c.keys().then(rs => Promise.all(rs.filter(r => /\/version\.json/.test(r.url)).map(r => c.delete(r)))))
     .then(() => self.clients.claim()));
 });
 
@@ -21,7 +27,7 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== location.origin) return;
+  if (url.origin !== location.origin || url.pathname.endsWith('/version.json')) return;
   const art = /\/assets\/(pokemon|icons|fonts)\//.test(url.pathname);
   if (art) {
     e.respondWith(caches.open(ART).then(async c => {
@@ -38,7 +44,7 @@ self.addEventListener('fetch', e => {
   // instaló el service worker (2-11-2026, de PokéSurvivor).
   const scope = new URL(self.registration.scope).pathname;
   const game = req.mode === 'navigate' && (url.pathname === scope || url.pathname === scope + 'index.html');
-  e.respondWith(fetch(req).then(res => {
+  e.respondWith((game ? fetch(url.href, { cache: 'no-cache' }) : fetch(req)).then(res => {
     if (res.ok && !res.redirected) {
       const copy = res.clone(), copy2 = game ? res.clone() : null;
       caches.open(CODE).then(c => { c.put(req, copy); if (copy2) c.put('./index.html', copy2); });

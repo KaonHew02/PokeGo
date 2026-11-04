@@ -2,15 +2,19 @@
  * Al publicar una versión nueva (node tools/build.js escribe version.json con
  * la huella de js/app.min.js), todos los jugadores la reciben sin perder nada:
  *
- *   - Cada 5 min (y al volver a la pestaña) se mira version.json (lo sirve
- *     GitHub Pages: no cuesta nada).
+ *   - Al abrir, cada 5 min y al volver a la pestaña o a tener conexión se mira
+ *     version.json (lo sirve GitHub Pages: no cuesta nada). Al abrir ya sale la
+ *     versión nueva (sw.js pregunta siempre por la página); esto es para el
+ *     juego que sigue abierto (en el iPhone, días).
+ *   - Si tras recargar sigue saliendo la vieja (GitHub tarda a veces un rato en
+ *     servir la nueva), no se insiste hasta pasados RETRY ms: recargaba sin parar.
  *   - Si NO está en partida: aviso "actualizando en 5 s…" y se recarga.
  *     Si está en el gacha, la tienda de mejoras, los ajustes o escribiendo en
  *     un campo, espera a que termine. En una sala de cooperativo, se recarga
  *     igual (decisión del 12-10-2026).
- *   - Si está EN PARTIDA: no se toca. Al acabar, la run se guarda como
- *     siempre (récords, monedas, tickets, ranking) y, al volver al menú, se
- *     recarga.
+ *   - Si está EN PARTIDA: no se toca (un aviso dice que hay versión nueva). Al
+ *     acabar, la run se guarda como siempre (récords, monedas, tickets,
+ *     ranking) y, al volver al menú, se recarga.
  *   - Antes de recargar se espera a que la partida guardada suba a la nube
  *     (como mucho unos segundos; si no, queda en este navegador y se sube al
  *     entrar).
@@ -24,10 +28,16 @@
  * actualiza instalando la nueva) no hace nada.
  */
 G.Updater = (() => {
-  const EVERY = 5 * 60 * 1000, COUNTDOWN = 5, FORCED = 10;
+  const EVERY = 5 * 60 * 1000, COUNTDOWN = 5, FORCED = 10, RETRY = 3 * 60 * 1000, TRIED = 'ps.updateTried';
   const tag = document.querySelector('script[src*="app.min.js?v="]');
   const mine = tag ? (tag.getAttribute('src').match(/v=([0-9a-f]+)/) || [])[1] : null;
-  let pending = false, forced = false, lastCheck = 0, timer = 0, counting = false;
+  let pending = false, forced = false, lastCheck = 0, timer = 0, counting = false, next = null;
+
+  /** ¿Se acaba de recargar para esta versión, y aun así sigue saliendo la vieja? */
+  function justTried(v) {
+    try { const t = JSON.parse(sessionStorage.getItem(TRIED)); return !!t && t.v === v && Date.now() - t.at < RETRY; }
+    catch (e) { return false; }
+  }
 
   async function check() {
     if (!mine || pending) return;
@@ -36,7 +46,11 @@ G.Updater = (() => {
       const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
       if (!r.ok) return;
       const j = await r.json();
-      if (j && j.v && j.v !== mine) { pending = true; forced = !!j.force; console.log('[Actualizar] versión nueva', j.v, '(esta es', mine + ')', forced ? 'OBLIGATORIA' : ''); }
+      if (j && j.v && j.v !== mine && !justTried(j.v)) {
+        pending = true; forced = !!j.force; next = j.v;
+        console.log('[Actualizar] versión nueva', j.v, '(esta es', mine + ')', forced ? 'OBLIGATORIA' : '');
+        if (!forced && inRun()) G.UI.toast('Hay una versión nueva: se instalará cuando acabe la partida', 4000);
+      }
     } catch (e) { /* sin red: se mira la próxima vez */ }
   }
 
@@ -55,6 +69,7 @@ G.Updater = (() => {
     // Que lo guardado suba a la nube antes de recargar (como mucho 6 s).
     const dirty = G.DB.syncState && G.DB.syncState !== 'ok' && G.DB.syncState !== 'local';
     if (dirty) { try { await Promise.race([G.DB.flush(), new Promise(r => setTimeout(r, 6000))]); } catch (e) { /* queda en este navegador */ } }
+    try { sessionStorage.setItem(TRIED, JSON.stringify({ v: next, at: Date.now() })); } catch (e) { /* sin esto, sólo se insiste antes */ }
     location.reload();
   }
 
@@ -103,8 +118,12 @@ G.Updater = (() => {
     if (!mine || !location.protocol.startsWith('http') || G.Native.app) return;
     clearInterval(timer);
     timer = setInterval(loop, 2000);
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - lastCheck > 60000) check(); });
-    setTimeout(check, 30000);
+    const back = () => { if (document.visibilityState === 'visible' && Date.now() - lastCheck > 60000) check(); };
+    document.addEventListener('visibilitychange', back);
+    addEventListener('pageshow', back);
+    addEventListener('online', back);
+    // Enseguida: si se tardaba más en empezar una partida, la versión nueva esperaba a que acabase.
+    setTimeout(check, 2000);
   }
 
   return { init, check, get pending() { return pending; }, get version() { return mine; } };

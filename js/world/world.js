@@ -37,11 +37,14 @@ G.World = (() => {
   let seed = 1, biome = 0;
   let arena = null;                        // { tx, ty, r } en tiles
   const data = new Map();                  // "cx,cy" -> datos del chunk
+  let lastC = null;                        // ver chunkOf
   let images = new Map();                  // "cx,cy" -> canvas horneado
   // Cambio de bioma: durante FADE segundos se funde la paleta vieja con la nueva.
   const FADE = 2.6;
   let fade = null;                         // { from, images, t }
   const MAX_IMAGES = 48, MAX_DATA = 400;
+  const BAKE_PAD = 320, BAKE_EVERY = 0.12;
+  let bakeT = 0;
   const broken = new Set();                // props destruidos: "tx,ty"
   let nextPropId = 1;
 
@@ -107,14 +110,22 @@ G.World = (() => {
     }
     if (data.size > MAX_DATA) data.delete(data.keys().next().value);
     data.set(k, c);
+    lastC = null;
     placeProps(c);
     return c;
   }
 
+  // El último chunk consultado: casi todas las consultas seguidas caen en el mismo, y el campo de
+  // pathing.js hace miles cada 0,35 s (montar la clave en texto daba un tirón en el móvil).
+  function chunkOf(cx, cy) {
+    if (lastC && lastC.cx === cx && lastC.cy === cy) return lastC;
+    return (lastC = chunkData(cx, cy));
+  }
+  const tileKey = (tx, ty) => tx * 65536 + ty;
+
   function terrainAt(tx, ty) {
     const cx = Math.floor(tx / N), cy = Math.floor(ty / N);
-    const c = data.get(cx + ',' + cy) || chunkData(cx, cy);
-    return c.terr[(ty - cy * N) * N + (tx - cx * N)];
+    return chunkOf(cx, cy).terr[(ty - cy * N) * N + (tx - cx * N)];
   }
 
   const arena_outer = () => (arena ? arena.r + 7 : 0);
@@ -140,7 +151,7 @@ G.World = (() => {
         if (open && hh < (pr.tree || 0)) at = 'tree';
         else if (open && hh < (pr.tree || 0) + (pr.rock || 0)) at = 'rock';
         else if (hh > 1 - (pr.grass || 0)) at = 'grass';
-        if (at) { const p = makeProp(at, tx, ty); c.props.push(p); if (p.solid) c.propAt.set(tx + ',' + ty, p); }
+        if (at) { const p = makeProp(at, tx, ty); c.props.push(p); if (p.solid) c.propAt.set(tileKey(tx, ty), p); }
         continue;
       }
 
@@ -162,7 +173,7 @@ G.World = (() => {
 
       const p = makeProp(type, tx, ty, kind);
       c.props.push(p);
-      if (p.solid) c.propAt.set(tx + ',' + ty, p);
+      if (p.solid) c.propAt.set(tileKey(tx, ty), p);
     }
   }
 
@@ -220,8 +231,7 @@ G.World = (() => {
 
   function propAtTile(tx, ty) {
     const cx = Math.floor(tx / N), cy = Math.floor(ty / N);
-    const c = data.get(cx + ',' + cy) || chunkData(cx, cy);
-    return c.propAt.get(tx + ',' + ty) || null;
+    return chunkOf(cx, cy).propAt.get(tileKey(tx, ty)) || null;
   }
 
   /** ¿Se puede pasar por esta casilla andando? (pathing.js) */
@@ -366,7 +376,7 @@ G.World = (() => {
     const c = data.get(cx + ',' + cy);
     if (c) {
       c.props.splice(c.props.indexOf(p), 1);
-      c.propAt.delete(p.tx + ',' + p.ty);
+      c.propAt.delete(tileKey(p.tx, p.ty));
     }
     const B = G.Tiles.BIOMES[biome];
     G.Audio.sfx(p.type === 'grass' ? 'grass' : p.type === 'chest' ? 'chest' : 'break');
@@ -542,8 +552,20 @@ G.World = (() => {
     ctx.restore();
   }
 
+  /**
+   * Pinta por adelantado el suelo que está a punto de verse, de uno en uno. Si
+   * no, se pintaba al entrar en pantalla: a veces tres en el mismo fotograma, y
+   * era el mayor tirón de la partida en el móvil (cada uno cuesta varios ms).
+   */
+  function bakeAhead(cam) {
+    for (const [cx, cy] of visibleChunks(cam, BAKE_PAD)) {
+      if (!images.has(cx + ',' + cy)) { chunkImage(cx, cy); return; }
+    }
+  }
+
   function update(dt, cam) {
     if (fade && (fade.t += dt) >= FADE) fade = null;
+    if ((bakeT -= dt) <= 0) { bakeT = BAKE_EVERY; bakeAhead(cam); }
     for (const [cx, cy] of visibleChunks(cam, 60)) {
       for (const p of chunkData(cx, cy).props) if (p.flash > 0) p.flash -= dt;
     }
@@ -553,7 +575,7 @@ G.World = (() => {
 
   function reset(s) {
     seed = (s | 0) || 1;
-    data.clear(); images.clear(); broken.clear();
+    data.clear(); images.clear(); broken.clear(); lastC = null;
     fade = null; arena = null;
   }
 
@@ -599,7 +621,7 @@ G.World = (() => {
       const R = a.r + 9;
       for (const k of [...data.keys(), ...images.keys()]) {
         const [cx, cy] = k.split(',').map(Number);
-        if (Math.abs(cx * N + N / 2 - a.tx) < R + N && Math.abs(cy * N + N / 2 - a.ty) < R + N) { data.delete(k); images.delete(k); }
+        if (Math.abs(cx * N + N / 2 - a.tx) < R + N && Math.abs(cy * N + N / 2 - a.ty) < R + N) { data.delete(k); images.delete(k); lastC = null; }
       }
     },
     get arena() { return arena; }, drawGround, drawLiquid, visibleProps, drawProp, drawVignette,

@@ -83,10 +83,10 @@ test('goes for pickups when it is safe, and stays next to a locked chest', () =>
   assert.ok(!d.stay, 'a monster on top beats the chest');
 });
 
-test('never walks into the rift on purpose, even with loot behind it', () => {
+test('keeps out of a place to avoid, even with loot behind it', () => {
   const b = best(scene({ goals: [{ x: 0, y: -200, v: 3, near: 0 }], avoid: [{ x: 0, y: -45, r: 64, v: 40 }] }));
   const ny = Math.sin(b.a) * 110 * 0.6, nx = Math.cos(b.a) * 110 * 0.6;
-  assert.ok(Math.hypot(nx, ny + 45) >= 64 || b.stay, 'keeps out of the rift');
+  assert.ok(Math.hypot(nx, ny + 45) >= 64 || b.stay, 'keeps out of it');
 });
 
 test('prefers the previous heading when two ways are equally good (no jitter)', () => {
@@ -164,7 +164,7 @@ test('explores toward what it has not seen, around walls and away from the horde
 
 /**
  * Una partida de mentira (sin mapa ni enemigos de verdad) para mover a AUTO con
- * su bucle real: axis() → scan, objetivo, decide. o: { mates, props, specials }.
+ * su bucle real: axis() → scan, objetivo, decide. o: { mates, props, specials, rift, foes, arena, move }.
  */
 function sandbox(o = {}) {
   const ctx = { console, Math, performance };
@@ -173,13 +173,14 @@ function sandbox(o = {}) {
   for (const f of ['js/core/util.js', 'js/systems/hazards.js', 'js/data/moves.js', 'js/systems/autopilot.js']) vm.runInContext(source(f), ctx, { filename: f });
   const S = ctx.G, near = (x, y, r) => p => Math.hypot(p.x - x, p.y - y) <= r + p.r;
   const pl = { x: 0, y: 0, r: 12, hp: 80, maxHp: 80, spd: 110, magnet: 78, dmgDealt: 0, inLiquid: false, moveAngle: 0, item: null, power: null, regen: 0,
-    mon: { types: ['electric'], pa: 1, sa: 0.97, atk: 1 }, slots: [[S.Moves.instance('thunder-shock', 1)]],
+    mon: { types: ['electric'], pa: 1, sa: 0.97, atk: 1 }, slots: [[S.Moves.instance(o.move || 'thunder-shock', 1)]],
     activeGroup() { return this.slots[0]; }, activeMove() { return this.slots[0][0]; } };
   Object.assign(S, {
     Settings: { get: k => k === 'auto' }, Input: { axis: () => [0, 0] }, UI: { toast() {} },
-    Game: { player: pl, state: 'playing', st: { time: 60 } }, Judgment: { active: false }, Rift: { rift: null, inArena: false },
+    Game: { player: pl, state: 'playing', st: { time: 60 } }, Judgment: { active: false }, Rift: { rift: o.rift || null, inArena: !!o.arena },
     Coop: { active: !!o.mates, isHost: true, puppets: () => o.mates || [] },
-    EnemyMgr: { all: () => [], queryCircle: () => [] }, Projectiles: { all: () => [] }, Pickups: { all: () => [] },
+    EnemyMgr: { all: () => o.foes || [], queryCircle: (x, y, r) => (o.foes || []).filter(e => Math.hypot(e.x - x, e.y - y) <= r) },
+    Projectiles: { all: () => [] }, Pickups: { all: () => [] },
     World: { TS: 32, isFree: () => true, isLiquid: () => false, liquidEffect: () => ({}), walkable: () => true,
              propsInCircle: (x, y, r) => (o.props || []).filter(p => p.hp > 0 && near(x, y, r)(p)), specialsNear: (x, y, r) => (o.specials || []).filter(near(x, y, r)) },
     Path: { route: () => undefined }, Interact: { CHEST_TIME: 3.5 }
@@ -188,6 +189,50 @@ function sandbox(o = {}) {
   const run = n => { for (let i = 0; i < n; i++) { const [ax, ay] = S.Auto.axis(pl, 0.05); pl.x += ax * pl.spd * 0.05; pl.y += ay * pl.spd * 0.05; } };
   return { A: S.Auto, pl, run };
 }
+
+test('in the real loop: walks into an open rift, before a chest that is closer', () => {
+  const rift = { x: 420, y: 60, ttl: 45, t: 0 };
+  const chest = { type: 'chest', id: 7, x: -120, y: 0, r: 12, hp: 22 };
+  const { A: a, pl, run } = sandbox({ rift, props: [chest] });
+  run(10);
+  assert.equal(a.debug.obj && a.debug.obj.kind, 'rift', 'the rift comes first');
+  run(120);
+  assert.ok(Math.hypot(pl.x - rift.x, pl.y - (rift.y - 10)) < 30, 'close enough to enter, at ' + Math.round(pl.x) + ',' + Math.round(pl.y));
+});
+
+test('in the real loop: gets through a few enemies to reach the rift, and goes even when hurt', () => {
+  const rift = { x: 420, y: 0, ttl: 45, t: 0 };
+  const foes = [{ id: 1, x: 200, y: 70, r: 12, spd: 0, dmg: 8, hp: 30 }, { id: 2, x: 260, y: -80, r: 12, spd: 0, dmg: 8, hp: 30 }];
+  const { pl, run } = sandbox({ rift, foes });
+  pl.hp = 12;
+  run(200);
+  assert.ok(Math.hypot(pl.x - rift.x, pl.y - (rift.y - 10)) < 30, 'reached it, at ' + Math.round(pl.x) + ',' + Math.round(pl.y));
+});
+
+test('in a rift arena: gets within reach of the boss with a close-range attack, and keeps away with a ranged one', () => {
+  const boss = () => ({ id: 9, boss: true, legend: true, x: 0, y: -260, r: 16, spd: 70, dmg: 40, hp: 4000, behavior: 'ranged' });
+  const near = sandbox({ arena: true, foes: [boss()], move: 'vine-whip' });
+  near.run(160);
+  const m = near.pl.activeMove(), e = near.A.debug.obj;
+  assert.equal(e && e.kind, 'boss', 'goes for the boss');
+  const d = Math.hypot(near.pl.x, near.pl.y + 260);
+  assert.ok(d <= m.radius + 30, 'in reach of ' + m.kind + ' (' + (m.radius + 30) + '), at ' + Math.round(d));
+  assert.ok(d > 16 + near.pl.r, 'without standing on it, at ' + Math.round(d));
+  const far = sandbox({ arena: true, foes: [boss()] });
+  far.run(160);
+  const f = Math.hypot(far.pl.x, far.pl.y + 260);
+  assert.ok(f > 100 && f < 330, 'ranged: from a distance, in aim range, at ' + Math.round(f));
+});
+
+test('in a rift arena: nearly dead, stops going for the boss', () => {
+  const b = { id: 9, boss: true, legend: true, x: 0, y: -100, r: 16, spd: 70, dmg: 40, hp: 4000, behavior: 'ranged' };
+  const { A: a, pl, run } = sandbox({ arena: true, foes: [b] });
+  run(10);
+  assert.equal(a.debug.obj && a.debug.obj.kind, 'boss');
+  pl.hp = 8;
+  run(10);
+  assert.equal(a.debug.obj, null, 'survives first');
+});
 
 test('in the real loop: walks to a downed teammate and stays to revive them (before a chest)', () => {
   const mate = { uid: 'b', x: 520, y: 40, dead: true };
@@ -319,4 +364,68 @@ test('bonds: the move that adds most to the group that will fire', () => {
   assert.ok(first === ts || first === tb, 'first: one of the best pair');
   const rest = loose.filter(m => m !== first);
   assert.ok([ts, tb].includes(rest[A.bondPick(rest, { mode: 'pair' }, first, pika)]), 'then its partner');
+});
+
+// La pantalla (js/core/awake.js): sin tocarla, con AUTO, el móvil se apagaba y la partida se paraba.
+function awake(o = {}) {
+  const locks = [], taps = {};
+  const wakeLock = { request: async () => {
+    if (o.refuse) throw new Error('NotAllowedError');
+    const l = { on: true, addEventListener(_, f) { this.drop = f; }, async release() { this.on = false; this.drop(); } };
+    locks.push(l);
+    return l;
+  } };
+  const ctx = { console, Date: o.Date || Date, navigator: { wakeLock }, document: { visibilityState: o.hidden ? 'hidden' : 'visible' },
+    addEventListener: (ev, f) => { taps[ev] = f; }, G: { Native: { app: !!o.app } } };
+  vm.createContext(ctx);
+  vm.runInContext(source('js/core/awake.js'), ctx);
+  return { W: ctx.G.Awake, locks, taps };
+}
+const settle = () => new Promise(r => setImmediate(r));
+
+test('screen: stays on during a run and is let go in the pause', async () => {
+  const { W, locks } = awake();
+  W.tick(true);
+  await settle();
+  assert.ok(W.held, 'on during the run');
+  W.tick(true);
+  await settle();
+  assert.equal(locks.length, 1, 'asks only once');
+  W.tick(false);
+  await settle();
+  assert.ok(!W.held && !locks[0].on, 'let go when paused or back at the menu');
+});
+
+test('screen: the first tap counts (Safari only allows it after a touch), and nothing happens in the app', async () => {
+  const { W, taps } = awake();
+  taps.pointerup();
+  await settle();
+  assert.ok(W.held, 'held from the tap that starts the run');
+  W.tick(false);
+  assert.ok(W.held, 'not dropped right after the tap');
+  const app = awake({ app: true });
+  app.W.tick(true);
+  await settle();
+  assert.equal(app.locks.length, 0, 'the Android app keeps the screen on by itself');
+  assert.deepEqual(Object.keys(app.taps), []);
+});
+
+test('screen: asks again after the system lets go, without asking on every frame', async () => {
+  let now = 1e6;
+  const Clock = { now: () => now };
+  const { W, locks } = awake({ Date: Clock });
+  W.tick(true);
+  await settle();
+  locks[0].drop();                  // el sistema lo suelta (al salir de la pestaña, por ejemplo)
+  assert.ok(!W.held);
+  now += 1000; W.tick(true);
+  await settle();
+  assert.ok(!W.held, 'waits a moment');
+  now += 5000; W.tick(true);
+  await settle();
+  assert.ok(W.held && locks.length === 2, 'and asks again');
+  const no = awake({ refuse: true });
+  no.W.tick(true);
+  await settle();
+  assert.ok(!no.W.held, 'a refusal is not an error');
 });

@@ -6,6 +6,18 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
+  { d: '2026-11-04', title: ['AUTO entra en las grietas y el móvil va más suave', 'AUTO enters rifts, and smoother play on mobile'], new: [
+    ['Modo automático: ahora entra solo en las grietas y pelea con el legendario, a la distancia a la que pega tu ataque.',
+     'Auto mode: it now walks into rifts on its own and fights the legendary, at the range your attack needs.']
+  ], chg: [
+    ['Móvil: el juego va más suave. El suelo nuevo se prepara antes de que se vea, los móviles de 90 y 120 Hz van a 60 FPS (se calientan menos) y, si aun así le cuesta, baja la resolución.',
+     'Mobile: smoother play. New ground is prepared before you see it, 90 and 120 Hz phones run at 60 FPS (they heat up less) and, if it still struggles, the resolution drops.'],
+    ['Al abrir el juego, también desde la pantalla de inicio del iPhone, sale siempre la última versión. Si llega una nueva en plena partida, un aviso lo dice y se instala al acabarla.',
+     'Opening the game, also from the iPhone Home Screen, always loads the latest version. If a new one comes out during a run, a notice says so and it installs when the run ends.']
+  ], fix: [
+    ['Móvil: la pantalla ya no se apaga sola durante la partida, aunque no la toques (con el modo automático o con mando).',
+     'Mobile: the screen no longer turns off by itself during a run, even if you don’t touch it (with auto mode or a gamepad).']
+  ] },
   { d: '2026-11-04', title: ['Más arreglos de PokéSurvivor', 'More fixes from PokéSurvivor'], new: [
     ['Móvil: nuevo joystick «Anclado» (Ajustes, Controles, Colocar los botones): aparece donde pones el dedo y se queda ahí mientras lo mantienes.',
      'Mobile: new “Anchored” joystick (Settings, Controls, Place the buttons): it appears where you put your finger and stays there while you hold it.']

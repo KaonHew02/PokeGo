@@ -14,14 +14,16 @@
  *   peligro   enemigos cerca (más los jefes y los que pegan fuerte; las
  *             embestidas a punto de salir), disparos que te van a dar, avisos
  *             en el suelo (hazards.js) que estallan antes de que salgas,
- *             paredes y objetos que cortan el paso, lava, trampas, la grieta
- *             (nunca entra sola: eso lo decide el jugador) y Arceus
+ *             paredes y objetos que cortan el paso, lava, trampas y Arceus
  *   interés   experiencia, monedas, bayas (más con poca vida), tickets y
  *             objetos; en grupo, no alejarse del grupo; si no hay nadie a
  *             tiro, acercarse a pelear
  *   objetivo  además, cada SCAN s se elige UNO de lo que hay hasta OBJ_R (casi
  *             dos pantallas): un compañero caído (lo primero; se queda a su
- *             lado para levantarlo, si no es muy peligroso), cofres que romper,
+ *             lado para levantarlo, si no es muy peligroso), una grieta abierta
+ *             (se entra siempre: perder no cuesta nada y dentro los enemigos del
+ *             mapa no te tocan) y, en su arena, el legendario (a la distancia
+ *             a la que pega tu ataque: fightRing), cofres que romper,
  *             cofres con candado (se queda al lado hasta que se abre), altares,
  *             manantiales (con poca vida) y, del suelo, objetos, tickets e
  *             imanes. Gana el que más vale para lo que cuesta llegar (lo que hay
@@ -39,7 +41,7 @@
  * pasillos. Se prefiere seguir la dirección de antes y el giro se suaviza (sin
  * tirones); sin prisa, anda despacio (la horda no se queda atrás). Si lleva un
  * rato sin avanzar (atascado), prueba otra dirección.
- * En la Sentencia de Arceus sólo huye; en la arena de una grieta, sólo aguanta.
+ * En la Sentencia de Arceus sólo huye.
  *
  * Elecciones (con el juego parado, a los CHOICE_S s para que se vea qué elige, y
  * con un aviso que lo dice): cartas de nivel (cardScore), objetos (itemKeep) y
@@ -73,10 +75,11 @@ G.Auto = (() => {
   const CLOSE = new Set(['melee', 'nova', 'aura', 'orbit', 'spin', 'shove', 'trail', 'dash']);
   // Objetivo: hasta dónde se busca (un compañero caído, más lejos), cuándo se deja de lejos,
   // cuánto más cuenta el que ya se lleva y cuántos s no se vuelve a intentar uno al que no se llega.
-  const OBJ_R = 880, MATE_R = 1400, OBJ_DROP = 1300, STICK = 1.6, BAN_S = 25;
+  const OBJ_R = 880, MATE_R = 1400, RIFT_R = 2400, OBJ_DROP = 1300, STICK = 1.6, BAN_S = 25;
   // Explorar: rejilla de lo visto (casillas de CELL px, vistas hasta SEEN_R), a qué distancia se
   // pone el punto al que ir y a qué distancias (y con qué peso) se mira lo que falta por ver.
   const CELL = 256, SEEN_R = 760, EXP_GO = 640, EXP_D = [500, 800, 1100, 1400], EXP_W = [0.6, 1, 0.8, 0.5];
+  const FAR = { mate: MATE_R, rift: RIFT_R, boss: Infinity }, BACK = { mate: 6, rift: 3 };
   const ANG = Array.from({ length: DIRS }, (_, i) => i / DIRS * Math.PI * 2);
   const CS = ANG.map(Math.cos), SN = ANG.map(Math.sin);
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -273,20 +276,23 @@ G.Auto = (() => {
     const d2 = e => (e.x - pl.x) * (e.x - pl.x) + (e.y - pl.y) * (e.y - pl.y);
     if (near.length > NEAR_MAX) near = near.sort((a, b) => d2(a) - d2(b)).slice(0, NEAR_MAX);
     const foes = [], ring = [];
+    // El jefe con el que se pelea: sólo pesa tocarle. Si contase como horda (o que se va a acercar),
+    // nunca se le llegaría: con un ataque de cerca se quedaba a 150 px sin hacerle nada.
+    const fight = obj && obj.kind === 'boss' ? obj.ref : null;
     let cx = 0, cy = 0, nearest = null, nd = Infinity;
     for (const e of near) {
       if (e.dead || e.behavior === 'thief') continue;
       const d = Math.sqrt(d2(e)) || 1;
       // Horda: hacia dónde están (los de cerca cuentan más).
       const k = (e.boss ? 2 : 1) / (1 + Math.max(0, d - e.r - pl.r) / 70);
-      if (d < 260) { cx += (e.x - pl.x) / d * k; cy += (e.y - pl.y) / d * k; }
+      if (d < 260 && e !== fight) { cx += (e.x - pl.x) / d * k; cy += (e.y - pl.y) / d * k; }
       const gap = d - e.r - pl.r;
       if (gap < nd) { nd = gap; nearest = e; }
       const w = (e.boss ? 2.6 : 1) * clamp(e.dmg / (maxHp * 0.08), 0.6, 3) * (e.stunT > 0 ? 0.4 : 1);
       // Todos los de alrededor, para saber hacia dónde hay hueco (aunque estén rodeándote por igual).
-      ring.push([(e.x - pl.x) / d, (e.y - pl.y) / d, w / (1 + Math.max(0, gap) / 110)]);
+      if (e !== fight) ring.push([(e.x - pl.x) / d, (e.y - pl.y) / d, w / (1 + Math.max(0, gap) / 110)]);
       if (d > 300) continue;
-      const f = { x: e.x, y: e.y, r: e.r, spd: e.spd * (1 - (e.slow || 0)), w };
+      const f = { x: e.x, y: e.y, r: e.r, spd: e === fight ? 0 : e.spd * (1 - (e.slow || 0)), w };
       // Embestida: apuntando o ya lanzada, peligro en su línea.
       if (e.behavior === 'charger' && (e.phase === 'aim' || e.phase === 'dash')) {
         const [ux, uy] = e.phase === 'dash' ? [e.dx, e.dy] : G.U.norm(pl.x - e.x, pl.y - e.y);
@@ -339,11 +345,11 @@ G.Auto = (() => {
     return Math.hypot(h.x - pl.x, h.y - pl.y) <= h.r + 6;
   }
 
-  /** Dónde hay que estar para el objetivo: { x, y, r } (con la órbita, a su distancia del cofre). */
+  /** Dónde hay que estar para el objetivo: { x, y, r } (con la órbita o contra un jefe, a esa distancia de él). */
   function holdOf(o, pl) {
     if (!o.ring) return { x: o.x, y: o.y, r: o.r };
     const dx = pl.x - o.x, dy = pl.y - o.y, d = Math.hypot(dx, dy) || 1;
-    return { x: o.x + dx / d * o.ring, y: o.y + dy / d * o.ring, r: 12 };
+    return { x: o.x + dx / d * o.ring, y: o.y + dy / d * o.ring, r: o.band || 12 };
   }
 
   /** El objetivo, como lo mira score(): dónde quedarse, hacia dónde ir ahora y cuánto tira. */
@@ -389,9 +395,6 @@ G.Auto = (() => {
     }
     // Trampas: no pisarlas (saltan al pisarlas).
     for (const p of G.World.specialsNear(pl.x, pl.y, 160)) if (p.type === 'trap') av.push({ x: p.x, y: p.y - 8, r: 24, v: TRAP_V[p.kind] || 5 });
-    // La grieta: nunca entrar sola (eso lo decide el jugador).
-    const rf = G.Rift.rift;
-    if (rf && !G.Rift.inArena) av.push({ x: rf.x, y: rf.y - 10, r: 64, v: 40 });
     // Cooperativo: no alejarse del grupo (a los caídos se les levanta: son objetivos).
     if (G.Coop.active && !G.Judgment.active) {
       let mate = null, md = Infinity;
@@ -445,6 +448,11 @@ G.Auto = (() => {
         const near = G.EnemyMgr.queryCircle(ref.x, ref.y, 130).filter(e => !e.dead && e.behavior !== 'thief');
         return near.length > 5 || near.some(e => e.boss) ? null : { v: 8, w: 2.6, r: 34, stay: 4.8, heal: true };
       }
+      // La grieta se abre a unos 500 px y dura 45 s. Tira fuerte (también con poca vida: dentro se
+      // deja atrás a la horda) y se pasa entre pocos enemigos, pero una horda sigue rodeándose.
+      case 'rift': return { v: 12, w: 8, r: 14, stay: 8, dy: -10, heal: true };
+      // El legendario: sin vida se aguanta (caer es perder la arena).
+      case 'boss': return hp > low ? { v: 6, w: 4, r: 0, stay: 3, ring: fightRing(pl.activeGroup(), pl, ref), band: 16 } : null;
       case 'chest': return brk && hp > low ? { v: 2.2, w: 2, r: brk.hold, stay: 2.6, aimR: brk.aim, ring: brk.ring || 0 } : null;
       // Con candado: quedarse al lado CHEST_TIME s (cuanto más abierto, más vale seguir).
       case 'big': return hp > low ? { v: 3.2, w: 2.2, r: Math.max(46, ref.r + pl.r + 24) - 12, stay: 3.3 + 3 * ref.open / G.Interact.CHEST_TIME } : null;
@@ -469,6 +477,8 @@ G.Auto = (() => {
     const p = o.ref;
     switch (o.kind) {
       case 'mate': return G.Coop.active && G.Coop.puppets().includes(p);
+      case 'rift': return G.Rift.rift === p;
+      case 'boss': return !p.dead && G.Rift.inArena;
       case 'chest': return p.hp > 0 && G.World.propsInCircle(p.x, p.y, 1).includes(p);
       case 'pick': return G.Pickups.all().includes(p);
     }
@@ -509,12 +519,17 @@ G.Auto = (() => {
     const add = (kind, ref, id, x, y, max, isCur) => {
       if (!isCur && ((obj && obj.id === id) || (ban.get(id) || 0) > clock)) return;
       const d = Math.hypot(x - pl.x, y - pl.y);
-      if (d > max || (kind !== 'mate' && !grouped(x, y))) return;
+      if (d > max || (kind !== 'mate' && kind !== 'rift' && !grouped(x, y))) return;
       const c = cand(kind, ref, pl, hp, brk, xpLeft, isCur);
       if (c) cands.push(Object.assign(c, { id, kind, ref, x, y: y + (c.dy || 0), d }));
     };
     if (coop) for (const o of G.Coop.puppets()) if (o.dead) add('mate', o, 'm' + o.uid, o.x, o.y, MATE_R);
-    if (!arena) {
+    if (arena) {
+      const boss = foes.find(e => e.boss);
+      if (boss) add('boss', boss, 'b' + boss.id, boss.x, boss.y, Infinity);
+    } else {
+      const rf = G.Rift.rift;
+      if (rf) add('rift', rf, 'r', rf.x, rf.y, RIFT_R);
       if (brk) for (const p of G.World.propsInCircle(pl.x, pl.y, OBJ_R)) if (p.type === 'chest') add('chest', p, 'p' + p.id, p.x, p.y, OBJ_R);
       for (const p of G.World.specialsNear(pl.x, pl.y, OBJ_R)) {
         const kind = p.type === 'bigchest' ? 'big' : p.type === 'altar' || p.type === 'spring' ? p.type : null;
@@ -525,7 +540,7 @@ G.Auto = (() => {
       if (Math.abs(p.x - pl.x) < OBJ_R && Math.abs(p.y - pl.y) < OBJ_R && objPick(p, pl, hp, xpLeft)) add('pick', p, 'k' + p.id, p.x, p.y, OBJ_R);
     }
     // El de ahora (aunque ya quede algo más lejos), si sigue ahí.
-    if (obj && obj.kind !== 'explore' && exists(obj)) add(obj.kind, obj.ref, obj.id, obj.ref.x, obj.ref.y, obj.kind === 'mate' ? MATE_R : OBJ_DROP, true);
+    if (obj && obj.kind !== 'explore' && exists(obj)) add(obj.kind, obj.ref, obj.id, obj.ref.x, obj.ref.y, FAR[obj.kind] || OBJ_DROP, true);
     // Lo que hay que andar (rodeando paredes) y el peligro del camino.
     for (const o of cands) {
       const rt = G.Path.route(pl, o.x, o.y);
@@ -545,8 +560,9 @@ G.Auto = (() => {
     else if (dh < obj.best - 30) { obj.best = dh; obj.bestT = clock; }
     const slow = obj.kind === 'explore' ? 5 : 8;
     const long = obj.kind === 'chest' ? 9 : obj.kind === 'big' ? 14 : Infinity;
-    if (clock - obj.bestT > slow + obj.inT || obj.inT > long) {
-      ban.set(obj.id, clock + (obj.kind === 'mate' ? 6 : BAN_S));      // (a un compañero, se vuelve pronto)
+    // (Al jefe no se le deja: se mueve, y esquivar no es no avanzar.)
+    if (obj.kind !== 'boss' && (clock - obj.bestT > slow + obj.inT || obj.inT > long)) {
+      ban.set(obj.id, clock + (BACK[obj.kind] || BAN_S));              // (a un compañero o una grieta, se vuelve pronto)
       obj = null;
       return;
     }
@@ -641,6 +657,18 @@ G.Auto = (() => {
       if (s && (!best || s.hold > best.hold)) best = s;
     }
     return best;
+  }
+
+  /**
+   * A qué distancia (de centro a centro) pelear con un jefe (e): la que pide el
+   * ataque que más pega del hueco activo (ver spotOf); si no sale ahí, a media
+   * distancia (los que van solos a por el enemigo).
+   */
+  function fightRing(moves, pl, e) {
+    let top = null, p = 0;
+    for (const m of moves) { const v = movePower(m, pl.mon); if (v > p) { p = v; top = m; } }
+    const s = top && spotOf(top, pl.r);
+    return (s ? s.ring || s.hold : 180) + e.r;
   }
 
   /**
@@ -846,7 +874,7 @@ G.Auto = (() => {
         if (insideHz(z.h, px, py, c.r + 6)) d += z.w * (z.left < 0.6 ? 1.6 : 1);
         else if (insideHz(z.h, px, py, c.r + 26)) d += z.w * 0.3;
       }
-      // Sitios que evitar (trampas, la grieta).
+      // Sitios que evitar (trampas).
       for (const a of c.avoid) {
         if (Math.hypot(c.x + ux * at(T1) - a.x, c.y + uy * at(T1) - a.y) < a.r || Math.hypot(c.x + ux * at(T2) - a.x, c.y + uy * at(T2) - a.y) < a.r) d += a.v;
       }
@@ -972,8 +1000,8 @@ G.Auto = (() => {
     // Lo fuerte que es lo mejor que se puede lanzar (con la Cinta Elección, sólo lo que llevas).
     const top = slots => (band ? pow(slots[pl.active] || []) : slots.reduce((a, g) => Math.max(a, pow(g)), 0));
     const base = Math.max(1e-6, top(pl.slots)), main = pl.activeGroup();
-    // Vínculos: tenerlos (o, en grupo, que alguien entre en una grieta) hace que valgan los demás ataques.
-    const bondP = pl.bonds > 0 ? 1 : G.Coop.active ? 0.25 : 0.05;
+    // Vínculos: tenerlos (o ganar una grieta, que AUTO entra en todas) hace que valgan los demás ataques.
+    const bondP = pl.bonds > 0 ? 1 : 0.25;
     const swap = (m, next) => pl.slots.map(g => (g.includes(m) ? g.map(x => (x === m ? next : x)) : g));
     const gain = {};
     for (const c of list) {
@@ -1184,7 +1212,7 @@ G.Auto = (() => {
     /** player.js: a qué apuntar (un cofre que es el objetivo), o null. game.js: la marca del objetivo. */
     aimAt, drawMark,
     /** Para las pruebas (tests/auto.test.cjs) y para depurar. */
-    score, cardScore, cardInfo, pickCard, bestSlot, movePower, groupPower, itemValue, itemKeep, bondPick, pickObjective, breakSpot, exploreDir,
+    score, cardScore, cardInfo, pickCard, bestSlot, movePower, groupPower, itemValue, itemKeep, bondPick, pickObjective, breakSpot, fightRing, exploreDir,
     DIRS, MANUAL_S, CHOICE_S, STICK, REROLL_BELOW,
     get debug() {
       return { want, mag, hx, hy, side, stuck: stuck.count, goals: goals.length, stays: stays.length,
