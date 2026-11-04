@@ -8,8 +8,8 @@ reimplemented in PokéGo's own source from the readable material (the `novedades
 `js/lang/*.js` dictionaries, `css/style.css`, data pages). Upstream's deletion of its source is
 not a change to port.
 
-**Last reviewed upstream commit: `c121040` (2026-11-02, "Ajuste interno") — reviewed 2026-11-03;
-no new upstream commits on 2026-11-04. The whole `pending` backlog below was ported the same day.**
+**Last reviewed upstream commit: `7fdffe6` (2026-11-04, "Mantenimiento") — reviewed 2026-11-04.
+The whole `pending` backlog below was ported the same day.**
 
 Previous baseline: `ce57853` (2026-10-21, "La gran actualización: Tienda Kecleon"), ported into
 PokéGo on 2026-10-22 (commit 49e3cbac, see CREDITS.md).
@@ -38,6 +38,12 @@ section are unchanged since `ce57853`.
 | 23c0d653 | 2026-11-02 | Arreglo: el progreso guardado en el navegador ya no se pierde al actualizar | Ported 2026-11-03 (see changelog entry below) |
 | ad6c0259 | 2026-11-02 | Aviso de directo y último vídeo: nueva fuente de datos | Skipped: promotion (live/video notice) and a deleted GitHub workflow |
 | c121040f | 2026-11-02 | Ajuste interno | Skipped: only obfuscated code changed, nothing readable to port |
+
+## Commits c121040..7fdffe6
+
+| Commit | Date | Subject | Decision |
+|---|---|---|---|
+| 7fdffe6c | 2026-11-04 | Mantenimiento | Skipped: only obfuscated code, version numbers and sitemap dates changed, no changelog entry, nothing readable to port |
 
 ## Changelog entries (upstream `novedades/`)
 
