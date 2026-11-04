@@ -12,8 +12,8 @@ const CODE = SCRIPTS.map(f => [f, source(f)]);
 
 // Un navegador de mentira por "origen" (cada uno con su localStorage, como localhost y 127.0.0.1).
 // native: dentro de la app de Android (Capacitor, ver js/core/native.js).
-function browser(origin = 'http://localhost:8123', native = false) {
-  const storage = {}, scripts = [];
+function browser(origin = 'http://localhost:8123', native = false, storage = {}) {
+  const scripts = [];
   const u = new URL(origin);
   const ctx = {
     G: {}, console, TextEncoder, URL, URLSearchParams, setTimeout, clearTimeout, crypto: globalThis.crypto,
@@ -460,4 +460,365 @@ test('offline: Firebase comes with the game (not a CDN), the app copies it, and 
   })('assets/pokemon');
   assert.equal(listed.length, onDisk.length);
   assert.deepEqual(listed, onDisk.sort());
+});
+
+// ---------------- la nube con dos aparatos (Firebase de mentira, nunca el proyecto de verdad) ----------------
+
+// Firestore devuelve los mapas con las claves ordenadas, no como se subieron.
+const sortKeys = v => (Array.isArray(v) ? v.map(sortKeys)
+  : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map(k => [k, sortKeys(v[k])])) : v);
+
+/** Una nube en memoria con lo que usa db.js de Firebase: un solo documento, el de esta cuenta. */
+function fakeCloud() {
+  const cloud = { doc: null, writes: 0, down: false }, user = { uid: 'u1', displayName: 'Ash', email: '', providerData: [] };
+  const ref = { get: async () => ({ exists: !!cloud.doc, data: () => json(cloud.doc) }) };
+  const tx = { get: r => r.get(), set: (r, d) => { cloud.doc = sortKeys(json(d)); cloud.writes++; } };
+  const auth = { setPersistence: async () => {}, onAuthStateChanged: fn => { setImmediate(() => fn(user)); return () => {}; }, currentUser: user };
+  const db = { settings() {}, collection: () => ({ doc: () => ref }),
+    runTransaction: fn => (cloud.down ? Promise.reject({ code: 'unavailable' }) : fn(tx)) };
+  cloud.firebase = { initializeApp() {}, auth: Object.assign(() => auth, { Auth: { Persistence: { LOCAL: 1 } } }),
+    firestore: Object.assign(() => db, { FieldValue: { serverTimestamp: () => 0 } }) };
+  return cloud;
+}
+
+/**
+ * Un aparato: su propio navegador (y su apunte en la libreta) contra esa nube.
+ * storage: lo que tenía guardado, para volver a abrirlo. Los relojes de db.js no corren
+ * solos: los dispara timers().
+ */
+async function device(cloud, { storage: kept = {}, offline = false } = {}) {
+  const b = browser('http://localhost:8123', false, kept), on = {}, doc = {}, timers = new Set(), { ctx, G, storage } = b;
+  ctx.firebase = cloud.firebase;
+  G.FIREBASE_CONFIG = { apiKey: 'x', projectId: 'y' };
+  G.UI = { refreshCoins() {} };
+  ctx.addEventListener = (k, fn) => { (on[k] = on[k] || []).push(fn); };
+  ctx.document.addEventListener = (k, fn) => { (doc[k] = doc[k] || []).push(fn); };
+  ctx.document.head.appendChild = el => setImmediate(el.onload);
+  ctx.setTimeout = (fn, ms) => { const t = { fn, ms }; timers.add(t); return t; };
+  ctx.clearTimeout = t => timers.delete(t);
+  ctx.navigator.onLine = !offline;
+  ctx.document.visibilityState = 'visible';
+  await G.DB.ready();
+  const d = {
+    ...b, on, doc,
+    get s() { return G.DB.save; },
+    /** Lo que subiría si hubiera pasado rato desde la última subida. */
+    async sync() { storage['ps.cloudok.u1'] = '0'; await G.DB.flush(); },
+    offline() { ctx.navigator.onLine = false; },
+    async online() {
+      ctx.navigator.onLine = true;
+      for (const fn of on.online || []) fn();
+      await settle();
+    },
+    /** Sale a la pantalla de inicio del móvil (o a otra pestaña). */
+    async hide() {
+      ctx.document.visibilityState = 'hidden';
+      for (const fn of doc.visibilitychange || []) fn();
+      await settle();
+    },
+    async pagehide() { for (const fn of on.pagehide || []) fn(); await settle(); },
+    /** Dispara lo programado (como mucho hasta `ms`) y espera a que acabe. */
+    async timers(ms = Infinity) {
+      for (const t of [...timers]) if (t.ms <= ms) { timers.delete(t); t.fn(); }
+      await settle();
+    }
+  };
+  await settle();
+  return d;
+}
+const settle = () => new Promise(r => setImmediate(r));
+
+/** Cuenta con `n` tickets ya en la nube y dos aparatos al día. */
+async function twoDevices(n = 100) {
+  const cloud = fakeCloud(), a = await device(cloud);
+  a.s.owned[4] = { at: 1, from: 'starter' }; a.s.partner = 4; a.s.tickets.t1 = n;
+  a.G.DB.commit();
+  await a.sync();
+  const b = await device(cloud);
+  assert.equal(b.s.tickets.t1, n);
+  return { cloud, a, b };
+}
+const tickets = (d, n) => { d.s.tickets.t1 += n; d.G.DB.commit(); };
+const ledger = (s, k) => Object.values(s.led).reduce((t, e) => t + (e[k] ? e[k][0] - e[k][1] : 0), 0);
+
+test('cloud: tickets spent on two devices end up the same on both, and what you earn afterwards is not deducted', async () => {
+  const { cloud, a, b } = await twoDevices(100);
+  // Sin conexión, los mismos 100 tickets se gastan en los dos.
+  a.offline(); b.offline();
+  tickets(a, -100); tickets(b, -100);
+  await a.online(); await a.sync();
+  await b.online(); await b.sync();
+  await a.sync();
+  assert.equal(a.s.tickets.t1, 0); assert.equal(b.s.tickets.t1, 0);
+  assert.equal(cloud.doc.save.tickets.t1, 0);
+
+  // Lo ganado después se suma entero, por muchas veces que se guarde.
+  tickets(a, 30);
+  for (let i = 0; i < 6; i++) {
+    a.G.DB.commit();
+    await a.sync();
+    assert.equal(a.s.tickets.t1, 30, 'save ' + i);
+    assert.equal(cloud.doc.save.tickets.t1, 30, 'save ' + i);
+    assert.equal(ledger(a.s, 't1'), 30, 'the ledger adds up, save ' + i);
+  }
+  await b.sync();
+  assert.equal(b.s.tickets.t1, 30);
+  // Y el otro aparato sigue igual: gastar y ganar en cualquiera de los dos cuadra.
+  tickets(b, -10); await b.sync();
+  await a.sync();
+  assert.equal(a.s.tickets.t1, 20); assert.equal(b.s.tickets.t1, 20);
+  tickets(a, 5); await a.sync(); await b.sync();
+  assert.equal(a.s.tickets.t1, 25); assert.equal(b.s.tickets.t1, 25);
+  assert.equal(cloud.doc.save.tickets.t1, 25);
+});
+
+test('cloud: an old save already in the red keeps what you earned, and the balance ends up the same everywhere', async () => {
+  const { cloud, a, b } = await twoDevices(100);
+  const A = a.storage['ps.dev'], B = b.storage['ps.dev'];
+  // Como lo dejaba la versión de antes: -100 en la nube y 30 ganados en a, que ya lo apuntó una vez.
+  const red = (s, mine, n) => {
+    s.led = { base: { ...s.led.base, t1: [100, 0] }, [A]: { t1: [mine, 100] }, [B]: { t1: [0, 100] } };
+    s.tickets.t1 = n;
+    return s;
+  };
+  red(cloud.doc.save, 0, 0);
+  const keptA = { ...a.storage, 'ps.cloud.u1': JSON.stringify(red(json(a.s), 30, 30)), 'ps.cloudok.u1': '0' };
+  const keptB = { ...b.storage, 'ps.cloud.u1': JSON.stringify(red(json(b.s), 0, 0)), 'ps.cloudok.u1': '0' };
+  const a2 = await device(cloud, { storage: keptA });
+  assert.equal(a2.s.tickets.t1, 30, 'nothing earned is lost');
+  assert.equal(cloud.doc.save.tickets.t1, 30);
+  const b2 = await device(cloud, { storage: keptB });
+  assert.equal(b2.s.tickets.t1, 30);
+  await a2.sync();
+  assert.equal(a2.s.tickets.t1, 30);
+  assert.equal(ledger(a2.s, 't1'), 30);
+  tickets(b2, -30); await b2.sync(); await a2.sync();
+  assert.equal(a2.s.tickets.t1, 0); assert.equal(b2.s.tickets.t1, 0);
+});
+
+test('cloud: two devices fixing the same debt at once do not forgive it twice', async () => {
+  const { cloud, a, b } = await twoDevices(100);
+  const A = a.storage['ps.dev'], B = b.storage['ps.dev'];
+  const red = s => {
+    s.led = { base: { ...s.led.base, t1: [100, 0] }, [A]: { t1: [0, 100] }, [B]: { t1: [0, 100] } };
+    s.tickets.t1 = 0;
+    return s;
+  };
+  red(cloud.doc.save);
+  // Los dos abren a la vez, cada uno lo arregla por su cuenta, y luego suben.
+  const open = d => device(cloud, { storage: { ...d.storage, 'ps.cloud.u1': JSON.stringify(red(json(d.s))), 'ps.cloudok.u1': String(Date.now()) } });
+  const [a2, b2] = [await open(a), await open(b)];
+  assert.equal(cloud.doc.save.led.fix, undefined, 'nobody has uploaded yet');
+  await a2.sync(); await b2.sync(); await a2.sync();
+  for (const v of [a2.s.tickets.t1, b2.s.tickets.t1, cloud.doc.save.tickets.t1]) assert.equal(v, 0);
+  same(cloud.doc.save.led.fix, { t1: [100, 0] });
+  tickets(a2, 7); tickets(b2, 3);
+  await a2.sync(); await b2.sync(); await a2.sync();
+  for (const v of [a2.s.tickets.t1, b2.s.tickets.t1, cloud.doc.save.tickets.t1]) assert.equal(v, 10);
+});
+
+test('cloud: coins, Bag items and TMs spent twice work the same, and nothing moves if you only save', async () => {
+  const { cloud, a, b } = await twoDevices(0);
+  a.s.coins = 900; a.s.bag.mint = 2; a.s.tms.ember = 1; a.G.DB.commit();
+  await a.sync(); await b.sync();
+  assert.equal(b.s.bag.mint, 2); assert.equal(b.s.tms.ember, 1);
+  a.offline(); b.offline();
+  for (const d of [a, b]) { d.s.coins -= 800; d.s.bag.mint -= 2; delete d.s.tms.ember; d.G.DB.commit(); }
+  await a.online(); await a.sync();
+  await b.online(); await b.sync(); await a.sync();
+  for (const d of [a, b]) {
+    assert.equal(d.s.coins, 0);
+    assert.equal(d.s.bag.mint, undefined); assert.equal(d.s.tms.ember, undefined);
+  }
+  a.s.coins += 40; a.s.bag.mint = 1; a.G.DB.commit();
+  b.s.tms.ember = 3; b.G.DB.commit();
+  await a.sync(); await b.sync(); await a.sync();
+  const led = JSON.stringify(a.s.led);
+  for (let i = 0; i < 4; i++) { a.G.DB.commit(); await a.sync(); b.G.DB.commit(); await b.sync(); }
+  for (const d of [a, b]) {
+    assert.equal(d.s.coins, 40); assert.equal(d.s.bag.mint, 1); assert.equal(d.s.tms.ember, 3);
+  }
+  assert.equal(cloud.doc.save.coins, 40);
+  assert.equal(JSON.stringify(sortKeys(a.s.led)), JSON.stringify(sortKeys(JSON.parse(led))));
+});
+
+test('merge: after a double spend the order does not matter and repeating it changes nothing', async () => {
+  const { a, b } = await twoDevices(100);
+  tickets(a, -100); tickets(b, -100); tickets(b, 25);
+  a.s.stats.runs = 1;
+  const x = json(a.s), y = json(b.s), { merge } = a.G.DB;
+  const xy = json(merge(x, y)), yx = json(merge(y, x));
+  assert.equal(xy.tickets.t1, 0);
+  assert.equal(yx.tickets.t1, 0);
+  same(sortKeys(xy.led), sortKeys(yx.led));
+  same(merge(xy, xy).led, xy.led);
+  same(merge(xy, yx).tickets, xy.tickets);
+  // Lo viejo de cada aparato ya no mueve nada.
+  same(merge(xy, x).tickets, xy.tickets);
+  same(merge(y, xy).tickets, xy.tickets);
+});
+
+test('backups: exporting and importing after a double spend leaves the balance as it was', async () => {
+  const { a, b } = await twoDevices(100);
+  a.s.stats.runs = 1;
+  a.offline(); b.offline();
+  tickets(a, -100); tickets(b, -100);
+  await a.online(); await a.sync();
+  const old = json(a.G.DB.exportSave());      // de antes de juntarse con b
+  await b.online(); await b.sync(); await a.sync();
+  tickets(a, 12);
+  const now = json(a.G.DB.exportSave());
+  for (const file of [old, now, old]) {
+    assert.equal(a.G.DB.importSave(file).ok, true);
+    assert.equal(a.s.tickets.t1, 12);
+  }
+});
+
+test('importing a copy of another account that spent what it got from this one still adds up', async () => {
+  // Lo que falta en esa copia lo cubre lo que ya tiene esta cuenta: no hay nada que perdonar.
+  const b = browser();
+  await account(b, 'Ash', 1);
+  play(b, { earn: 1000, owned: [25], runs: 2 });
+  const ash = json(b.G.DB.exportSave());
+  await b.G.DB.logout();
+  await account(b, 'Misty', 7);
+  play(b, { owned: [133], runs: 2 });
+  b.G.DB.importSave(ash);
+  assert.equal(b.G.DB.save.coins, 2000);
+  play(b, { spend: 1800 });
+  const misty = json(b.G.DB.exportSave());
+  await b.G.DB.logout();
+  assert.equal((await b.G.DB.login('Ash', 'pass1234')).ok, true);
+  b.G.DB.importSave(misty);
+  assert.equal(b.G.DB.save.coins, 200);
+  assert.equal(b.G.DB.save.led.fix, undefined);
+});
+
+test('cloud: Save right after another Save waits seconds, not a minute', async () => {
+  const { cloud, a } = await twoDevices(10);
+  tickets(a, 5);
+  const r = await a.G.DB.saveNow();
+  assert.equal(r.why, 'wait');
+  assert.ok(r.secs <= 11, 'it waits ' + r.secs + ' s');
+  assert.equal(cloud.doc.save.tickets.t1, 10);
+  // Pasado ese rato sube, sin esperar el minuto de las subidas normales.
+  a.storage['ps.cloudok.u1'] = String(Date.now() - 11000);
+  await a.timers(11000);
+  assert.equal(cloud.doc.save.tickets.t1, 15);
+  assert.equal(a.G.DB.syncState, 'ok');
+});
+
+test('cloud: leaving the game with a Save still waiting uploads it', async () => {
+  const leave = {
+    home: d => d.hide(),                       // iPhone: a la pantalla de inicio
+    close: d => d.pagehide(),
+    logout: d => d.G.DB.logout(),
+    update: d => d.G.DB.flush()                // js/core/updater.js, antes de recargar
+  };
+  for (const how in leave) {
+    const { cloud, a } = await twoDevices(10);
+    tickets(a, 5);
+    assert.equal((await a.G.DB.saveNow()).why, 'wait');
+    await leave[how](a);
+    assert.equal(cloud.doc.save.tickets.t1, 15, how);
+  }
+});
+
+test('cloud: switching away without pressing Save uploads nothing (each upload is a write)', async () => {
+  const { cloud, a } = await twoDevices(10);
+  const writes = cloud.writes;
+  tickets(a, 5);
+  await a.hide();
+  assert.equal(cloud.writes, writes);
+  // Y un Guardar ya subido no deja nada para la próxima vez.
+  a.ctx.document.visibilityState = 'visible';
+  a.storage['ps.cloudok.u1'] = '0';
+  await a.G.DB.saveNow();
+  assert.equal(cloud.writes, writes + 1);
+  tickets(a, 1);
+  await a.hide();
+  assert.equal(cloud.writes, writes + 1);
+  // Cerrar sí sube lo pendiente, aunque sea justo después de otra subida.
+  await a.pagehide();
+  assert.equal(cloud.writes, writes + 2);
+  assert.equal(cloud.doc.save.tickets.t1, 16);
+});
+
+test('cloud: a Save that failed is still uploaded on leaving', async () => {
+  const { cloud, a } = await twoDevices(10);
+  tickets(a, 5);
+  a.storage['ps.cloudok.u1'] = '0';
+  cloud.down = true;
+  assert.equal((await a.G.DB.saveNow()).why, 'offline');
+  cloud.down = false;
+  await a.hide();
+  assert.equal(cloud.doc.save.tickets.t1, 15);
+});
+
+test('cloud: what a device has and the cloud lacks goes up on opening, even if another device saved later', async () => {
+  const { cloud, a, b } = await twoDevices(10);
+  // a consigue cosas y se cierra sin subirlas; luego b guarda.
+  tickets(a, 7); a.G.DB.grant(25, 'gacha'); a.s.stats.runs = 3; a.G.DB.commit();
+  const kept = { ...a.storage };
+  await new Promise(r => setTimeout(r, 3));
+  tickets(b, 1); await b.sync();
+  assert.equal(cloud.doc.save.tickets.t1, 11);
+
+  // Recién subido: no dice que está todo guardado, y Guardar lo sube.
+  const soon = await device(cloud, { storage: { ...kept, 'ps.cloudok.u1': String(Date.now()) } });
+  assert.equal(soon.s.tickets.t1, 18);
+  assert.equal(soon.G.DB.syncState, 'pending');
+  assert.equal((await soon.G.DB.saveNow()).why, 'wait');
+
+  // Si puede, sube nada más entrar.
+  const back = await device(cloud, { storage: { ...kept, 'ps.cloudok.u1': '0' } });
+  assert.equal(back.G.DB.syncState, 'ok');
+  assert.equal(cloud.doc.save.tickets.t1, 18);
+  assert.ok(cloud.doc.save.owned[25]);
+  assert.equal(cloud.doc.save.stats.runs, 3);
+  await b.sync();
+  assert.equal(b.s.tickets.t1, 18);
+  assert.ok(b.s.owned[25]);
+});
+
+test('cloud: opening with nothing the cloud lacks writes nothing, and Save says so', async () => {
+  const { cloud, a, b } = await twoDevices(10);
+  a.s.bag.mint = 2; a.s.profile.favs = [4]; a.s.pity = { 1: 3 }; a.G.DB.commit();
+  await a.sync(); await b.sync(); await a.sync();
+  const writes = cloud.writes;
+  for (const d of [a, b]) {
+    const back = await device(cloud, { storage: { ...d.storage, 'ps.cloudok.u1': '0' } });
+    assert.equal(back.G.DB.syncState, 'ok');
+    assert.equal((await back.G.DB.saveNow()).why, 'done');
+  }
+  assert.equal(cloud.writes, writes, 'no upload on every opening');
+  // Sólo una fecha más nueva (guardar sin cambiar nada) tampoco es progreso.
+  a.G.DB.commit();
+  await device(cloud, { storage: { ...a.storage, 'ps.cloudok.u1': '0' } });
+  assert.equal(cloud.writes, writes);
+});
+
+test('cloud: opening without connection plays with the copy here, and when it returns the cloud joins in by itself', async () => {
+  const { cloud, a, b } = await twoDevices(10);
+  const kept = { ...a.storage, 'ps.cloudok.u1': '0' };
+  tickets(b, 5); b.G.DB.grant(25, 'gacha'); b.G.DB.commit();
+  await b.sync();
+  const late = await device(cloud, { storage: kept, offline: true });
+  assert.equal(late.s.tickets.t1, 10);
+  assert.equal(late.G.DB.syncState, 'offline');
+  tickets(late, 1);
+  await late.online();
+  assert.equal(late.s.tickets.t1, 16);
+  assert.ok(late.s.owned[25]);
+  assert.equal(cloud.doc.save.tickets.t1, 16);
+  assert.equal(late.G.DB.syncState, 'ok');
+  // Con la red puesta pero sin respuesta (OPEN_WAIT): lo trae el reintento.
+  const kept2 = { ...b.storage, 'ps.cloudok.u1': '0' };
+  tickets(late, 2); await late.sync();
+  cloud.down = true;
+  const stuck = await device(cloud, { storage: kept2, offline: true });
+  stuck.ctx.navigator.onLine = true;
+  cloud.down = false;
+  await stuck.timers();
+  assert.equal(stuck.s.tickets.t1, 18);
 });

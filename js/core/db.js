@@ -256,6 +256,7 @@ G.DB = (() => {
    * todos: al fusionar se toma el mayor de cada apunte y no se pierde nada.
    *   led.base: el saldo que había antes de la libreta (o al empezar).
    *   led.old:  cambios de una versión anterior del juego (pestañas sin actualizar).
+   *   led.fix:  lo perdonado por haberse gastado dos veces (ver forgive).
    */
   const CUR = {
     c: [s => s.coins, (s, v) => { s.coins = v; }],
@@ -306,6 +307,20 @@ G.DB = (() => {
     const p = e[k] = e[k] || [0, 0];
     if (d > 0) p[0] = num(p[0]) + d; else p[1] = num(p[1]) - d;
   }
+  /*
+   * Gastado dos veces (4-11-2026, de PokéSurvivor). Con 100 tickets, gastar 100 en
+   * un aparato y otros 100 en otro deja la libreta en -100, y el saldo se ve como 0.
+   * Antes esos -100 se quedaban ahí: lo ganado después no cuadraba nunca con la
+   * libreta y se volvía a apuntar en cada guardado, así que crecía solo en un aparato
+   * mientras la nube decía otra cosa. Ahora lo que falta se perdona una sola vez, en
+   * led.fix: es un apunte común (no de un aparato) y merge() se queda con el mayor,
+   * así que dos aparatos que perdonan lo mismo a la vez no lo cuentan doble. El saldo
+   * es siempre la suma de la libreta y lo ganado después se suma entero.
+   */
+  function forgive(led, k) {
+    const s = ledSum(led, k);
+    if (s < 0) addTo(led, 'fix', k, -s);
+  }
   /** La libreta de una partida (sin tocarla); lo que no cuadre, a `dev`. */
   function ledOf(s, dev) {
     if (!isObj(s.led)) {
@@ -314,8 +329,13 @@ G.DB = (() => {
       return { base };
     }
     const led = JSON.parse(JSON.stringify(s.led)), b = balOf(s, led);
-    // Un saldo en negativo (lo mismo gastado en dos aparatos sin conexión) se ve como 0.
-    for (const k in b) addTo(led, dev, k, b[k] - Math.max(0, ledSum(led, k)));
+    for (const k in b) {
+      // En negativo y con saldo (partida de antes del arreglo): el saldo es lo ganado
+      // después. Sin saldo se deja, que aún puede cuadrar con otra libreta (ver adopt):
+      // lo que siga faltando lo perdona merge(), que ya las tiene todas juntas.
+      if (b[k] > 0) forgive(led, k);
+      addTo(led, dev, k, b[k] - Math.max(0, ledSum(led, k)));
+    }
     return led;
   }
   /** Apunta en la libreta de ESTE aparato lo que ha cambiado desde la última vez. */
@@ -340,7 +360,7 @@ G.DB = (() => {
     r.led = led;
     r.tickets = r.tickets || { t1: 0, t10: 0 };
     r.bag = {}; r.tms = {};
-    for (const k of curKeys({ bag: {}, tms: {} }, led)) curSet(r, k, Math.max(0, ledSum(led, k)));
+    for (const k of curKeys({ bag: {}, tms: {} }, led)) { forgive(led, k); curSet(r, k, ledSum(led, k)); }
     // MT aprendidas: nunca se olvidan (unión). Naturaleza y habilidad: la elegida más tarde.
     r.ptm = r.ptm || {};
     for (const d in older.ptm || {}) r.ptm[d] = [...new Set((r.ptm[d] || []).concat(older.ptm[d] || []))];
@@ -567,9 +587,11 @@ G.DB = (() => {
   // no depender de eso está el botón Guardar de la barra de arriba (saveNow).
   // Desde el 19-10-2026 (para gastar aún menos), a la nube SÓLO se sube:
   //   - cada 30 min, si hay algo sin subir (30 min después del primer cambio)
-  //   - con el botón Guardar
-  //   - al entrar, si lo de este aparato es más nuevo que lo de la nube
-  //   - al cerrar o recargar la pestaña, y antes de recargar por una actualización
+  //   - con el botón Guardar; si se acaba de subir, a los pocos segundos (SAVE_GAP)
+  //     o al salir del juego, lo que llegue antes
+  //   - al entrar, si este aparato tiene algo que la nube no tiene
+  //   - al cerrar o recargar la pestaña, al cerrar sesión y antes de recargar por
+  //     una actualización
   // Nada más: ni al hacer gacha, ni al acabar una partida, ni al cambiar de
   // pestaña. Todo se guarda al momento en este navegador igualmente.
   const PUSH_EVERY = 30 * 60 * 1000;
@@ -628,11 +650,15 @@ G.DB = (() => {
     // los reintentos de scheduleRetry lo suben al volver.)
     let hiddenAt = 0;
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') hiddenAt = Date.now();
-      else if (hiddenAt && Date.now() - hiddenAt > PULL_GAP) pullSoon();
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now();
+        // Con un Guardar pendiente no se espera: en el iPhone, al salir a la pantalla
+        // de inicio esto es lo último que llega (cerrar la app después no avisa).
+        if (wanted) pushNow(true);
+      } else if (hiddenAt && Date.now() - hiddenAt > PULL_GAP) pullSoon();
     });
     // Al cerrar o recargar la página, lo pendiente se sube siempre.
-    addEventListener('pagehide', () => { if (pending) pushNow(); });
+    addEventListener('pagehide', () => { if (pending) pushNow(true); });
     // Al volver la conexión, lo jugado sin ella se sube (y se junta con la nube) enseguida.
     addEventListener('online', () => { if (pending && save && !guest) { fails = 0; pushNow(); } });
     return true;
@@ -674,6 +700,14 @@ G.DB = (() => {
 
   const docRef = () => fs.collection('saves').doc(uid);
   const plain = s => JSON.parse(JSON.stringify(s));      // Firestore no admite undefined
+  const eq = (a, b) => {
+    if (a === b) return true;
+    if (!a || !b || typeof a !== 'object' || typeof b !== 'object' || Array.isArray(a) !== Array.isArray(b)) return false;
+    const ka = Object.keys(a);
+    return ka.length === Object.keys(b).length && ka.every(k => k in b && eq(a[k], b[k]));
+  };
+  /** ¿Dicen lo mismo dos partidas? Firestore devuelve las claves en otro orden, y `updated` no es progreso. */
+  const sameSave = (a, b) => eq({ ...plain(a), updated: 0 }, { ...plain(b), updated: 0 });
 
   /**
    * Abre la partida de la nube de un usuario recién autenticado. Sin conexión (o
@@ -710,8 +744,9 @@ G.DB = (() => {
     // este ordenador sin subir...), y SIN esperar: antes el menú no salía hasta
     // terminar la subida, y con Firebase lento se tardaba hasta 9 s en entrar.
     // (Comparar el texto entero daba "distinto" casi siempre y se subía en cada
-    // entrada: ahora sólo si esta copia es más nueva que la de la nube.)
-    const same = remote && !opts.legacy && (!cached || (cached.updated || 0) <= (remote.updated || 0));
+    // entrada. Mirar sólo la fecha tampoco vale: si otro aparato había guardado
+    // después, lo de aquí no se subía nunca y Guardar decía que ya estaba todo.)
+    const same = remote && !opts.legacy && sameSave(save, remote);
     lastPush = Date.now();       // la primera compra o ticket no sube al momento: espera como las demás
     if (!online) { pending = true; setSync('offline'); scheduleRetry(); }
     else if (same) setSync('ok');
@@ -728,28 +763,32 @@ G.DB = (() => {
   /*
    * Si el admin ha baneado la cuenta del ranking (ban = true en la nube, ver
    * firestore.rules), cada guardado tiene que conservarlo: se copia de la nube.
-   * Nunca se sube dos veces en menos de 65 s; mientras, todo está en el navegador.
+   * Entre dos subidas pasan al menos 65 s, o 10 s si se ha pulsado Guardar (wanted);
+   * mientras, todo está en el navegador. Al salir (now) no se espera: sería la última.
    */
-  const K_OK = 'ps.cloudok.', MIN_GAP = 65000;
+  const K_OK = 'ps.cloudok.', MIN_GAP = 65000, SAVE_GAP = 10000;
+  let wanted = false;                // se ha pulsado Guardar y aún no se ha subido
   const sinceOk = () => Date.now() - (+read(K_OK + uid) || 0);
+  const gap = () => (wanted ? SAVE_GAP : MIN_GAP);
 
   /** Sube la partida fusionándola con lo que haya en la nube (transacción). */
-  function pushNow() {
+  function pushNow(now = false) {
     if (mode !== 'cloud' || guest || !save || !uid) return Promise.resolve();
     pullTabs();
     // Si ya hay una subida en marcha, se hace otra justo después (para lo que haya cambiado mientras).
-    if (pushing) { pending = true; return pushing.then(() => (pending ? pushNow() : undefined)); }
+    if (pushing) { pending = true; return pushing.then(() => (pending ? pushNow(now) : undefined)); }
     clearTimeout(pushT); pushT = 0; pushDue = 0;
     if (navigator.onLine === false) {
       pending = true; setSync('offline'); scheduleRetry();
       return Promise.resolve();
     }
-    if (sinceOk() < MIN_GAP) {
+    if (!now && sinceOk() < gap()) {
       pending = true; setSync('pending');
-      schedulePush(MIN_GAP - sinceOk() + 500);
+      schedulePush(gap() - sinceOk() + 500);
       return Promise.resolve();
     }
-    pending = false;
+    const asked = wanted;
+    pending = false; wanted = false;
     lastPush = Date.now();
     setSync('syncing');
     let merged = null;
@@ -775,7 +814,7 @@ G.DB = (() => {
       if (G.UI && G.UI.refreshCoins) G.UI.refreshCoins();
     }).catch(e => {
       console.warn('[DB] no se pudo sincronizar:', e.code || e.message);
-      pending = true; failed = true;
+      pending = true; failed = true; wanted = wanted || asked;
       setSync(navigator.onLine === false || e.code === 'unavailable' ? 'offline' : 'pending');
       scheduleRetry();
     }).finally(() => {
@@ -788,20 +827,21 @@ G.DB = (() => {
 
   /**
    * Botón Guardar: sube ya lo pendiente. Si no hay nada pendiente no gasta
-   * nada, y si se acaba de subir hace menos de 65 s (MIN_GAP) se sube en
-   * cuanto se pueda. → { ok, why?: 'local'|'guest'|'done'|'wait'|'offline'|'fail', secs? }
+   * nada, y si se acaba de subir hace menos de 10 s (SAVE_GAP) se sube en
+   * cuanto se pueda, o al salir. → { ok, why?: 'local'|'guest'|'done'|'wait'|'offline'|'fail', secs? }
    */
   async function saveNow() {
     if (guest || !save) return { ok: false, why: 'guest' };
     if (mode !== 'cloud') return { ok: true, why: 'local' };
     if (!pending && !pushing && syncState === 'ok') return { ok: true, why: 'done' };
+    wanted = true;
     if (navigator.onLine === false) { pushNow(); return { ok: false, why: 'offline' }; }
-    const wait = MIN_GAP - sinceOk();
+    const wait = SAVE_GAP - sinceOk();
     if (!pushing && wait > 0) { pending = true; setSync('pending'); schedulePush(wait + 500); return { ok: true, why: 'wait', secs: Math.ceil(wait / 1000) + 1 }; }
     await pushNow();
     if (pushing) await pushing;          // (si había otra subida en marcha, también la que va detrás)
     if (syncState === 'ok') return { ok: true };
-    // Lo cambiado mientras subía va en la siguiente, que espera los 65 s.
+    // Lo cambiado mientras subía va en la siguiente, que espera su turno.
     if (syncState === 'pending' && pushT) return { ok: true, why: 'wait', secs: Math.max(1, Math.ceil((pushDue - Date.now()) / 1000)) };
     return { ok: false, why: syncState === 'offline' ? 'offline' : 'fail' };
   }
@@ -945,7 +985,7 @@ G.DB = (() => {
   async function logout() {
     for (const fn of leaveHooks) { try { await fn('logout'); } catch (e) { /* nada */ } }
     if (mode === 'cloud' && !guest && save) {
-      if (pending) { try { await pushNow(); } catch (e) { /* queda la copia local */ } }
+      if (pending) { try { await pushNow(true); } catch (e) { /* queda la copia local */ } }
       stopListening();
       try { await auth.signOut(); } catch (e) { /* nada */ }
     } else if (mode === 'local' && !guest) {
@@ -953,7 +993,7 @@ G.DB = (() => {
       remove(K_SES);
     }
     clearTimeout(pushT); clearTimeout(retryT);
-    user = key = save = uid = null; guest = false; pending = false;
+    user = key = save = uid = null; guest = false; pending = false; wanted = false;
     setSync(mode === 'cloud' ? 'ok' : 'local');
   }
 
@@ -1010,7 +1050,7 @@ G.DB = (() => {
       } else {
         await cu.reauthenticateWithPopup(new firebase.auth.GoogleAuthProvider());
       }
-      clearTimeout(pushT); clearTimeout(retryT); pending = false;
+      clearTimeout(pushT); clearTimeout(retryT); pending = false; wanted = false;
       stopListening();
       for (const fn of leaveHooks) await fn('delete');
       await docRef().delete();
@@ -1123,7 +1163,7 @@ G.DB = (() => {
   }
 
   return {
-    ready, register, login, loginWithGoogle, playAsGuest, logout, commit, deleteAccount, flush: pushNow, saveNow,
+    ready, register, login, loginWithGoogle, playAsGuest, logout, commit, deleteAccount, flush: () => pushNow(true), saveNow,
     owns, grant, ownsShiny, grantShiny, merge, setName, upgradesOf, isFav, setFav, exportSave, importSave,
     onSync(fn) { listeners.add(fn); },
     onLeave(fn) { leaveHooks.push(fn); },

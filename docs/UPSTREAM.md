@@ -90,7 +90,10 @@ section are unchanged since `ce57853`.
 - Orbs with gamepad hints — **ported** 2026-11-04 (X uses, Y switches; AUTO moved from X to Select (`js/core/gamepad.js`)).
 - Co-op weather abilities from guests — **ported** 2026-11-04 (`wq` event in `js/net/coop.js`).
 - Co-op: stuck when a "done picking" message is lost — **already in PokéGo** (`reconcile` in `js/net/coop.js` checks it in every frame).
-- Cloud-save fixes (several) — **skipped**: their cloud-save design (PokéGo keeps its own saving).
+- Cloud save: spending what was already spent on another device made tickets grow and then drop — **ported** 2026-11-04 (`forgive` in `js/core/db.js`: the debt is written off once in the shared `led.fix` entry, so the balance always equals the ledger sum; tests in `tests/save.test.cjs`). Upstream's code is not readable, so this is PokéGo's own design.
+- Cloud save: Save soon after another Save said "in X s" and was never uploaded if you left first — **ported** 2026-11-04 (`SAVE_GAP` 10 s and `wanted` in `js/core/db.js`, upstream's wait is not published; leaving uploads at once: `pagehide`, going to the Home Screen with a Save pending, logout, and `flush` before an update reload).
+- Cloud save: earned on one device while saving on another, then "everything is saved" and no upload — **ported** 2026-11-04 (`openCloud` compares the content with `sameSave` instead of the dates).
+- Cloud save: opening with no connection played with the old copy until Save — **already in PokéGo** (`openCloud` leaves `pending` set; the `online` event and `scheduleRetry` run `pushNow`, which merges with the cloud; test in `tests/save.test.cjs`).
 - Music keeps playing distorted when minimised — **ported** 2026-11-04 (`js/core/audio.js`, touch devices on the web; the Android app already did it).
 - Arceus's Judgment: leaving the arena at high speed — **ported** 2026-11-04 (`clampIn` in `js/systems/judgment.js`).
 - Co-op: disconnected teammate still chased — **ported** 2026-11-04 (`absent` after `QUIET_MS` in `js/net/coop.js`; enemies and Arceus skip them).
