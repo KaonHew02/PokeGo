@@ -122,6 +122,80 @@ test('importing into a played account merges: no owned Pokémon or coins are los
   same(Object.keys(b.G.DB.save.owned).sort(), ['1', '133', '25', '7']);
 });
 
+test('two accounts importing each other: Bag items and TMs are counted once, like coins', async () => {
+  // Las dos en el MISMO navegador. Lo de Ash vuelve a Ash dentro de la copia de Misty:
+  // adopt() lo quita de su libreta, y su Mochila y sus MT tienen que quedar igual que ella.
+  const b = browser();
+  await account(b, 'Ash', 1);
+  play(b, { earn: 1000, owned: [25], runs: 2 });
+  b.G.DB.save.bag.mint = 2; b.G.DB.save.tms.ember = 1; b.G.DB.commit();
+  const ash = json(b.G.DB.exportSave());
+  await b.G.DB.logout();
+  await account(b, 'Misty', 7);
+  play(b, { owned: [133], runs: 2 });
+  b.G.DB.save.bag.mint = 3; b.G.DB.commit();
+  b.G.DB.importSave(ash);
+  same(b.G.DB.save.bag, { mint: 5 }); same(b.G.DB.save.tms, { ember: 1 });
+  const coins = b.G.DB.save.coins;
+  const misty = json(b.G.DB.exportSave());
+  await b.G.DB.logout();
+  assert.equal((await b.G.DB.login('Ash', 'pass1234')).ok, true);
+  for (let i = 0; i < 3; i++) {
+    assert.equal(b.G.DB.importSave(misty).ok, true);
+    same(b.G.DB.save.bag, { mint: 5 }); same(b.G.DB.save.tms, { ember: 1 });
+    assert.equal(b.G.DB.save.coins, coins);
+  }
+  // Y lo que Ash consiga después sigue contando al ir y volver.
+  b.G.DB.save.bag.mint += 1; b.G.DB.commit();
+  const back = json(b.G.DB.exportSave());
+  await b.G.DB.logout();
+  assert.equal((await b.G.DB.login('Misty', 'pass1234')).ok, true);
+  b.G.DB.importSave(back);
+  same(b.G.DB.save.bag, { mint: 6 }); same(b.G.DB.save.tms, { ember: 1 });
+});
+
+test('importing a copy of another account that used what it got from this one takes it off the Bag', async () => {
+  const b = browser();
+  await account(b, 'Ash', 1);
+  play(b, { owned: [25], runs: 2 });
+  b.G.DB.save.bag.mint = 5; b.G.DB.commit();
+  const ash = json(b.G.DB.exportSave());
+  await b.G.DB.logout();
+  await account(b, 'Misty', 7);
+  play(b, { owned: [133], runs: 2 });
+  b.G.DB.importSave(ash);
+  b.G.DB.save.bag.mint -= 4; b.G.DB.commit();
+  const misty = json(b.G.DB.exportSave());
+  await b.G.DB.logout();
+  assert.equal((await b.G.DB.login('Ash', 'pass1234')).ok, true);
+  b.G.DB.importSave(misty);
+  same(b.G.DB.save.bag, { mint: 1 });
+  assert.equal(b.G.DB.save.led.fix, undefined, 'nothing to forgive');
+});
+
+test('a new account keeps its Bag items when it takes a copy that came through another account', async () => {
+  // Sustituir tira la partida actual: lo suyo sólo está en la copia, y adopt() no lo puede quitar.
+  const b = browser();
+  await account(b, 'Misty', 7);
+  b.G.DB.save.bag.mint = 2; b.G.DB.commit();
+  const misty = json(b.G.DB.exportSave());
+  await b.G.DB.logout();
+  await account(b, 'Ash', 1);
+  play(b, { owned: [25], runs: 2 });
+  b.G.DB.importSave(misty);
+  const ash = json(b.G.DB.exportSave());
+  await b.G.DB.logout();
+  assert.equal((await b.G.DB.login('Misty', 'pass1234')).ok, true);
+  assert.equal(b.G.DB.importSave(ash).mode, 'replace');
+  same(b.G.DB.save.bag, { mint: 2 });
+  // Y de vuelta en Ash, esas 2 siguen siendo 2.
+  const back = json(b.G.DB.exportSave());
+  await b.G.DB.logout();
+  assert.equal((await b.G.DB.login('Ash', 'pass1234')).ok, true);
+  b.G.DB.importSave(back);
+  same(b.G.DB.save.bag, { mint: 2 });
+});
+
 test('an unreadable save copy is kept aside, not overwritten, and merged back once it can be read', async () => {
   const b = browser();
   await account(b, 'Ash');

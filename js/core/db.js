@@ -1102,9 +1102,9 @@ G.DB = (() => {
    * fusiona con merge(). Sólo una cuenta recién creada (sin runs, con su inicial
    * como mucho) se sustituye entera por la copia, para quedarse también con su
    * compañero, perfil, pity...: merge() los coge de la versión más reciente.
-   * Monedas y tickets: si la copia es de otra cuenta (otro `created`), su libreta
-   * se junta en un solo apunte 'i:<created>' (ver adopt). Si no, dos cuentas del
-   * mismo navegador apuntan en el mismo aparato y al fusionar se pisarían.
+   * Monedas, tickets, Mochila y MT: si la copia es de otra cuenta (otro `created`),
+   * su libreta se junta en un solo apunte 'i:<created>' (ver adopt). Si no, dos cuentas
+   * del mismo navegador apuntan en el mismo aparato y al fusionar se pisarían.
    */
   const fresh = s => !(s.stats.runs > 0) && Object.keys(s.owned).length <= 1 && !Object.keys(s.shiny || {}).length;
   const pack = s => ({ app: 'PokeGo', kind: 'save', v: VERSION, at: Date.now(), name: user, save: s });
@@ -1112,8 +1112,14 @@ G.DB = (() => {
   /** La partida actual para guardarla en un archivo (también la del invitado). */
   function exportSave() { pullTabs(); return save ? pack(plain(fold(save))) : null; }
 
-  /** La libreta de otra cuenta, en un solo apunte suyo (sin lo nuestro que ya traía). */
-  function adopt(inc) {
+  /**
+   * La libreta de otra cuenta, en un solo apunte suyo (sin lo nuestro que ya traía).
+   * Al fusionar, todos los saldos tienen que quedar como ella: si no, merge() apuntaría
+   * la diferencia en led.old y lo nuestro se contaría dos veces. Al sustituir (replace)
+   * la Mochila y las MT se quedan como vienen: la partida de aquí se tira, y lo nuestro
+   * que traía la copia ya no está en ningún otro sitio.
+   */
+  function adopt(inc, replace) {
     const own = 'i:' + (save.created || 0).toString(36), tag = 'i:' + (inc.created || 0).toString(36);
     const led = ledOf(inc, 'old'), out = {}, sum = {};
     for (const dev in led) {
@@ -1123,7 +1129,7 @@ G.DB = (() => {
     }
     out[tag] = sum;
     inc.led = out;
-    for (const k in CUR) CUR[k][1](inc, Math.max(0, ledSum(out, k)));
+    for (const k of replace ? Object.keys(CUR) : curKeys(inc, out)) curSet(inc, k, Math.max(0, ledSum(out, k)));
   }
 
   /**
@@ -1147,7 +1153,7 @@ G.DB = (() => {
       for (const c of ['owned', 'shiny']) for (const d of Object.keys(inc[c] || {})) if (!isObj(inc[c][d])) delete inc[c][d];
       for (const k in inc.stats || {}) inc.stats[k] = Number.isFinite(+inc.stats[k]) && +inc.stats[k] > 0 ? +inc.stats[k] : 0;
       migrate(inc, user);
-      if (inc.created !== cur.created) adopt(inc);
+      if (inc.created !== cur.created) adopt(inc, replace);
       res = replace ? inc : merge(cur, inc);
       if (replace) for (const d in cur.owned) if (!res.owned[d]) res.owned[d] = cur.owned[d];   // el inicial del test, también
       res.name = user; res.created = cur.created;      // sigue siendo esta cuenta (y sus misiones)
