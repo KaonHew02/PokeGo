@@ -28,6 +28,7 @@ G.UI = (() => {
     const s = e.target;
     if (s !== downOn) return;
     if (OUTSIDE.includes(s.id)) { if (G.Game.state === 'ui') G.MenuUI.open(); }
+    else if (s.id === 'scr-group') { if (!$('grp-create').disabled) $('grp-back').click(); }   // (creando o entrando en una sala, no: cortaría la conexión)
     else if (s.id === 'scr-settings') G.SettingsUI.close();
     else if (s.id === 'scr-news') G.NewsUI.close();
     else if (s.id === 'scr-support') G.SupportUI.close();

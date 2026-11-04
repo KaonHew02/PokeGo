@@ -530,7 +530,9 @@ kbd {
 @media (max-width: 760px) and (min-height: 521px) {
   #scr-menu { flex-direction: column; overflow-y: auto; }
   .menu-left { padding-top: calc(60px + var(--sa-t)); }               /* (el título quedaba debajo de la barra de arriba) */
-  .menu-right { width: 100%; background: rgba(5,10,25,.7); }
+  /* Se desplaza la pantalla entera: con poca altura, la lista se encogía hasta casi desaparecer. */
+  .menu-right { width: 100%; background: rgba(5,10,25,.7); flex: none; padding-top: 14px; overflow: visible; }
+  .menu-right .box { max-height: none; overflow: visible; }
   .split { grid-template-columns: 1fr; }
   .logo .t1 { font-size: 34px; }
 }

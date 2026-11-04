@@ -31,6 +31,8 @@ G.CHANGELOG = [
      'Gacha with a gamepad: pull buttons are never selected on their own, and Skip and Continue can be selected.'],
     ['En ventanas muy alargadas, los enemigos ya no se quedan dando vueltas fuera de la pantalla.',
      'In very wide windows, enemies no longer circle off-screen.'],
+    ['En ventanas muy estrechas de ordenador, el menú se quedaba aplastado y casi no se podía pulsar Jugar. Ahora se desplaza la pantalla entera.',
+     'In very narrow computer windows, the menu was squashed and Play was almost impossible to press. Now the whole screen scrolls.'],
     ['Todo esto viene de PokéSurvivor, de JPTER78.',
      'All of this comes from PokéSurvivor by JPTER78.']
   ] },
