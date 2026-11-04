@@ -6,6 +6,34 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
+  { d: '2026-11-04', title: ['Más arreglos de PokéSurvivor', 'More fixes from PokéSurvivor'], new: [
+    ['Móvil: nuevo joystick «Anclado» (Ajustes, Controles, Colocar los botones): aparece donde pones el dedo y se queda ahí mientras lo mantienes.',
+     'Mobile: new “Anchored” joystick (Settings, Controls, Place the buttons): it appears where you put your finger and stays there while you hold it.']
+  ], chg: [
+    ['Sentencia de Arceus: cada legendario tiene un 25 % más de vida y un 15 % más de daño que el anterior (antes, el doble). El veneno y las quemaduras les quitan poco y siempre lo mismo.',
+     'Arceus’s Judgment: each legendary has 25% more HP and 15% more damage than the last (it used to be double). Poison and burns deal them a small fixed amount.'],
+    ['Las ventanas del menú, Ajustes, Novedades y Apoyar se cierran también pulsando fuera de ellas.',
+     'Menu windows, Settings, News and Support also close when you click outside them.'],
+    ['La barra de arriba cabe en cualquier pantalla: si no hay sitio, los botones se quedan con su icono y las cantidades muy grandes salen en corto (10 M).',
+     'The top bar fits any screen: without room, buttons keep only their icon and very large amounts are shortened (10 M).']
+  ], fix: [
+    ['Sentencia de Arceus: yendo muy rápido ya nadie se sale de la arena.',
+     'Arceus’s Judgment: nobody can leave the arena at high speed any more.'],
+    ['Cooperativo: a los 3 segundos sin noticias de un compañero, los enemigos y Arceus van a por los que siguen jugando.',
+     'Co-op: after 3 seconds without news from a teammate, enemies and Arceus go after those still playing.'],
+    ['Cooperativo: Sequía, Llovizna, Chorro Arena y Nevada ponen su clima también si no eres el anfitrión.',
+     'Co-op: Drought, Drizzle, Sand Stream and Snow Warning set their weather for guests too.'],
+    ['Móvil: las cartas se eligen al levantar el dedo sobre ellas, aunque tengas otro en el joystick, y sólo se elige la que tocas. Y el joystick ya no se queda pillado.',
+     'Mobile: cards are picked when you lift your finger on them, even with another on the joystick, and only the one you touch is picked. The joystick no longer gets stuck.'],
+    ['Móvil: al minimizar el juego, la música se para; el teclado ya no corrige tu usuario; los avisos largos del centro se parten en líneas; y ya no queda un «·» suelto en las cartas.',
+     'Mobile: music stops when the game is minimised; the keyboard no longer corrects your user name; long centre notices wrap; and no stray “·” is left on the cards.'],
+    ['Gacha con mando: los botones de tirar nunca se eligen solos y se pueden elegir Saltar y Continuar.',
+     'Gacha with a gamepad: pull buttons are never selected on their own, and Skip and Continue can be selected.'],
+    ['En ventanas muy alargadas, los enemigos ya no se quedan dando vueltas fuera de la pantalla.',
+     'In very wide windows, enemies no longer circle off-screen.'],
+    ['Todo esto viene de PokéSurvivor, de JPTER78.',
+     'All of this comes from PokéSurvivor by JPTER78.']
+  ] },
   { d: '2026-11-03', title: ['Tu progreso, a salvo', 'Your progress, safe'], fix: [
     ['Si alguna vez el juego no puede leer la copia de tu partida guardada en este aparato, ya no la pisa al guardar: la aparta y, en cuanto se pueda leer, la junta sola con lo que hayas jugado después, sin perder nada.',
      'If the game ever can’t read the copy of your save kept on this device, it no longer overwrites it when saving: it keeps it aside and, as soon as it can be read, merges it by itself with what you played since, without losing anything.'],

@@ -9,6 +9,9 @@
  *
  * Joystick fijo (Ajustes > Controles > Colocar los botones): siempre en el
  * mismo sitio; sólo se coge tocando cerca de él.
+ *
+ * Joystick anclado (mismo sitio): aparece donde pones el dedo, como el flotante,
+ * pero la base no le sigue: se queda ahí mientras lo mantienes.
  */
 G.Touch = (() => {
   let cv = null, stick = null;
@@ -22,6 +25,7 @@ G.Touch = (() => {
   function spot(k) { const p = G.Settings.get('pad'); return p && Array.isArray(p[k]) ? p[k] : null; }
   const STICK_DEF = [0.14, 0.72];
   const fixed = () => G.Settings.get('stickMode') === 'fixed';
+  const anchored = () => G.Settings.get('stickMode') === 'anchor';
   /** Centro del joystick fijo, en px de pantalla. */
   function stickBase(w = cv.clientWidth, h = cv.clientHeight) {
     const p = spot('stick') || STICK_DEF, r = R();
@@ -50,6 +54,11 @@ G.Touch = (() => {
     document.addEventListener('selectstart', e => {
       if (!e.target.closest || !e.target.closest('input, textarea, [contenteditable]')) e.preventDefault();
     });
+    // Si el móvil no avisa de que has soltado el dedo, el joystick se quedaba
+    // pillado: sin ningún dedo en la pantalla no puede haber joystick.
+    const lifted = e => { if (!e.touches.length) reset(); };
+    document.addEventListener('touchend', lifted);
+    document.addEventListener('touchcancel', lifted);
     addEventListener('blur', reset);
     document.addEventListener('visibilitychange', reset);
   }
@@ -85,7 +94,7 @@ G.Touch = (() => {
       stick = { id: e.pointerId, fixed: true, ox: b0.x, oy: b0.y, x: e.clientX, y: e.clientY };
     } else {
       e.preventDefault();
-      stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: e.clientX, y: e.clientY };
+      stick = { id: e.pointerId, fixed: anchored(), ox: e.clientX, oy: e.clientY, x: e.clientX, y: e.clientY };
     }
     try { cv.setPointerCapture(e.pointerId); } catch (err) { /* nada */ }
   }

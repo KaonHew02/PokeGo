@@ -134,6 +134,11 @@ Tienda Kecleon, naturalezas, habilidades y MT (`js/data/natures.js`, `abilities.
 de PokéSurvivor (commit ce57853, 21-10-2026), que los adaptó del PR #236 de TheAdro7
 (datos de PokeAPI y pixel art de la tienda).
 
+Sentencia de Arceus más justa, joystick anclado, barra de arriba para cualquier pantalla,
+ventanas que se cierran pulsando fuera y otros arreglos de móvil, mando y cooperativo:
+de las novedades de PokéSurvivor del 23 al 27-10-2026 (vistos en su página de novedades,
+sus diccionarios y su `css/style.css`, y escritos de nuevo en el código de PokéGo).
+
 Arreglos y ajustes de las novedades de PokéSurvivor del 23 al 27-10-2026 (vistos en su
 página de novedades y en su `css/style.css`, y escritos de nuevo en el código de PokéGo):
 Puño Meteoro más flojo, las subidas de velocidad que ya no se pisan, los rasgos de la

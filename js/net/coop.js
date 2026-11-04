@@ -52,6 +52,7 @@ G.Coop = (() => {
   const NEAR = 950;                     // radio de enemigos que se mandan a cada uno
   const FIRST_MS = 10000;               // anfitrión: quien no ha mandado nada en este tiempo no ha entrado
   const GONE_MS = 3000;                 // invitado: compañero que el anfitrión ya no manda = se ha ido
+  const QUIET_MS = 3000;                // anfitrión: sin noticias de un compañero, los enemigos dejan de ir a por él
   const RECONNECT_MS = 20000;           // lo que se espera a quien se ha cortado (ver arriba)
   const MAX_EV = 400;                   // avisos por envío como mucho (el resto, en el siguiente)
   const MAX_Q = 6000;                   // avisos guardados para uno que no recibe: más, y se le da por ido
@@ -114,7 +115,7 @@ G.Coop = (() => {
       p.x = x; p.y = y;
       p.net = { x, y, ang: Math.PI / 2, walk: 0, hp: p.maxHp, maxHp: p.maxHp, dead: 0, mv: G.baseStartOf(mon.dex), ml: 1, mag: 78, aim: Math.PI / 2, rev: 0 };
       G.Sprites.preload([mon.dex], 8000, p.shiny);
-      mates.set(m.uid, { uid: m.uid, name: m.name, color: COLORS[i], pl: p, connected: true, q: [], flushT: 0, xpMul: 1, lostAt: null });
+      mates.set(m.uid, { uid: m.uid, name: m.name, color: COLORS[i], pl: p, connected: true, q: [], flushT: 0, xpMul: 1, lostAt: null, heardAt: startAt });
     });
     // Invitado: el primer envío, ya (aunque la pestaña esté en segundo plano y
     // el bucle del juego no corra): así el anfitrión sabe que has entrado.
@@ -291,6 +292,8 @@ G.Coop = (() => {
     if (host) {
       for (const m of mates.values()) {
         if (!m.connected) continue;
+        // Sin noticias suyas: su Pokémon se queda ahí, pero los enemigos van a por los demás.
+        m.pl.absent = now - m.heardAt > QUIET_MS;
         if (!m.state && now - startAt > FIRST_MS) { mateGone(m.uid, true); continue; }
         // Cortado: se le espera (net.js le vuelve a llamar) con lo que no le ha llegado guardado.
         if (m.lostAt != null) { if (now - m.lostAt > RECONNECT_MS || m.q.length > MAX_Q) mateGone(m.uid); continue; }
@@ -390,6 +393,7 @@ G.Coop = (() => {
   function onClientFrame(from, msg) {
     const m = mates.get(from);
     if (!m || !m.connected) return;
+    m.heardAt = performance.now();
     if (m.lostAt != null) back(from);         // si llega algo suyo, el canal funciona
     if (msg.p) { m.state = msg.p; m.pl.net = readState(msg.p); m.xpMul = m.pl.net.xpMul || 1; reconcile(from, m.pl.net); }
     m.sp = Array.isArray(msg.sp) && msg.sp.length === 2 && msg.sp.every(Number.isFinite) ? msg.sp : null;
@@ -424,6 +428,7 @@ G.Coop = (() => {
         case 'hs': holdOn(from); break;
         case 'he': holdOff(from); break;
         case 're': G.Rift.enterRequest(); break;
+        case 'wq': if (G.Weather.KINDS[ev[1]] && !G.Weather.current) G.Weather.debugStart(ev[1], 60); break;
         case 'bye': mateGone(from); break;
         case 'rq':                    // enemigos que no le llegaron (se perdió su 'ne')
           for (const id of (Array.isArray(ev[1]) ? ev[1] : []).slice(0, 60)) {

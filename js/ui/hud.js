@@ -237,8 +237,20 @@ G.HUD = (() => {
       ctx.font = F(800, 22);
       ctx.fillStyle = '#ffcb3d';
       ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = 4;
-      ctx.strokeText(ban.text, w / 2, h * 0.3);
-      ctx.fillText(ban.text, w / 2, h * 0.3);
+      // Se parte en líneas: en el móvil los avisos largos se salían por los dos lados.
+      // (Se traduce antes: el lienzo traduce textos enteros, no trozos. En chino no hay espacios.)
+      const raw = (m, s, ...a) => G.I18n.rawCanvas(ctx, m, s, ...a);
+      const lines = [];
+      let line = '';
+      for (const tok of G.I18n.t(ban.text).match(/[\u3000-\u9fff]|[^\s\u3000-\u9fff]+\s*|\s+/g) || []) {
+        if (line && raw('measureText', line + tok).width > w - 32) { lines.push(line); line = tok; }
+        else line += tok;
+      }
+      lines.push(line);
+      lines.forEach((l, i) => {
+        raw('strokeText', l, w / 2, h * 0.3 + i * 26);
+        raw('fillText', l, w / 2, h * 0.3 + i * 26);
+      });
       ctx.restore();
     }
 

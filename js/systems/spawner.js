@@ -37,7 +37,14 @@ G.Spawner = (() => {
   }
 
   function ringPoint(pl, angle) {
-    const d = G.Camera.outerRadius() + G.U.rand(10, 70);
+    let d = G.Camera.outerRadius();
+    // Ventana muy alargada: el círculo que rodea la pantalla queda lejísimos por
+    // los lados cortos y no llegaba nadie. Ahí salen justo fuera del rectángulo.
+    const { w, h } = G.Camera;
+    if (Math.max(w, h) > 2.4 * Math.min(w, h)) {
+      d = Math.min(d, (w / 2 + 40) / Math.max(1e-3, Math.abs(Math.cos(angle))), (h / 2 + 40) / Math.max(1e-3, Math.abs(Math.sin(angle)) * 0.9));
+    }
+    d += G.U.rand(10, 70);
     return [pl.x + Math.cos(angle) * d, pl.y + Math.sin(angle) * d * 0.9];
   }
 

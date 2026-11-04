@@ -413,10 +413,13 @@ G.Player = class Player {
     if (this.regen > 0) this.hp = Math.min(this.maxHp, this.hp + this.regen * dt);
     if (this.abil && this.abil.tick) this.abil.tick(this, dt);
     // Sequía, Llovizna...: su clima al empezar y cada 3 min, si no hay otro (en
-    // grupo lo pone el anfitrión, que es quien manda el clima a todos).
-    if (this.abil && this.abil.summon && (!G.Coop.active || G.Coop.isHost) && (this.sumT = (this.sumT || 0) - dt) <= 0) {
+    // grupo se lo pide al anfitrión, que es quien manda el clima a todos).
+    if (this.abil && this.abil.summon && (this.sumT = (this.sumT || 0) - dt) <= 0) {
       this.sumT = 180;
-      if (!G.Weather.current) G.Weather.debugStart(this.abil.summon, 60);
+      if (!G.Weather.current) {
+        if (G.Coop.active && !G.Coop.isHost) G.Coop.toHost(['wq', this.abil.summon]);
+        else G.Weather.debugStart(this.abil.summon, 60);
+      }
     }
 
     // --- movimiento con colisiones ---

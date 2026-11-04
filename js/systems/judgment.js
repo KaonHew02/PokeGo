@@ -17,8 +17,8 @@
  *      Sentencia a UN enemigo (unos 3 s), para que no caiga al momento.
  *      Dan experiencia, pero nada más (ni monedas, ni tickets, ni objetos).
  *   4. Sin límite de tiempo: por muy fuerte que vayas (curación sin tope,
- *      defensa...), los legendarios que se acumulan, cada uno el doble de
- *      fuertes, acaban contigo (el 8.º ya pega 128 veces más que el 1.º).
+ *      defensa...), los legendarios que se acumulan, cada uno con un 25 % más
+ *      de vida y un 15 % más de daño que el anterior, acaban contigo.
  *
  * Mientras dura no sale nada más (ni oleadas, ni eventos, ni grietas; desde
  * el 28:00 ya no se abren grietas). Si a las 30:00 estás en una grieta o
@@ -234,6 +234,8 @@ G.Judgment = (() => {
       bossT -= dt;
       if (bossT <= 0) { bossT = BOSS_EVERY; spawnBoss(); }
     } else netTick(dt);
+    // Tú también (cada uno el suyo): yendo muy rápido se salía y ahí no te alcanzaba nada.
+    clampIn(pl);
     A.anim.update(dt);
     touch(pl);
     ember(dt);
@@ -244,7 +246,7 @@ G.Judgment = (() => {
   function target() {
     let best = null, bd = Infinity;
     for (const p of G.Game.everyone()) {
-      if (p.dead) continue;
+      if (p.dead || p.absent) continue;
       const d = G.U.dist2(p.x, p.y, A.x, A.y);
       if (d < bd) { bd = d; best = p; }
     }
@@ -347,12 +349,12 @@ G.Judgment = (() => {
   }
 
   /** Nadie sale de la arena (Arceus, los legendarios y tú). */
+  function clampIn(o) {
+    const max = (ARENA_R - 1.4) * TS();
+    const dx = o.x - center.x, dy = o.y - center.y, d = Math.hypot(dx, dy);
+    if (d > max) { o.x = center.x + dx / d * max; o.y = center.y + dy / d * max; }
+  }
   function keepInside() {
-    const ts = TS(), max = (ARENA_R - 1.4) * ts;
-    const clampIn = o => {
-      const dx = o.x - center.x, dy = o.y - center.y, d = Math.hypot(dx, dy);
-      if (d > max) { o.x = center.x + dx / d * max; o.y = center.y + dy / d * max; }
-    };
     clampIn(A);
     for (const e of G.EnemyMgr.all()) if (!e.remote) clampIn(e);
   }
@@ -371,11 +373,12 @@ G.Judgment = (() => {
       x = center.x + Math.cos(a) * d; y = center.y + Math.sin(a) * d;
       if (G.Game.everyone().every(p => G.U.dist2(p.x, p.y, x, y) > 280 * 280)) break;
     }
-    const k = Math.pow(2, bossN);          // cada uno, el doble que el anterior
+    // Cada uno, un 25 % más de vida y un 15 % más de daño que el anterior.
+    const kh = Math.pow(1.25, bossN), k = Math.pow(1.15, bossN);
     const fast = Math.max(0, ...G.Game.everyone().map(p => (p.dead ? 0 : p.spd || 0)));
     const def = {
       dex, name: mon.name,
-      hp: Math.round(base * k),
+      hp: Math.round(base * kh),
       spd: Math.round(Math.max(G.U.clamp(48 + (mon.spd - 78) * 0.6, 48, 105), fast * 0.8)),
       dmg: Math.round((36 + t / 20) * k), xp: Math.round(500 + t * 1.2),
       behavior: mon.types.some(x => ['psychic', 'electric', 'ghost', 'fairy', 'fire', 'water', 'ice', 'dragon'].includes(x)) ? 'ranged' : 'charger',

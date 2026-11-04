@@ -115,7 +115,7 @@ G.I18n.add({
   '+6% de reducción de daño recibido.': '+6% damage reduction.', '+0.9 de vida regenerada por segundo.': '+0.9 HP regenerated per second.',
   '+30% de radio de recogida de experiencia.': '+30% experience pickup radius.', '+12% de experiencia ganada.': '+12% experience gained.',
   'Baya Zidra': 'Sitrus Berry', 'Recupera el 45% de tu vida ahora mismo.': 'Restores 45% of your HP right now.',
-  '¡Nivel': 'Level', '¡Nivel {x}!': 'Level {x}!', 'Elige una recompensa ·': 'Choose a reward ·', 'Elige tu carta': 'Choose your card',
+  '¡Nivel': 'Level', '¡Nivel {x}!': 'Level {x}!', 'Elige una recompensa': 'Choose a reward', 'Elige tu carta': 'Choose your card',
   'Faltan por elegir: {x}': 'Still choosing: {x}', 'Esperando a {x}…': 'Waiting for {x}…', 'tú': 'you',
 
   // ---------------- objetos ----------------
@@ -130,7 +130,7 @@ G.I18n.add({
   '+30% de experiencia.': '+30% experience.', '+30% de daño, pero cada ataque contra enemigos te quita el 1% de tu vida máxima (nunca te deja KO).': '+30% damage, but each attack against enemies costs 1% of your max HP (it never knocks you out).',
   '+35% de velocidad.': '+35% speed.', 'Los que te golpean cuerpo a cuerpo reciben daño.': 'Foes that hit you in melee take damage.',
   '+20% de reducción de daño recibido.': '+20% damage reduction.',
-  '¡Un objeto!': 'An item!', 'Sólo puedes llevar uno ·': 'You can only hold one ·', 'Quedarme con': 'Keep', 'Cambiar a': 'Switch to',
+  '¡Un objeto!': 'An item!', 'Sólo puedes llevar uno': 'You can only hold one', 'Quedarme con': 'Keep', 'Cambiar a': 'Switch to',
   '¡Llevas {x}!': 'You\'re holding {x}!', 'Ya llevas {x}': 'You already hold {x}', '¡Banda Focus!': 'Focus Sash!',
 
   // ---------------- mejoras permanentes ----------------
@@ -173,7 +173,8 @@ G.I18n.add({
   'Colocar los botones': 'Place the buttons', 'Colocar': 'Place',
   'Pon los ataques, la pausa y el joystick (fijo, si quieres) donde quieras de la pantalla.': 'Put the attacks, the pause button and the joystick (fixed, if you like) anywhere on the screen.',
   'Arrastra los botones a donde quieras': 'Drag the buttons wherever you want', 'Gira el móvil: se juega en horizontal.': 'Turn your phone: the game is played in landscape.',
-  'Joystick': 'Joystick', 'Flotante': 'Floating', 'Fijo': 'Fixed', 'Ataques': 'Attacks',
+  'Joystick': 'Joystick', 'Flotante': 'Floating', 'Anclado': 'Anchored', 'Fijo': 'Fixed',
+  'Anclado: aparece donde pones el dedo y se queda ahí hasta que lo levantas.': 'Anchored: it appears where you put your finger and stays there until you lift it.', 'Ataques': 'Attacks',
   'Flotante: aparece donde pones el dedo. Fijo: siempre en el mismo sitio.': 'Floating: it appears where you put your finger. Fixed: always in the same place.',
   'Restablecer': 'Reset', 'Guardar': 'Save', 'Botones colocados': 'Buttons placed',
   'La única web oficial de PokéGo es pokesurvivor.com. El juego es y será gratis: si alguien te pide pagar, no somos nosotros.':

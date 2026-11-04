@@ -81,8 +81,8 @@
 }
 </script>
 
-<link rel="stylesheet" href="css/style.css?v=4c017d1e0f">
-<script src="js/core/locales.js?v=80b16f50a8"></script>
+<link rel="stylesheet" href="css/style.css?v=2b10fdaf6f">
+<script src="js/core/locales.js?v=d9e61ae2aa"></script>
 <script src="js/noframe.js"></script>
 </head>
 <body>
@@ -105,7 +105,7 @@
     </div>
     <form id="login-form" autocomplete="off">
       <label for="f-user">Nombre</label>
-      <input id="f-user" class="field" maxlength="16" spellcheck="false">
+      <input id="f-user" class="field" maxlength="16" spellcheck="false" autocomplete="username" autocapitalize="none" autocorrect="off">
       <label for="f-pass">Contraseña</label>
       <input id="f-pass" class="field" type="password" maxlength="64">
       <p id="login-err" class="err"></p>
@@ -355,7 +355,7 @@
     <p class="sub">Es el nombre que verán tus amigos y el que sale en el ranking.
       Tu nombre y tu correo de Google no se enseñan a nadie.</p>
     <form id="nick-form" autocomplete="off">
-      <input id="nick-in" class="field" maxlength="16" spellcheck="false" placeholder="3-16 letras, números o _">
+      <input id="nick-in" class="field" maxlength="16" spellcheck="false" autocapitalize="none" autocorrect="off" placeholder="3-16 letras, números o _">
       <p id="nick-err" class="err"></p>
       <div class="row"><button id="nick-ok" class="btn gold grow" type="submit">Guardar apodo</button></div>
     </form>
@@ -370,7 +370,7 @@
       <div class="row"><button id="fr-room" class="btn small gold hidden">Ir a la sala</button><button id="fr-code" class="btn small">Jugar con código</button><button class="btn small ghost" data-back>Volver</button></div></div>
     <p class="sub" id="fr-me"></p>
     <form id="fr-add" class="row" autocomplete="off">
-      <input id="fr-name" class="field grow" maxlength="16" spellcheck="false" placeholder="Apodo de tu amigo">
+      <input id="fr-name" class="field grow" maxlength="16" spellcheck="false" autocapitalize="none" autocorrect="off" placeholder="Apodo de tu amigo">
       <button class="btn gold" type="submit" data-sfx="confirm">Añadir amigo</button>
     </form>
     <p id="fr-msg" class="note"></p>
@@ -556,9 +556,9 @@
           <div class="feat" id="gacha-feat"></div>
         </div>
         <div class="row" style="margin-top:14px">
-          <button id="pull-1" class="btn grow" data-sfx="none">Tirar ×1 · <span id="cost-1"></span></button>
-          <button id="pull-10" class="btn gold grow" data-sfx="none">Tirar ×10 · <span id="cost-10"></span></button>
-          <button id="pull-10b" class="btn gold grow" data-sfx="none">Tirar ×10 · <span id="cost-10b"></span></button>
+          <button id="pull-1" class="btn grow" data-sfx="none" data-nofocus>Tirar ×1 · <span id="cost-1"></span></button>
+          <button id="pull-10" class="btn gold grow" data-sfx="none" data-nofocus>Tirar ×10 · <span id="cost-10"></span></button>
+          <button id="pull-10b" class="btn gold grow" data-sfx="none" data-nofocus>Tirar ×10 · <span id="cost-10b"></span></button>
         </div>
         <p class="note tickets-line" id="gacha-tickets"></p>
         <p class="note" id="gacha-pity"></p>
@@ -579,9 +579,9 @@
 <section id="scr-levelup" class="scr dim hidden">
   <div class="box center">
     <h2>¡Nivel <span id="lvl-num">2</span>!</h2>
-    <p class="sub">Elige una recompensa · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></p>
+    <p class="sub">Elige una recompensa<span class="kbd-hint"> · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span></p>
     <div id="cards" class="cards"></div>
-    <button id="lvl-reroll" class="btn small ghost hidden" data-sfx="none" style="margin-top:10px">Cambiar opciones (<span id="lvl-rr-n">1</span>) · <kbd>R</kbd></button>
+    <button id="lvl-reroll" class="btn small ghost hidden" data-sfx="none" style="margin-top:10px">Cambiar opciones (<span id="lvl-rr-n">1</span>)<span class="kbd-hint"> · <kbd>R</kbd></span></button>
     <p id="lvl-wait" class="note hidden"></p>
   </div>
 </section>
@@ -599,7 +599,7 @@
 <section id="scr-item" class="scr dim hidden">
   <div class="box center">
     <h2>¡Un objeto!</h2>
-    <p class="sub">Sólo puedes llevar uno · <span class="kbd-hint"><kbd>1</kbd> <kbd>2</kbd> · <kbd>Esc</kbd> no lo quiero</span></p>
+    <p class="sub">Sólo puedes llevar uno<span class="kbd-hint"> · <kbd>1</kbd> <kbd>2</kbd> · <kbd>Esc</kbd> no lo quiero</span></p>
     <div id="item-cards" class="cards"></div>
     <p class="note">Puedes tirarlo cuando quieras desde la pausa.</p>
   </div>
@@ -630,6 +630,6 @@
 </section>
 
 <!-- datos generados -->
-<script defer src="js/app.min.js?v=ba46b092fb"></script>
+<script defer src="js/app.min.js?v=ee14ea8adb"></script>
 </body>
 </html>

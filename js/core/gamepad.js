@@ -66,6 +66,9 @@ G.Pad = (() => {
     const top = topScreen(), out = [];
     const tap = document.getElementById('tap-start');
     if (tap && !tap.classList.contains('hidden')) return [tap];
+    // La tirada del gacha va por encima de todo: Saltar y Continuar.
+    const fx = document.getElementById('pull-fx');
+    if (fx && !fx.classList.contains('hidden')) return [fx];
     if (top) out.push(top);
     // La barra de arriba (Guardar, Ajustes...) cuenta si no hay una ventana encima.
     const bar = document.getElementById('topbar');
@@ -118,9 +121,12 @@ G.Pad = (() => {
 
   /** La primera selección de una pantalla: el botón principal, si lo hay (nunca "Volver" o "Cerrar" si hay otra cosa). */
   const isBack = el => /(-close|-back)$/.test(el.id) || el.hasAttribute('data-back') || /^(Cerrar|Volver|Close|Back)$/i.test(el.textContent.trim());
+  /** [data-nofocus] (tirar en el gacha, que gasta tickets): hay que ir a ellos, nunca se eligen solos. */
+  const byChoice = list => list.filter(el => !el.matches('[data-nofocus]'));
+
   function firstOf(list) {
-    const rest = list.filter(el => !isBack(el));
-    const pool = rest.length ? rest : list;
+    const rest = byChoice(list).filter(el => !isBack(el));
+    const pool = rest.length ? rest : byChoice(list);
     const main = pool.find(el => el.matches('.play, .btn.gold, .card'));
     if (main) return main;
     return pool.slice().sort((a, b) => { const [ax, ay] = center(a), [bx, by] = center(b); return (ay - by) || (ax - bx); })[0] || null;
@@ -169,8 +175,8 @@ G.Pad = (() => {
       if (!list.length) { hideFocus(); return; }
       if (topScreen() !== scr) { setFocus(firstOf(list)); return; }
       let best = null, bd = Infinity;
-      for (const c of list) { const [x, y] = center(c); const d = (x - ox) ** 2 + (y - oy) ** 2; if (d < bd) { bd = d; best = c; } }
-      setFocus(best);
+      for (const c of byChoice(list)) { const [x, y] = center(c); const d = (x - ox) ** 2 + (y - oy) ** 2; if (d < bd) { bd = d; best = c; } }
+      if (best) setFocus(best); else hideFocus();
     }, 120);
   }
 

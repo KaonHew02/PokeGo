@@ -19,6 +19,20 @@ G.UI = (() => {
   function hideAll() { for (const s of SCREENS) $(s).classList.add('hidden'); }
   function isOpen(id) { return !$(id).classList.contains('hidden'); }
 
+  // Las ventanas del menú también se cierran pulsando fuera de ellas (cuenta
+  // dónde empezó el toque: si no, arrastrar desde dentro las cerraba).
+  const OUTSIDE = ['scr-dex', 'scr-upgrades', 'scr-shop', 'scr-bag', 'scr-gacha', 'scr-friends', 'scr-rank', 'scr-goals'];
+  let downOn = null;
+  document.addEventListener('pointerdown', e => { downOn = e.target; }, true);
+  document.addEventListener('click', e => {
+    const s = e.target;
+    if (s !== downOn) return;
+    if (OUTSIDE.includes(s.id)) { if (G.Game.state === 'ui') G.MenuUI.open(); }
+    else if (s.id === 'scr-settings') G.SettingsUI.close();
+    else if (s.id === 'scr-news') G.NewsUI.close();
+    else if (s.id === 'scr-support') G.SupportUI.close();
+  });
+
   /** Barra superior (monedas, usuario, sonido) sólo fuera de las runs. */
   function chrome(on) {
     $('topbar').classList.toggle('hidden', !on);
@@ -27,11 +41,18 @@ G.UI = (() => {
     if (on) refreshCoins();
   }
 
+  /** Cantidad para la barra de arriba: las muy grandes, en corto (10 M). */
+  function shortNum(n) {
+    const lo = G.I18n.locale;
+    return n < 1e6 ? n.toLocaleString(lo) : (n / 1e6).toLocaleString(lo, { maximumFractionDigits: n < 1e7 ? 1 : 0 }) + ' M';
+  }
+
   function refreshCoins() {
     const s = G.DB.save;
-    $('coins').textContent = s ? s.coins.toLocaleString(G.I18n.locale) : '0';
+    $('coins').textContent = s ? shortNum(s.coins) : '0';
+    $('coins').title = s ? s.coins.toLocaleString(G.I18n.locale) : '';
     const t = (s && s.tickets) || { t1: 0, t10: 0 };
-    $('tickets-pill').innerHTML = `${G.Icons.html('ticket', 18)} ${t.t1} &nbsp;${G.Icons.html('ticket10', 18)} ${t.t10}`;
+    $('tickets-pill').innerHTML = `${G.Icons.html('ticket', 18)} ${shortNum(t.t1)} &nbsp;${G.Icons.html('ticket10', 18)} ${shortNum(t.t10)}`;
     // Punto de sincronización: verde = guardado en la nube, amarillo = guardando,
     // rojo = sin conexión (se guarda en local y se sube al volver).
     const st = G.DB.guest ? 'guest' : G.DB.syncState;

@@ -74,6 +74,10 @@ G.Audio = (() => {
   // En móvil, tocar la pantalla (pointerdown) no cuenta como gesto para el
   // sonido: sí levantar el dedo (pointerup / touchend). Se escuchan todos.
   for (const ev of ['pointerdown', 'pointerup', 'touchend', 'keydown']) addEventListener(ev, unlock, { capture: true });
+  // Móvil (web): al minimizar, la música seguía sonando, y distorsionada. (La app lo hace en native.js.)
+  document.addEventListener('visibilitychange', () => {
+    if (ctx && G.Touch && G.Touch.active && !G.Native.app) (document.hidden ? ctx.suspend() : ctx.resume()).catch(() => {});
+  });
 
   function applyVolumes() {
     if (!ctx) return;

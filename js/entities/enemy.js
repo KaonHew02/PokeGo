@@ -286,12 +286,12 @@
       if (this.slowT > 0) { this.slowT -= dt; if (this.slowT <= 0) this.slow = 0; }
       if (this.burn > 0) {
         this.burnT -= dt; this.burnTick -= dt;
-        if (this.burnTick <= 0) { this.burnTick = 0.5; this.hurt(1.6 * this.burn * (1 + pl.level * 0.06), '#ff9a4d'); }
+        if (this.burnTick <= 0) { this.burnTick = 0.5; this.hurt(this.judge ? 2 * this.burn : 1.6 * this.burn * (1 + pl.level * 0.06), '#ff9a4d'); }
         if (this.burnT <= 0) this.burn = 0;
       }
       if (this.poison > 0) {
         this.poisonT -= dt; this.poisonTick -= dt;
-        if (this.poisonTick <= 0) { this.poisonTick = 0.6; this.hurt(pctHp(this) * 0.012 * this.poison + 1, '#d47cf0'); }
+        if (this.poisonTick <= 0) { this.poisonTick = 0.6; this.hurt(this.judge ? 2 * this.poison : pctHp(this) * 0.012 * this.poison + 1, '#d47cf0'); }
         if (this.poisonT <= 0) this.poison = 0;
       }
       if (this.dead) return;
@@ -919,11 +919,11 @@
       }
     }
 
-    /** El jugador vivo más cercano (los caídos no atraen a nadie). */
+    /** El jugador vivo más cercano (los caídos y los que llevan rato sin dar señales no atraen a nadie). */
     function nearestPlayer(players, x, y) {
       let best = null, bd = Infinity;
       for (const p of players) {
-        if (p.dead) continue;
+        if (p.dead || p.absent) continue;
         const d = G.U.dist2(x, y, p.x, p.y);
         if (d < bd) { bd = d; best = p; }
       }
@@ -997,7 +997,7 @@
         const behind = sp > 40 && ((e.x - near.x) * near._vx + (e.y - near.y) * near._vy) < -0.2 * Math.sqrt(d2) * sp;
         if (unseen && behind) e.lagT += dt;
         else if (!unseen) e.lagT = 0;
-        if ((unseen && e.lagT > LAG_T) || d2 > 1400 * 1400) {
+        if ((unseen && e.lagT > LAG_T) || d2 > Math.max(1400, R + 300) ** 2) {
           e.lagT = 0;
           if (!G.Spawner.ahead(e, near)) { list.splice(i, 1); byId.delete(e.id); if (G.Coop.isHost) G.Coop.enemyGone(e, false); }
         }

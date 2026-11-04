@@ -7,8 +7,8 @@ G.RunUI = (() => {
    * Al aparecer unas cartas (nivel, vínculo, objeto) no se pueden elegir
    * durante GUARD s y se ven apagadas: en plena pelea se pulsa 1-4 (o se toca
    * la pantalla) para cambiar de ataque y se elegía una carta sin querer.
-   * Cambiar las cartas o el 2.º paso del vínculo no lo vuelven a poner: ahí ya
-   * estás eligiendo a propósito.
+   * Cambiar las cartas (salvo en el móvil) o el 2.º paso del vínculo no lo vuelven
+   * a poner: ahí ya estás eligiendo a propósito.
    */
   const GUARD = 0.6;
   let guardUntil = 0, guardT = 0;
@@ -19,6 +19,30 @@ G.RunUI = (() => {
     guardT = setTimeout(() => document.querySelectorAll('.cards.guard').forEach(b => b.classList.remove('guard')), GUARD * 1000);
   }
   const guarded = () => performance.now() < guardUntil;
+
+  /*
+   * Móvil: una carta se elige al levantar sobre ella el dedo que la tocó, haya
+   * otro en el joystick o no (con dos dedos el navegador no manda 'click' y todo
+   * se quedaba parado con las cartas abiertas). El 'click' que llega detrás de un
+   * toque se tira: al redibujarse caía en la carta que hubiera debajo del dedo.
+   */
+  function tapCards(box) {
+    let tap = null, tapAt = 0;
+    const cardAt = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest('.card'); };
+    box.addEventListener('touchstart', e => {
+      const t = e.changedTouches[0];
+      tap = { id: t.identifier, x: t.clientX, y: t.clientY, card: cardAt(t.clientX, t.clientY) };
+    }, { passive: true });
+    box.addEventListener('touchend', e => {
+      const t = tap && [...e.changedTouches].find(o => o.identifier === tap.id);
+      if (!t) return;
+      const { x, y, card } = tap;
+      tap = null; tapAt = performance.now();
+      if (card && card.isConnected && Math.hypot(t.clientX - x, t.clientY - y) < 14 && cardAt(t.clientX, t.clientY) === card) card.click();
+    });
+    box.addEventListener('touchcancel', () => { tap = null; });
+    box.addEventListener('click', e => { if (e.isTrusted && performance.now() - tapAt < 500) e.stopPropagation(); }, true);
+  }
 
   /** @param coop  en grupo: tras elegir, se queda esperando a los demás */
   function showLevelUp(level, list, cb, coop = false) {
@@ -49,6 +73,7 @@ G.RunUI = (() => {
     p.rerolls = (p.rerolls || 0) + 1;
     G.Audio.sfx('select');
     renderCards(G.LevelUp.offer(p));
+    if (G.Touch.active) guard($('cards'));   // (móvil: el mismo toque elegía a veces una carta nueva)
   }
 
   function renderCards(list) {
@@ -404,6 +429,7 @@ G.RunUI = (() => {
   function wirePause(onResume, onQuit) {
     $('btn-resume').onclick = onResume;
     $('btn-quit').onclick = onQuit;
+    ['cards', 'item-cards', 'bond-cards'].forEach(id => tapCards($(id)));
   }
 
   return { showLevelUp, reroll, rerollsLeft, showItemChoice, chooseItem, showBond, pickBond, bondBack, pick, pending, setWaiting, closeLevelUp, showOver, wirePause, showPause };
