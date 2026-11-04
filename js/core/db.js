@@ -44,6 +44,7 @@ G.DB = (() => {
   let guest = false;
   let save = null;
   let storageOk = true;
+  let seen = null;          // la copia del navegador (su texto) que esta pestaña ya tiene (ver pullTabs)
 
   // ---------------- almacenamiento local seguro ----------------
 
@@ -68,9 +69,12 @@ G.DB = (() => {
     try { const s = JSON.parse(v); return s && typeof s === 'object' && s.stats ? s : null; }
     catch (e) { return null; }
   }
+  /** Dónde guarda este navegador la partida abierta (null: invitado o sin sesión). */
+  function tabKey() { return guest || !key ? null : mode === 'cloud' ? K_CLOUD + uid : K_SAVE + key; }
   function write(k, v) {
     const s = JSON.stringify(v);
-    try { localStorage.setItem(k, s); return true; }
+    const done = () => { if (k === tabKey()) seen = s; return true; };
+    try { localStorage.setItem(k, s); return done(); }
     catch (e) {
       // Navegador lleno (sobre todo por lo que guarda el ranking): se libera lo
       // prescindible y se reintenta. Antes la copia de la partida dejaba de
@@ -80,7 +84,7 @@ G.DB = (() => {
           const key = localStorage.key(i);
           if (key && /^ps\.rk\.c\./.test(key)) localStorage.removeItem(key);
         }
-        localStorage.setItem(k, s); return true;
+        localStorage.setItem(k, s); return done();
       } catch (e2) { storageOk = false; return false; }
     }
   }
@@ -394,6 +398,51 @@ G.DB = (() => {
     return r;
   }
 
+  /*
+   * Dos pestañas del mismo navegador (25-10-2026). Cada una tiene la partida en
+   * memoria y la última en guardar pisaba a la otra: lo conseguido o gastado en
+   * una se perdía. Ahora, antes de guardar se junta lo que haya guardado la otra
+   * (commit, y todo lo que escribe) y, al guardar una, la otra se entera al
+   * momento por el evento 'storage' (y al volver a ella, por si estaba dormida).
+   * Juntar no escribe nada, así que no se contestan entre ellas.
+   * Las dos son el mismo aparato en la libreta y merge() se queda con el mayor de
+   * cada apunte: lo aún sin apuntar se aparta y se suma después, porque si no
+   * +100 en una y +30 en la otra se quedaban en +100.
+   */
+  function absorb(other) {
+    const led = isObj(save.led) ? save.led : {}, mine = plain(save), wait = {}, bal = balOf(mine, led);
+    for (const k in bal) {
+      const on = Math.max(0, ledSum(led, k));
+      if (bal[k] !== on) { wait[k] = bal[k] - on; curSet(mine, k, on); }
+    }
+    const m = merge(mine, other);
+    for (const k in wait) curSet(m, k, Math.max(0, num(curGet(m, k)) + wait[k]));
+    applyInPlace(fold(m));
+  }
+
+  /** Junta lo que otra pestaña haya guardado en este navegador. → true si había algo. */
+  function pullTabs() {
+    const k = tabKey();
+    if (!k || !save) return false;
+    let raw = null;
+    try { raw = localStorage.getItem(k); } catch (e) { return false; }
+    if (!raw || raw === seen) return false;
+    const o = read(k);                 // (si no se puede leer, read() la aparta)
+    seen = raw;
+    if (!isObj(o) || !isObj(o.owned) || !isObj(o.stats)) return false;
+    const newer = (o.updated || 0) > (save.updated || 0);
+    absorb(migrate(o, save.name));
+    // Lo hecho en la otra pestaña también se sube desde ésta, por si aquélla se cierra sin poder.
+    if (mode === 'cloud' && newer) { pending = true; setSync(navigator.onLine === false ? 'offline' : 'pending'); schedulePush(PUSH_EVERY); }
+    if (G.UI && G.UI.refreshCoins) G.UI.refreshCoins();
+    return true;
+  }
+
+  addEventListener('storage', e => { if (e.key && e.key === tabKey()) pullTabs(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) pullTabs(); });
+  addEventListener('focus', () => pullTabs());
+  addEventListener('pageshow', () => pullTabs());
+
   /** Sustituye el contenido de `save` sin cambiar el objeto (otros módulos lo tienen). */
   // Copia `s` sobre la partida SIN cambiar los objetos de dentro (mejoras,
   // Pokémon...): las pantallas abiertas guardan referencias a ellos. Antes se
@@ -445,6 +494,7 @@ G.DB = (() => {
   function beginLocal(k, name) {
     key = k; user = name; guest = false;
     save = fold(loadLocal(k, name));
+    try { seen = localStorage.getItem(K_SAVE + k); } catch (e) { /* nada */ }
     write(K_SES, k);
     if (rescue(K_SAVE + k) && write(K_SAVE + k, save)) remove(K_RESCUE + K_SAVE + k);
   }
@@ -604,6 +654,7 @@ G.DB = (() => {
     const u = uid;
     docRef().get().then(snap => {
       if (!snap.exists || !save || uid !== u) return;
+      pullTabs();
       applyInPlace(merge(plain(fold(save)), migrate(snap.data().save)));
       write(K_CLOUD + uid, save);
       if (G.UI && G.UI.refreshCoins) G.UI.refreshCoins();
@@ -685,6 +736,7 @@ G.DB = (() => {
   /** Sube la partida fusionándola con lo que haya en la nube (transacción). */
   function pushNow() {
     if (mode !== 'cloud' || guest || !save || !uid) return Promise.resolve();
+    pullTabs();
     // Si ya hay una subida en marcha, se hace otra justo después (para lo que haya cambiado mientras).
     if (pushing) { pending = true; return pushing.then(() => (pending ? pushNow() : undefined)); }
     clearTimeout(pushT); pushT = 0; pushDue = 0;
@@ -718,7 +770,7 @@ G.DB = (() => {
       write(K_OK + uid, Date.now());
       // Se FUSIONA con lo de ahora (no se sobrescribe): si has cambiado algo
       // mientras se subía (elegir compañero, una compra...), no se pierde.
-      if (merged && save) { applyInPlace(merge(plain(fold(save)), merged)); write(K_CLOUD + uid, save); }
+      if (merged && save) { pullTabs(); applyInPlace(merge(plain(fold(save)), merged)); write(K_CLOUD + uid, save); }
       setSync(pending ? 'pending' : 'ok');
       if (G.UI && G.UI.refreshCoins) G.UI.refreshCoins();
     }).catch(e => {
@@ -876,7 +928,8 @@ G.DB = (() => {
    */
   function commit(urgent = false) {
     if (guest || !key || !save) return false;
-    save.updated = Date.now();
+    save.updated = Date.now();         // (antes de juntar: lo que se está guardando es lo último)
+    pullTabs();
     fold(save);
     if (mode === 'local') return write(K_SAVE + key, save);
     write(K_CLOUD + uid, save);
@@ -1017,7 +1070,7 @@ G.DB = (() => {
   const pack = s => ({ app: 'PokeGo', kind: 'save', v: VERSION, at: Date.now(), name: user, save: s });
 
   /** La partida actual para guardarla en un archivo (también la del invitado). */
-  function exportSave() { return save ? pack(plain(fold(save))) : null; }
+  function exportSave() { pullTabs(); return save ? pack(plain(fold(save))) : null; }
 
   /** La libreta de otra cuenta, en un solo apunte suyo (sin lo nuestro que ya traía). */
   function adopt(inc) {
@@ -1044,6 +1097,7 @@ G.DB = (() => {
     if (G.Game && G.Game.state && G.Game.state !== 'ui') return { ok: false, why: 'run' };
     if (!isObj(data) || data.kind !== 'save' || (data.app && data.app !== 'PokeGo') || !isObj(data.save) || !isObj(data.save.owned)) return { ok: false, why: 'bad' };
     if ((data.v | 0) > VERSION || (data.save.v | 0) > VERSION) return { ok: false, why: 'newer' };
+    pullTabs();
     const cur = plain(fold(save)), replace = fresh(cur);
     let res;
     try {

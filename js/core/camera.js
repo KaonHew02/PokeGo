@@ -16,14 +16,32 @@ G.Camera = {
   // también un alto mínimo de mundo, para no ver una franja estrecha.
   MIN_VIEW_H: 420,
 
+  // Lo que se aleja la vista (Luminosfera, systems/orbs.js): 1 = normal. Se llega poco a poco.
+  zoom: 1, zoomTo: 1,
+
   resize(cssW, cssH, dpr = 1) {
     this.dpr = dpr;
-    this.scale = Math.min(cssW / this.VIEW_W, cssH / this.MIN_VIEW_H);
-    this.w = cssW / this.scale;
-    this.h = cssH / this.scale;
+    this.cssW = cssW; this.cssH = cssH;
+    this.fit();
+  },
+
+  fit() {
+    this.scale = Math.min(this.cssW / this.VIEW_W, this.cssH / this.MIN_VIEW_H) / this.zoom;
+    this.w = this.cssW / this.scale;
+    this.h = this.cssH / this.scale;
+  },
+
+  /** @param now  de golpe (al empezar o acabar la partida) */
+  setZoom(k, now = false) {
+    this.zoomTo = k;
+    if (now && this.zoom !== k) { this.zoom = k; if (this.cssW) this.fit(); }
   },
 
   follow(tx, ty, dt) {
+    if (this.zoom !== this.zoomTo) {
+      this.zoom = Math.abs(this.zoom - this.zoomTo) < 0.002 ? this.zoomTo : G.U.damp(this.zoom, this.zoomTo, 5, dt);
+      this.fit();
+    }
     this.x = G.U.damp(this.x, tx, 9, dt);
     this.y = G.U.damp(this.y, ty, 9, dt);
     if (this.shake > 0) {

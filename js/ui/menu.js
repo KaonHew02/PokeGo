@@ -95,8 +95,11 @@ G.MenuUI = (() => {
   /** Texto bajo "Mochila": cuántos objetos y MT llevas. */
   function bagLine() {
     const s = G.DB.save, sum = o => Object.values(o || {}).reduce((a, b) => a + (+b || 0), 0);
-    const items = sum(s.bag), tms = sum(s.tms);
-    $('menu-bag-sub').textContent = items || tms ? G.I18n.f('Objetos: {x} · MT: {x}', items, tms) : G.T('Vacía');
+    const items = sum(s.bag), tms = sum(s.tms), charms = G.Gacha.charms(s).filter(c => c.on).length;
+    const parts = [];
+    if (items || tms) parts.push(G.I18n.f('Objetos: {x} · MT: {x}', items, tms));
+    if (charms) parts.push(G.I18n.f('Amuletos Iris: {x}', charms));
+    $('menu-bag-sub').textContent = parts.join(' · ') || G.T('Vacía');
   }
 
   /** Texto bajo "Amigos" y "Jugar": quién está en línea, solicitudes, sala. */
@@ -330,8 +333,8 @@ G.MenuUI = (() => {
         ${monExtras(dex)}
         ${p.types.length === 1 ? `<p class="sub center" style="margin:2px 0 0">Monotipo: +20 % de daño con sus ataques de tipo ${G.U.TYPE_NAME[p.types[0]]}</p>` : ''}
         <p style="font-size:14px;margin:10px 0 4px">Empieza con <b class="gold">${G.T(G.Moves.BY_ID[G.startMoveOf(dex)].name, 'move')}</b></p>
-        <p class="move-icons" title="Movimientos que puede aprender">
-          ${G.Moves.poolFor(p).map(id => `<span title="${G.T(G.Moves.BY_ID[id].name, 'move')}">${G.Icons.html('move:' + id, 16)}</span>`).join('')}</p>
+        <p id="dex-moves" class="move-icons" aria-label="Movimientos que puede aprender">
+          ${G.Moves.poolFor(p).map(id => moveIcon(id, 32)).join('')}</p>
         ${usingThis
           ? '<button class="btn grow" disabled style="width:100%">Es tu compañero</button>'
           : `<button id="dex-pick" class="btn gold" data-sfx="confirm" style="width:100%">Elegir de compañero${viewShiny ? ' (shiny)' : ''}</button>`}
@@ -356,7 +359,49 @@ G.MenuUI = (() => {
       renderGrid(true); showDetail(dex);
     };
     if (own) wireExtras(dex, box);
+    moveTips(box);
   }
+
+  // ---------------- recuadro de cada ataque de la ficha (24-10-2026) ----------------
+  // Al pasar el ratón por su icono, o al tocarlo en el móvil: su tipo, si es físico
+  // o especial y lo que hace. (En iPhone el clic no llega a document: va en cada icono.)
+  const moveIcon = (id, size) => `<span data-mv="${id}" aria-label="${G.T(G.Moves.BY_ID[id].name, 'move')}">${G.Icons.html('move:' + id, size)}</span>`;
+  let tip = null, tipOn = null;
+
+  function hideTip() {
+    if (tip) tip.remove();
+    tip = tipOn = null;
+  }
+
+  function showTip(el) {
+    hideTip();
+    const m = G.Moves.BY_ID[el.dataset.mv];
+    tip = document.createElement('div');
+    tip.className = 'move-tip';
+    tip.innerHTML = `<b>${G.T(m.name, 'move')}</b>
+      <div class="move-tip-tags">${G.UI.typeChips([m.type])}<span class="tag-chip cat">${m.cat ? G.Stats.NAME[m.cat] : 'Mejora'}</span></div>
+      <p class="sub">${G.T(m.desc)}</p>`;
+    document.body.appendChild(tip);
+    G.I18n.walk(tip);                  // (ya traducido: con otro texto mediría otra cosa)
+    tipOn = el;
+    // Encima del icono si cabe; si no, debajo. Siempre dentro de la pantalla.
+    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = G.U.clamp(r.left + r.width / 2 - w / 2, 6, Math.max(6, innerWidth - w - 6)) + 'px';
+    tip.style.top = (r.top - h - 6 >= 6 ? r.top - h - 6 : Math.max(6, Math.min(r.bottom + 6, innerHeight - h - 6))) + 'px';
+  }
+
+  function moveTips(box) {
+    hideTip();
+    box.querySelectorAll('[data-mv]').forEach(el => {
+      el.onpointerenter = e => { if (e.pointerType === 'mouse') showTip(el); };
+      el.onpointerleave = e => { if (e.pointerType === 'mouse') hideTip(); };
+      el.onclick = () => { if (!G.Touch.active) return; if (tipOn === el) hideTip(); else showTip(el); };
+    });
+  }
+
+  // Tocar en otro sitio o mover la lista lo quita.
+  document.addEventListener('pointerdown', e => { if (tip && !(e.target.closest && e.target.closest('[data-mv]'))) hideTip(); }, true);
+  document.addEventListener('scroll', hideTip, true);
 
   // ---------------- naturaleza, habilidad y MT (Tienda Kecleon, 20-10-2026) ----------------
   // Se ven en la ficha de cada Pokémon y aquí se usan la Menta, las Cápsulas y las MT de la Mochila.
@@ -379,7 +424,7 @@ G.MenuUI = (() => {
         ${btn('cap', 'capsule', 'Cápsula', capN)}${btn('caph', 'capsuleh', 'Cápsula Oculta', caphN)}</div>
       <p class="sub mx-desc"><span>${fx.d}</span>${fx.d2 ? ` <span>${fx.d2}</span>` : ''}</p>
       <div class="mx-row"><span>MT</span>${taught.length
-        ? `<span class="move-icons">${taught.map(id => `<span title="${G.T(G.Moves.BY_ID[id].name, 'move')}">${G.Icons.html('move:' + id, 16)}</span>`).join('')}</span>`
+        ? `<span class="move-icons">${taught.map(id => moveIcon(id, 16)).join('')}</span>`
         : `<small>${G.T('Aún no ha aprendido ninguna')}</small>`}
         ${btn('tm', 'tm', 'Enseñar MT', tmsHere.length)}</div>
       <div id="mx-picker"></div>

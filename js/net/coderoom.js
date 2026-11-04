@@ -12,7 +12,9 @@
  *     y el anfitrión le deja entrar y manda la lista a todos, o le dice por qué
  *     no: llena (4), ya ha empezado o versión distinta del juego.
  *   - El anfitrión manda en la lista. Si un invitado pierde la conexión, se le
- *     espera GRACE_MS (vuelve a llamar solo); si sale, se le quita. Si sale el
+ *     espera GRACE_MS (vuelve a llamar solo); si sale, se le quita. Mientras se
+ *     juega conserva su sitio hasta que acabe la partida, aunque se haya quedado
+ *     fuera de ella: espera en la sala y seguís juntos (waitFor). Si sale el
  *     anfitrión, la sala se cierra para todos.
  *
  * La sala se ve en G.Social.room con la forma de las de amigos (más code, me y
@@ -246,6 +248,19 @@ G.CodeRoom = (() => {
     setTimeout(() => { if (room === r && !r.members.some(m => m.uid === from)) G.Net.kick(from); }, 1000);
   }
 
+  /**
+   * Anfitrión: un invitado sin conexión tiene GRACE_MS para volver. Con la sala
+   * cerrada (se está jugando) no se le quita: al volver le decían que la partida ya
+   * había empezado y se quedaba sin sala. Se cuenta otra vez al reabrirla (setOpen).
+   */
+  function waitFor(u) {
+    if (lost.has(u)) return;
+    lost.set(u, setTimeout(() => {
+      lost.delete(u);
+      if (room && room.isHost && room.open && G.Net.mode(u) !== 'direct') remove(u);
+    }, GRACE_MS));
+  }
+
   function remove(u) {
     if (!room || u === room.host || !room.members.some(m => m.uid === u)) return;
     room.members = room.members.filter(m => m.uid !== u);
@@ -319,9 +334,7 @@ G.CodeRoom = (() => {
     if (room.isHost) {
       if (u === room.host || !room.members.some(m => m.uid === u)) return;
       if (mode === 'direct') { clearTimeout(lost.get(u)); lost.delete(u); }
-      else if ((mode === 'failed' || mode === 'closed') && !lost.has(u)) {
-        lost.set(u, setTimeout(() => { lost.delete(u); if (room && room.isHost && G.Net.mode(u) !== 'direct') remove(u); }, GRACE_MS));
-      }
+      else if (mode === 'failed' || mode === 'closed') waitFor(u);
     } else if (u === room.host) {
       if (mode === 'direct') hello();              // canal nuevo tras un corte: te presentas otra vez
       else if (mode === 'closed') end(ERR.left);   // el anfitrión ya no está en el servidor
@@ -340,7 +353,12 @@ G.CodeRoom = (() => {
     /** Volver sin haber entrado: cancela crear o unirse (si ya estás en una sala, sigues en ella). */
     cancel() { if (!room) leave(); },
     /** Anfitrión: la sala admite gente nueva (no mientras se juega). */
-    setOpen(open) { if (room && room.isHost) { room.open = !!open; changed(); } },
+    setOpen(open) {
+      if (!room || !room.isHost) return;
+      room.open = !!open;
+      if (open) for (const m of room.members) if (m.uid !== room.host && G.Net.mode(m.uid) !== 'direct') waitFor(m.uid);
+      changed();
+    },
     /** Has cambiado de compañero: los demás lo ven en la sala. */
     refreshMember() {
       if (!room) return;

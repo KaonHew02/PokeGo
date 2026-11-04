@@ -114,6 +114,8 @@ G.I18n = (() => {
 
   /** Traduce un texto (sin espacios de los lados) al idioma actual. */
   function t(s, context) {
+    // Movimiento evolucionado: "Puño Meteoro +" es su nombre de base y el «+» (ver moves.js).
+    if (context === 'move' && typeof s === 'string' && s.endsWith(' +')) return t(s.slice(0, -2), context) + ' +';
     const contextual = contexts.get(context);
     if (contextual && Object.prototype.hasOwnProperty.call(contextual, s)) return contextual[s];
     if (lang === 'es' || !s || typeof s !== 'string') return s;

@@ -146,6 +146,19 @@ G.HUD = (() => {
       bx += tw + 5;
     }
 
+    // Esferas para el equipo que llevas puestas, con lo que les queda.
+    for (const id in pl.orbFx) {
+      const o = G.Orbs.BY[id], txt = o.name.toUpperCase() + ' ' + Math.ceil(pl.orbFx[id]) + 's';
+      ctx.font = F(800, 9);
+      ctx.textAlign = 'left';
+      const tw = ctx.measureText(txt).width + 12;
+      roundRect(ctx, bx, py + 34, tw, 15, 7);
+      ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fill();
+      ctx.fillStyle = o.color;
+      ctx.fillText(txt, bx + 6, py + 45);
+      bx += tw + 5;
+    }
+
     if (G.Coop.active) drawCoop(ctx, w, h, pl, px, py + (bx > px ? 56 : 40));
 
     // Grieta: flecha grande que late en el borde si no se ve, y si se ve, una
@@ -338,12 +351,13 @@ G.HUD = (() => {
       ctx.textAlign = 'left';
       ctx.fillText(String(i + 1), x + 3, y + 10);
 
-      // nombre encima del activo (con un vínculo: "Ascuas +2")
+      // nombre encima del activo (con un vínculo: "Ascuas +2"; evolucionado: "Ascuas + (+2)")
       if (on) {
         ctx.font = F(700, 10);
         ctx.textAlign = 'center';
         ctx.fillStyle = fused ? BOND : col;
-        ctx.fillText(fused ? G.T(m.name, 'move') + ' +' + (g.length - 1) : G.T(m.name, 'move'), x + S / 2, y - 7);
+        const more = m.evolved ? ' (+' + (g.length - 1) + ')' : ' +' + (g.length - 1);
+        ctx.fillText(G.T(m.name, 'move') + (fused ? more : ''), x + S / 2, y - 7);
       }
     }
 
@@ -377,6 +391,8 @@ G.HUD = (() => {
       }
     }
 
+    drawOrbs(ctx, w, pl, sx, sy, totalW, S, touch);
+
     // ---------- botón de pausa (táctil) ----------
     if (touch) {
       const sa = G.Touch.safeArea();
@@ -398,10 +414,73 @@ G.HUD = (() => {
       ctx.font = F(600, 10);
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(180,200,230,.55)';
-      ctx.fillText(touch ? 'Arrastra el dedo para moverte  ·  toca un ataque para cambiarlo'
+      ctx.fillText(touch ? 'Arrastra el dedo para moverte · toca un ataque para cambiarlo · toca una esfera para usarla'
                          : 'WASD moverse  ·  1-4 / Q / E o clic en un ataque para cambiarlo  ·  Esc pausa', w / 2, h - 4);
     }
 
+    ctx.restore();
+  }
+
+  // ---------------- esferas ----------------
+
+  /**
+   * Casillas de las esferas (systems/orbs.js) encima de los ataques; si la barra
+   * está arriba del todo (Colocar los botones), debajo. Sólo se ven si llevas
+   * alguna. Se tocan (o se hace clic) para usarlas; en la esquina, la tecla 5-8
+   * o, con mando, X en la elegida e Y en las demás. Con el ratón encima o elegida
+   * con el mando sale lo que hace (en el móvil, en la pausa).
+   */
+  function drawOrbs(ctx, w, pl, sx, sy, barW, S, touch) {
+    if (!pl.orbs.some(Boolean)) return;
+    const B = 40, GAP = 6, n = pl.orbs.length, W = n * B + (n - 1) * GAP;
+    const pad = !touch && !!G.Pad.name && G.Settings.get('gamepad') !== false;
+    const x0 = G.U.clamp(sx + (barW - W) / 2, 6, Math.max(6, w - W - 6));
+    const up = sy - 22 - B, y0 = up < 30 ? sy + S + 8 : up;
+    const mo = !touch && !pad ? G.Input.mouse() : null;
+    let tip = null;
+    pl.orbs.forEach((s, i) => {
+      const x = x0 + i * (B + GAP), chosen = pad && i === pl.orbSel;
+      roundRect(ctx, x, y0, B, B, 10);
+      ctx.fillStyle = s ? 'rgba(10,16,28,.82)' : 'rgba(10,16,28,.3)';
+      ctx.fill();
+      if (!s) { ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(140,170,210,.16)'; ctx.stroke(); return; }
+      const o = G.Orbs.BY[s.id];
+      ctx.lineWidth = chosen ? 2.5 : 1.5;
+      ctx.strokeStyle = chosen ? '#ffd23f' : o.color;
+      ctx.stroke();
+      ctx.globalAlpha = pl.dead ? 0.45 : 1;
+      G.Icons.draw(ctx, s.id, x + (B - 24) / 2, y0 + (B - 24) / 2, 24);
+      ctx.globalAlpha = 1;
+      G.Touch.addButton(x, y0, B, B, () => G.Orbs.use(pl, i), GAP / 2);
+      if (s.n > 1) {
+        ctx.font = F(800, 10); ctx.textAlign = 'right';
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
+        ctx.strokeText('×' + s.n, x + B - 3, y0 + B - 4);
+        ctx.fillStyle = '#f4f8ff';
+        ctx.fillText('×' + s.n, x + B - 3, y0 + B - 4);
+      }
+      if (!touch) {
+        ctx.font = F(800, 9); ctx.textAlign = 'left';
+        ctx.fillStyle = chosen ? '#ffd23f' : 'rgba(180,200,230,.7)';
+        G.I18n.rawCanvas(ctx, 'fillText', pad ? (chosen ? 'X' : 'Y') : String(i + 5), x + 4, y0 + 11);
+      }
+      if (chosen || (mo && mo.x >= x && mo.x <= x + B && mo.y >= y0 && mo.y <= y0 + B)) tip = { o, x: x + B / 2 };
+    });
+    if (!tip) return;
+    // Lo que hace: nombre y texto, en un recuadro encima de las casillas.
+    ctx.save();
+    ctx.font = F(600, 10);
+    const tw = Math.min(w - 12, Math.max(ctx.measureText(tip.o.desc).width, ctx.measureText(tip.o.name).width) + 14);
+    const bx = G.U.clamp(tip.x - tw / 2, 6, Math.max(6, w - tw - 6)), by = y0 - 36;
+    roundRect(ctx, bx, by, tw, 30, 7);
+    ctx.fillStyle = 'rgba(10,16,28,.92)'; ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = tip.o.color; ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(220,230,245,.95)';
+    ctx.fillText(tip.o.desc, bx + 7, by + 25);
+    ctx.font = F(800, 10);
+    ctx.fillStyle = tip.o.color;
+    ctx.fillText(tip.o.name, bx + 7, by + 12);
     ctx.restore();
   }
 
@@ -410,7 +489,7 @@ G.HUD = (() => {
   /**
    * Botón AUTO (autopilot.js), arriba a la derecha: debajo del clima o, en
    * móvil, de la pausa. Se pulsa con el ratón o el dedo; al lado, su tecla (T,
-   * o X con mando). Encendido: dorado y latiendo, "Modo automático" debajo y un
+   * o Select con mando). Encendido: dorado y latiendo, "Modo automático" debajo y un
    * marco dorado en la pantalla. Si mandas tú un momento, se apaga el dorado y
    * una barra dice cuánto falta para que AUTO vuelva.
    */
@@ -444,12 +523,13 @@ G.HUD = (() => {
     if (on && man > 0) { ctx.fillStyle = '#ffd23f'; ctx.fillRect(x + 6, y + bh - 6, (bw - 12) * man, 3); }
     // La tecla que lo cambia (en móvil se toca el botón).
     if (!touch) {
-      const key = G.Pad.name && G.Settings.get('gamepad') !== false ? 'X' : 'T', kx = x - 24, ky = iy - 9;
-      roundRect(ctx, kx, ky, 18, 18, 4);
+      const pad = G.Pad.name && G.Settings.get('gamepad') !== false;
+      const key = pad ? 'SEL' : 'T', kw = pad ? 26 : 18, kx = x - kw - 6, ky = iy - 9;
+      roundRect(ctx, kx, ky, kw, 18, 4);
       ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fill();
       ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(180,200,230,.55)'; ctx.stroke();
       ctx.font = F(800, 10); ctx.fillStyle = 'rgba(220,230,245,.9)';
-      G.I18n.rawCanvas(ctx, 'fillText', key, kx + 9, ky + 13);
+      G.I18n.rawCanvas(ctx, 'fillText', key, kx + kw / 2, ky + 13);
     }
     if (on) {
       ctx.font = F(800, 10); ctx.textAlign = 'right';

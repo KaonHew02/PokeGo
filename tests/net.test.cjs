@@ -343,7 +343,7 @@ test('room code: if the host vanishes, guests find out and leave the room', asyn
   const env = await codeRoom(), { clock, server } = env;
   const b = await join(env, 'B');
   server.ids.get(env.host.id).destroy();                                // sin avisar
-  await clock.tick(30000);
+  await clock.tick(55000);
   assert.equal(b.room, null); assert.equal(b.G.Net.open_, false);
   assert.deepEqual(b.emits.at(-1), { ended: 'El anfitrión ha cerrado la sala.' });
 });
@@ -553,8 +553,8 @@ test('host waits RECONNECT_MS for a teammate whose connection drops, keeping wha
   assert.ok(ev.some(e => e[0] === 'ne' && e[1] === 5)); assert.ok(!ev.some(e => e[0] === 'c' || e[0] === 'hn'));
   // Cut for good: gone after RECONNECT_MS.
   h.clock.now = 20000; h.net.peer('a', 'failed');
-  h.clock.now = 39000; h.C.tick(1); assert.equal(h.C.mate('a').connected, true);
-  h.clock.now = 40001; h.C.tick(1);
+  h.clock.now = 64000; h.C.tick(1); assert.equal(h.C.mate('a').connected, true);
+  h.clock.now = 65001; h.C.tick(1);
   assert.equal(h.C.mate('a').connected, false); assert.ok(h.said.includes('Ana ha dejado la partida'));
   assert.ok(h.to('b').some(f => f.ev.some(e => e[0] === 'gone' && e[1] === 'a')));
 });
@@ -565,12 +565,12 @@ test('a guest whose connection to the host drops waits RECONNECT_MS before its r
   g.sent.length = 0;
   g.net.down.host = true; g.net.peer('host', 'failed');
   g.C.toHost(['lp']);                                                    // a pick while cut: it waits, it is not lost
-  g.clock.now = 19000; g.C.tick(1);
+  g.clock.now = 44000; g.C.tick(1);
   assert.equal(g.C.active, true); assert.deepEqual(g.lost, []); assert.equal(g.sent.length, 0);
   g.net.down.host = false; g.net.peer('host', 'direct');
   assert.equal(g.sent.length, 1); assert.deepEqual(g.sent[0][1].ev, [['lp']]);     // sent as soon as it is back
-  g.clock.now = 30000; g.net.peer('host', 'failed');
-  g.clock.now = 50001; g.C.tick(1);
+  g.clock.now = 50000; g.net.peer('host', 'failed');
+  g.clock.now = 95001; g.C.tick(1);
   assert.equal(g.C.active, false); assert.deepEqual(g.lost, ['Se ha perdido la conexión con el anfitrión.']);
 });
 

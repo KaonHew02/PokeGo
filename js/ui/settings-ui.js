@@ -13,8 +13,6 @@ G.SettingsUI = (() => {
 
   function init() {
     document.querySelectorAll('#set-tabs .gen-tab').forEach(b => { b.onclick = () => { tab = b.dataset.t; render(); }; });
-    // En el móvil no hay apuntado a mano (siempre apunta solo): fuera la pestaña, que sólo tenía eso.
-    if (G.Settings.touch) document.querySelector('#set-tabs [data-t="a11y"]').classList.add('hidden');
     // Al conectar o quitar un mando con Controles abierto, se ve al momento.
     for (const ev of ['gamepadconnected', 'gamepaddisconnected']) addEventListener(ev, () => { if (isOpen() && tab === 'ctl') render(); });
     $('set-close').onclick = close;
@@ -105,12 +103,14 @@ G.SettingsUI = (() => {
              <div><span class="padkey">Start</span></div><span>pausa</span>
              <div><span class="padkey">A</span></div><span>pulsar (en los menús) · saltar la animación de Arceus</span>
              <div><span class="padkey">B</span></div><span>atrás / cerrar</span>
-             <div><span class="padkey">Y</span></div><span>cambiar las cartas al subir de nivel</span>
-             <div><span class="padkey">X</span></div><span>modo automático (AUTO)</span>
+             <div><span class="padkey">X</span></div><span>usar la esfera elegida</span>
+             <div><span class="padkey">Y</span></div><span>pasar a otra esfera · cambiar las cartas al subir de nivel</span>
+             <div><span class="padkey">Select</span></div><span>modo automático (AUTO)</span>
              <div><span class="padkey">Stick der.</span></div><span>desplazar las listas · apuntar (si activas Apuntar a mano en Accesibilidad)</span>
            </div>`
         + section('En móvil o tablet')
         + `<p class="sub">Pon el dedo en cualquier parte y arrastra para moverte: el joystick aparece donde tocas. Toca un ataque de abajo para cambiarlo y el botón de arriba a la derecha para pausar. Se juega en horizontal.</p>`
+        + `<p class="sub">Las esferas que encuentres salen encima de los ataques: tócalas para usarlas.</p>`
         + `<p class="sub">El botón AUTO, arriba a la derecha, hace que tu Pokémon se mueva y elija solo; si te mueves tú, mandas tú. Las partidas con AUTO no van al ranking.</p>`
         + `<div class="set-row"><div class="grow"><b>Tamaño del joystick</b><small>Cuánto hay que arrastrar el dedo.</small></div></div>`
         + choice('stick', [[0.8, 'Pequeño'], [1, 'Normal'], [1.25, 'Grande']])
@@ -121,13 +121,16 @@ G.SettingsUI = (() => {
              <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o flechas</div><span>moverse</span>
              <div><kbd>1</kbd>–<kbd>4</kbd> o clic en el icono</div><span>elegir ataque</span>
              <div><kbd>Q</kbd> / <kbd>E</kbd></div><span>ataque anterior / siguiente</span>
+             <div><kbd>5</kbd>–<kbd>8</kbd> o clic en la casilla</div><span>usar una esfera</span>
              <div><kbd>Esc</kbd> o <kbd>P</kbd></div><span>pausa</span>
              <div><kbd>T</kbd></div><span>modo automático (AUTO)</span>
              <div><kbd>1</kbd>–<kbd>3</kbd></div><span>elegir carta al subir de nivel</span>
            </div>`;
     } else if (tab === 'a11y') {
       box.innerHTML = section('Apuntado')
-        + toggle('aimManual', 'Apuntar a mano', 'Tus ataques van hacia el ratón (o hacia donde empujes el stick derecho del mando) en vez de al enemigo más cercano. Si sueltas el stick y no mueves el ratón, vuelve a apuntar solo. La cadena y los meteoros siguen buscando a los enemigos solos.');
+        + toggle('aimManual', 'Apuntar a mano', G.Settings.touch
+          ? 'Con el dedo en la mitad derecha de la pantalla apuntas tus ataques: arrástralo hacia donde quieras disparar (con el joystick fijo, en cualquier sitio lejos de él). La mitad izquierda sigue siendo para moverte. Al soltar el dedo, vuelven a apuntar solos al enemigo más cercano. La cadena y los meteoros siguen buscando a los enemigos solos.'
+          : 'Tus ataques van hacia el ratón (o hacia donde empujes el stick derecho del mando) en vez de al enemigo más cercano. Si sueltas el stick y no mueves el ratón, vuelve a apuntar solo. La cadena y los meteoros siguen buscando a los enemigos solos.');
     } else if (tab === 'acc') {
       renderAccount(box);
     } else {

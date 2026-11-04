@@ -16,6 +16,22 @@ G.Combat = (() => {
   let ghost = false;
   let fields = [];
 
+  /*
+   * A quién pueden dar los ataques: los enemigos y, en la Sentencia, Arceus. Él no
+   * es un enemigo (vive en judgment.js): por eso el contacto, atraer con el remolino
+   * y el modo automático siguen mirando sólo G.EnemyMgr.
+   */
+  function foesIn(x, y, r) {
+    const out = G.EnemyMgr.queryCircle(x, y, r), a = G.Judgment.arceus;
+    if (a && G.U.dist2(x, y, a.x, a.y) <= (r + a.r) * (r + a.r)) out.push(a);
+    return out;
+  }
+  /** Para lo que busca blanco solo (teledirigidos, torretas): Arceus, cuando no queda ningún legendario. */
+  function seekable() {
+    const all = G.EnemyMgr.all(), a = G.Judgment.arceus;
+    return a && !all.length ? [a] : all;
+  }
+
   // ---------------- ejecutar el movimiento activo ----------------
 
   function tick(dt, pl, now) {
@@ -106,7 +122,7 @@ G.Combat = (() => {
       return !!(t && t.hurt && !t.dead && G.U.dist(pl.x, pl.y, t.x, t.y) <= reach(m));
     }
     const r = m.kind === 'aura' ? m.radius : m.kind === 'nova' ? m.speed * m.life || reach(m) : reach(m);
-    return G.EnemyMgr.queryCircle(pl.x, pl.y, r).length > 0;
+    return foesIn(pl.x, pl.y, r).length > 0;
   }
 
   function payload(m) {
@@ -165,7 +181,7 @@ G.Combat = (() => {
     G.FX.slash(pl.x, pl.y - G.LIFT * 0.5, pl.aim, m.radius, m.arc, col, G.VFX.forMove(m));
     if (ghost) return;
 
-    for (const e of G.EnemyMgr.queryCircle(pl.x, pl.y, m.radius)) {
+    for (const e of foesIn(pl.x, pl.y, m.radius)) {
       if (!inArc(pl.x, pl.y, e.x, e.y, pl.aim, half)) continue;
       hit(pl, e, m.dmg * pl.atkFor(m), col, e.x - pl.x, e.y - pl.y, m.knock || 0, m);
     }
@@ -195,7 +211,7 @@ G.Combat = (() => {
       if (along < -r || along > len + r) return false;
       return Math.abs(-px * sa + py * ca) <= w / 2 + r;
     };
-    for (const e of G.EnemyMgr.queryCircle(mx, my, len / 2 + w)) {
+    for (const e of foesIn(mx, my, len / 2 + w)) {
       if (onBeam(e.x, e.y, e.r)) hit(pl, e, m.dmg * pl.atkFor(m), col, ca, sa, 0, m);
     }
     for (const p of G.World.propsInCircle(mx, my, len / 2 + w)) {
@@ -221,7 +237,7 @@ G.Combat = (() => {
     }
     if (ghost) return;
     let healed = 0;
-    for (const e of G.EnemyMgr.queryCircle(pl.x, pl.y, m.radius)) {
+    for (const e of foesIn(pl.x, pl.y, m.radius)) {
       hit(pl, e, m.dmg * pl.atkFor(m), col, e.x - pl.x, e.y - pl.y, 0, m);
       if (m.drain) healed += m.drain;
     }
@@ -260,7 +276,7 @@ G.Combat = (() => {
   /** Cadena: golpea a un enemigo y salta a los siguientes más cercanos (cada salto, algo menos). */
   function chain(pl, m) {
     const col = G.U.TYPE_COLOR[m.type], vis = G.VFX.forMove(m);
-    let cur = pl.target && !pl.target.dead && pl.target.hurt ? pl.target : G.Projectiles.nearest(G.EnemyMgr.all(), pl.x, pl.y, reach(m));
+    let cur = pl.target && !pl.target.dead && pl.target.hurt ? pl.target : G.Projectiles.nearest(seekable(), pl.x, pl.y, reach(m));
     if (!cur) return;
     let fx = pl.x, fy = pl.y - G.LIFT, k = 1;
     const done = new Set();
@@ -278,7 +294,7 @@ G.Combat = (() => {
       k *= 0.85;
       fx = tx; fy = ty;
       let best = null, bd = m.radius * m.radius;
-      for (const e of G.EnemyMgr.queryCircle(cur.x, cur.y, m.radius)) {
+      for (const e of foesIn(cur.x, cur.y, m.radius)) {
         if (done.has(e.id)) continue;
         const d = G.U.dist2(cur.x, cur.y, e.x, e.y);
         if (d < bd) { bd = d; best = e; }
@@ -306,7 +322,7 @@ G.Combat = (() => {
   function meteors(pl, m) {
     const col = G.U.TYPE_COLOR[m.type], vis = G.VFX.forMove(m);
     const n = Math.max(1, m.count | 0);
-    const near = G.EnemyMgr.queryCircle(pl.x, pl.y, reach(m)).filter(e => !e.dead);
+    const near = foesIn(pl.x, pl.y, reach(m)).filter(e => !e.dead);
     G.U.shuffle ? G.U.shuffle(near) : near.sort(() => Math.random() - 0.5);
     for (let i = 0; i < n; i++) {
       const e = near[i];
@@ -346,7 +362,7 @@ G.Combat = (() => {
     pl.invuln = Math.max(pl.invuln || 0, 0.3);
     const w = m.width || 34;
     const mx = sx + ca * len / 2, my = sy + sa * len / 2;
-    for (const e of G.EnemyMgr.queryCircle(mx, my, len / 2 + w)) {
+    for (const e of foesIn(mx, my, len / 2 + w)) {
       if (segDist2(sx, sy, pl.x, pl.y, e.x, e.y) <= (w / 2 + e.r) ** 2) hit(pl, e, m.dmg * pl.atkFor(m), col, ca, sa, m.knock || 0, m);
     }
     for (const p of G.World.propsInCircle(mx, my, len / 2 + w)) {
@@ -393,7 +409,7 @@ G.Combat = (() => {
   function spotFor(pl, m) {
     const t = pl.target;
     if (t && !t.dead && t.hurt && G.U.dist(pl.x, pl.y, t.x, t.y) <= reach(m)) return t;
-    return G.Projectiles.nearest(G.EnemyMgr.all(), pl.x, pl.y, reach(m));
+    return G.Projectiles.nearest(seekable(), pl.x, pl.y, reach(m));
   }
 
   /** Carga: brilla un momento y sale un rayo enorme (el de beam, con su grosor). */
@@ -440,7 +456,7 @@ G.Combat = (() => {
     }
     if (ghost) return;
     G.Camera.kick(0.1);
-    for (const e of G.EnemyMgr.queryCircle(pl.x, pl.y, m.radius)) hit(pl, e, m.dmg * pl.atkFor(m), col, e.x - pl.x, e.y - pl.y, m.knock || 300, m);
+    for (const e of foesIn(pl.x, pl.y, m.radius)) hit(pl, e, m.dmg * pl.atkFor(m), col, e.x - pl.x, e.y - pl.y, m.knock || 300, m);
     for (const p of G.World.propsInCircle(pl.x, pl.y, m.radius)) G.World.damageProp(p, m.dmg * pl.atkFor(m), col);
   }
 
@@ -455,7 +471,7 @@ G.Combat = (() => {
   function rebound(p, from) {
     if (!(p.bounce > 0)) return false;
     let best = null, bd = 220 * 220;
-    for (const e of G.EnemyMgr.queryCircle(from.x, from.y, 220)) {
+    for (const e of foesIn(from.x, from.y, 220)) {
       if (e.dead || p.hits.has(e.id)) continue;
       const d = G.U.dist2(from.x, from.y, e.x, e.y);
       if (d < bd) { bd = d; best = e; }
@@ -495,7 +511,7 @@ G.Combat = (() => {
       f.a += 2.2;
       if (!f.ghost && !pl.dead) {
         const d = m.dmg * pl.atkFor(m);
-        for (const e of G.EnemyMgr.queryCircle(pl.x, pl.y, m.radius)) hit(pl, e, d, f.col, e.x - pl.x, e.y - pl.y, 40, m);
+        for (const e of foesIn(pl.x, pl.y, m.radius)) hit(pl, e, d, f.col, e.x - pl.x, e.y - pl.y, 40, m);
         for (const p of G.World.propsInCircle(pl.x, pl.y, m.radius)) G.World.damageProp(p, d, f.col);
       }
       return --f.n <= 0;
@@ -542,7 +558,7 @@ G.Combat = (() => {
       G.FX.burst(f.x, f.y - 6, f.col, 12, 160);
       if (G.Camera.sees(f.x, f.y, 40)) G.Audio.sfx('break');
       if (!f.ghost) {
-        for (const e of G.EnemyMgr.queryCircle(f.x, f.y, f.r)) {
+        for (const e of foesIn(f.x, f.y, f.r)) {
           hit(pl, e, f.dmg, f.col, e.x - f.x, e.y - f.y, 0, m);
           if (!e.dead) e.applyStun((m.stun || 1) * (e.boss || e.judge ? 0.35 : 1));
         }
@@ -557,7 +573,7 @@ G.Combat = (() => {
   function blast(f, r, k = 1) {
     if (f.ghost) return;
     const pl = f.owner, m = f.m;
-    for (const e of G.EnemyMgr.queryCircle(f.x, f.y, r)) hit(pl, e, f.dmg * k, f.col, e.x - f.x, e.y - f.y, m.knock || 0, m);
+    for (const e of foesIn(f.x, f.y, r)) hit(pl, e, f.dmg * k, f.col, e.x - f.x, e.y - f.y, m.knock || 0, m);
     for (const p of G.World.propsInCircle(f.x, f.y, r)) G.World.damageProp(p, f.dmg * k, f.col);
   }
 
@@ -570,7 +586,7 @@ G.Combat = (() => {
       if (NEW_FIELDS.has(f.kind)) { if (tickNewField(f, dt)) fields.splice(i, 1); continue; }
       if (f.kind === 'mine') {
         const armed = f.t >= f.arm;
-        const trig = armed && G.EnemyMgr.queryCircle(f.x, f.y, 14).length > 0;
+        const trig = armed && foesIn(f.x, f.y, 14).length > 0;
         if (trig || f.t >= f.life) {
           G.FX.ring(f.x, f.y, 4, f.r, f.col, 0.3, 4);
           G.FX.burst(f.x, f.y - 6, f.col, 10, 150);
@@ -590,7 +606,7 @@ G.Combat = (() => {
         f.shotT -= dt;
         if (f.shotT <= 0) {
           const m = f.m;
-          const tg = G.Projectiles.nearest(G.EnemyMgr.all(), f.x, f.y, m.range || 300);
+          const tg = G.Projectiles.nearest(seekable(), f.x, f.y, m.range || 300);
           f.shotT = tg ? m.rate || 0.6 : 0.15;
           if (tg) {
             const a = Math.atan2(tg.y - f.y, tg.x - f.x);
@@ -764,7 +780,8 @@ G.Combat = (() => {
   }
 
   function hit(pl, e, dmg, col, dx, dy, knock, m) {
-    const k = typeK(m.type, e) * G.Stats.taken(e.mon, m.cat) * abilOut(pl, m, e);
+    // (e.share: Arceus sólo recibe una parte, ver judgment.js. Lo que cuenta en tus daños es esa parte.)
+    const k = typeK(m.type, e) * G.Stats.taken(e.mon, m.cat) * abilOut(pl, m, e) * (e.share || 1);
     const crit = isCrit(pl), sk = statusK(pl);
     dmg *= k * (crit ? critMul(pl) : 1);
     e.hurt(dmg, col, dx, dy, sk ? knock : 0, crit ? 'crit' : G.Types.label(G.Types.mult(m.type, e.types)));
@@ -852,7 +869,7 @@ G.Combat = (() => {
       // eran inmunes a todos los movimientos de proyectil.
       const sx = p.orb || p.px == null ? p.x : p.px, sy = p.orb || p.py == null ? p.y : p.py;
       const half = Math.hypot(p.x - sx, p.y - sy) / 2;
-      for (const e of G.EnemyMgr.queryCircle((sx + p.x) / 2, (sy + p.y) / 2, half + p.r)) {
+      for (const e of foesIn((sx + p.x) / 2, (sy + p.y) / 2, half + p.r)) {
         if (segDist2(sx, sy, p.x, p.y, e.x, e.y) > (p.r + e.r) * (p.r + e.r)) continue;
         if (p.orb) {
           const last = p.hitLog.get(e.id) || -99;
@@ -876,7 +893,7 @@ G.Combat = (() => {
         }
 
         const crit = isCrit(pl), sk = statusK(pl);
-        const k = (p.mtype ? typeK(p.mtype, e) : 1) * G.Stats.taken(e.mon, p.mcat) * (crit ? critMul(pl) : 1) * abilOut(pl, p.src, e);
+        const k = (p.mtype ? typeK(p.mtype, e) : 1) * G.Stats.taken(e.mon, p.mcat) * (crit ? critMul(pl) : 1) * abilOut(pl, p.src, e) * (e.share || 1);
         e.hurt(p.dmg * k, p.color, p.vx || (e.x - pl.x), p.vy || (e.y - pl.y), sk ? p.knock : 0,
                crit ? 'crit' : p.mtype ? G.Types.label(G.Types.mult(p.mtype, e.types)) : null);
         if (Math.random() < 0.5) G.FX.sp('impact', p.vis ? p.vis.pal : 'normal', e.x, e.y - e.bodyH * 0.5, { life: 0.12, scale: 1 });
@@ -905,7 +922,8 @@ G.Combat = (() => {
     if (pl.dead) return;
     for (const e of G.EnemyMgr.queryCircle(pl.x, pl.y, pl.r + 40)) {
       if (G.U.dist2(e.x, e.y, pl.x, pl.y) > (e.r + pl.r) * (e.r + pl.r)) continue;
-      if (e.touchCd > 0 || e.behavior === 'thief' || e.stunT > 0) continue;
+      // (En una copia del anfitrión, que está quieto lo dice su estado.)
+      if (e.touchCd > 0 || e.behavior === 'thief' || e.stunT > 0 || (e.net && e.net.st & 16)) continue;
       e.touchCd = 0.55;
       e.strike(pl);
       pl.hurt(e.dmg, e.atkType, false, e.cat);
@@ -916,6 +934,6 @@ G.Combat = (() => {
     }
   }
 
-  return { tick, resolve, ghostCast, ghostOrbit, updateFields, drawGroundFields, drawAirFields, clearFields,
+  return { tick, resolve, ghostCast, ghostOrbit, updateFields, drawGroundFields, drawAirFields, clearFields, seekable,
            get fieldCount() { return fields.length; } };
 })();

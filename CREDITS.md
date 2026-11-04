@@ -150,6 +150,10 @@ novedades y en su `sw.js`, y escritos de nuevo en el código de PokéGo): la cop
 navegador que no se puede leer se aparta y se recupera en vez de perderse, y sin conexión
 la app abre la última versión del juego que se usó.
 
+Esferas de Mundo Misterioso, Amuletos Iris, gacha ×100, Arceus con Tablas y su objeto roto en el minuto 35,
+resumen de la partida, segundo joystick y arreglos del cooperativo: de las novedades de PokéSurvivor
+del 22 al 27-10-2026 (vistos en su página de novedades y rehechos aquí), de JPTER78.
+
 ## Fuente
 
 [Pixelify Sans](https://github.com/eifetx/Pixelify-Sans) (SIL Open Font License 1.1,

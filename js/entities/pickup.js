@@ -21,7 +21,8 @@ G.Pickups = (() => {
     coin:  { color: '#ffd23f', glow: '#b8860b', r: 5.5 },
     ticket:   { color: '#ffd23f', glow: '#c08a10', r: 7 },
     ticket10: { color: '#c47bff', glow: '#8a3fd0', r: 8 },
-    item:     { color: '#ffd23f', glow: '#c08a10', r: 9 }       // value = id del objeto
+    item:     { color: '#ffd23f', glow: '#c08a10', r: 9 },      // value = id del objeto
+    orb:      { color: '#c9b8ff', glow: '#6f5fd0', r: 9 }       // value = id de la esfera (systems/orbs.js)
   };
   /** Probabilidad de que un Pokémon normal suelte un ticket del gacha. */
   const BOSS_T10 = 1 / 3;               // ticket ×10 de un jefe normal
@@ -54,7 +55,7 @@ G.Pickups = (() => {
 
   /** Copia de un objeto del anfitrión. */
   function addRemote(id, kind, x, y, value) {
-    if (list.some(p => p.id === id)) return;
+    if (!KIND[kind] || list.some(p => p.id === id)) return;      // (una clase que esta versión no conoce no se puede dibujar)
     const o = orb(kind, x, y, value);
     o.id = id;
     list.push(o);
@@ -127,6 +128,8 @@ G.Pickups = (() => {
         if (dd < d2) { d2 = dd; pl = o; }
       }
       if (!pl) continue;
+      // Una esfera que no te cabe se queda en el suelo hasta que gastes alguna.
+      if (p.kind === 'orb' && !G.Orbs.canTake(pl, p.value)) { p.pulled = false; continue; }
       const dx = pl.x - p.x, dy = pl.y - p.y;
       const mag2 = pl.magnet * pl.magnet;
 
@@ -183,15 +186,16 @@ G.Pickups = (() => {
       } else {
         // Baya, imán y bomba: su icono pixel art.
         const ICON = { heal: 'berry', magnet: 'magnet', bomb: 'bomb', ticket: 'ticket', ticket10: 'ticket10' };
-        const sz = p.kind === 'ticket10' || p.kind === 'item' ? 24 : 18;
-        if (p.kind === 'item') {
-          // Objeto: brillo dorado latiendo, para que se vea desde lejos.
+        const own = p.kind === 'item' || p.kind === 'orb';        // (su icono es el de lo que lleva)
+        const sz = p.kind === 'ticket10' || own ? 24 : 18;
+        if (own) {
+          // Objeto o esfera: brillo latiendo (dorado o de su color), para que se vea desde lejos.
           ctx.globalAlpha = 0.35 + Math.sin(p.t * 1.5) * 0.15;
-          ctx.fillStyle = '#ffe14d';
+          ctx.fillStyle = p.kind === 'orb' ? G.Orbs.BY[p.value].color : '#ffe14d';
           ctx.beginPath(); ctx.arc(p.x, y, 18, 0, 6.2832); ctx.fill();
           ctx.globalAlpha = 1;
         }
-        G.Icons.draw(ctx, p.kind === 'item' ? p.value : ICON[p.kind], p.x - sz / 2, y - sz / 2 - 1, sz);
+        G.Icons.draw(ctx, own ? p.value : ICON[p.kind], p.x - sz / 2, y - sz / 2 - 1, sz);
         continue;
       }
       ctx.fillStyle = 'rgba(255,255,255,.8)';

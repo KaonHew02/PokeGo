@@ -36,6 +36,8 @@
  * coop.js no manda otra foto de la partida mientras haya más de BUF_HIGH esperando.
  * Y si el canal se corta, se vuelve a llamar enseguida (RECALL_MS) a quien ya
  * estaba conectado, también si el servidor de PeerJS se ha cortado un momento.
+ * Eso sólo cuenta bytes y sólo los que no han salido: lo que va por detrás en tiempo
+ * lo vigila coop.js con LAG_MS (conexión lenta, 4-11-2026).
  */
 G.Net = (() => {
   const ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
@@ -53,8 +55,10 @@ G.Net = (() => {
   const BUF_HIGH = 64 * 1024, BUF_MAX = 2 * 1024 * 1024;
   // Quien ya estaba conectado y se corta: se le vuelve a llamar a los RECALL_MS
   // (no a los 5-15 s de antes) y, mientras no pasen GIVEUP_MS, aunque su id no
-  // esté en el servidor de PeerJS (se está volviendo a conectar a él).
-  const RECALL_MS = 2500, GIVEUP_MS = 20000;
+  // esté en el servidor de PeerJS (se está volviendo a conectar a él). GIVEUP_MS es
+  // la espera de la partida (RECONNECT_MS en coop.js): si fuera menor, al invitado
+  // se le acabaría la sala antes que la espera.
+  const RECALL_MS = 2500, GIVEUP_MS = 45000;
   // TURN (ver arriba): las credenciales se piden una vez y se renuevan a las TURN_TTL;
   // se esperan como mucho TURN_WAIT antes de conectar. Por el TURN se tarda algo más
   // en conectar: entonces hay hasta TURN_TIMEOUT.

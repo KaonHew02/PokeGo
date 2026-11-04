@@ -41,6 +41,8 @@ G.Game = (() => {
     G.Touch.init(cv);
     // En móvil: al cambiar de app o girarlo en vertical, la partida se pausa.
     document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); });
+    // La cortina de avisos u otra app por encima no ocultan la página: sólo le quitan el foco.
+    addEventListener('blur', () => { if (G.Touch.active) autoPause(); });
     G.RunUI.wirePause(() => { state = 'playing'; G.UI.hideAll(); }, quitRun);
     Backdrop.init();
     last = performance.now();
@@ -173,7 +175,7 @@ G.Game = (() => {
       G.Coop.begin(coop, pl, coopApi);
       G.Social.setPlaying(true);
     }
-    G.Camera.x = pl.x; G.Camera.y = pl.y; G.Camera.shake = 0;
+    G.Camera.x = pl.x; G.Camera.y = pl.y; G.Camera.shake = 0; G.Camera.setZoom(1, true);
     specReset(); lastView = null;
     G.Auto.reset();                // modo automático: de cero (si sigue encendido, esta partida ya no va al ranking)
     // Hojas de sprites locales: el compañero y los primeros enemigos.
@@ -311,12 +313,22 @@ G.Game = (() => {
     else pl.coins += 150;
     G.Spawner.say(isNew ? '¡' + name + ' se une a tu equipo!' : '¡' + name + ' te da las gracias! (+150 monedas, ya lo tenías)', 4);
     G.Audio.sfx('shinyGet');
+    if (isNew) charmNews(dex);
   };
+
+  /** Con este Pokémon nuevo has completado su región: su Amuleto Iris (ver systems/gacha.js). */
+  function charmNews(dex) {
+    const gen = (G.DEX_BY[dex] || {}).gen;
+    if (!gen || !G.Gacha.hasCharm(G.DB.save, gen)) return;
+    G.UI.toast(G.I18n.f('¡Amuleto Iris de {x}! Shiny al 2 % en su banner', G.Gacha.BANNERS[gen - 1].name), 4200);
+    G.Audio.sfx('legend');
+  }
 
   /** Un shiny salvaje cae: te lo quedas (y la versión normal si no la tenías). */
   G.onShinyCaught = e => {
     if (!G.DB.save || !pl) return;
     if (G.Coop.isHost) G.Coop.shinyCaught(e);
+    const fresh = !G.DB.owns(e.dex);
     const isNew = G.DB.grantShiny(e.dex, 'wild');
     G.DB.save.stats.shinies++;
     G.DB.commit(true);
@@ -324,6 +336,7 @@ G.Game = (() => {
     G.Spawner.say(isNew ? '¡Has conseguido a ' + e.name + ' shiny!' : '¡Otro ' + e.name + ' shiny! (+300 monedas)', 4);
     if (!isNew) pl.coins += 300;
     G.Audio.sfx('shinyGet');
+    if (fresh) charmNews(e.dex);
   };
 
   function endRun(dead = true) {
@@ -335,6 +348,7 @@ G.Game = (() => {
     if (coop) G.Social.setPlaying(false);
     state = 'over';
     specReset();
+    G.Camera.setZoom(1, true);
     G.Audio.music(null);
     G.Audio.sfx(dead ? 'gameover' : 'back');
     const save = G.DB.save;
@@ -380,8 +394,8 @@ G.Game = (() => {
 
     G.RunUI.showOver({
       dead, time, level: pl.level, kills: pl.kills, bosses: pl.bosses, coins, record, t1: pl.t1, t10: pl.t10, judge,
-      moves: pl.moves, caught, auto,
-      breakdown: Object.entries(parts).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(' · ') +
+      moves: pl.moves, item: pl.item, dex: pl.dex, mates: coop ? G.Coop.summaries() : [], caught, auto,
+      breakdown: Object.entries(parts).filter(([, v]) => v).map(([k, v]) => `${G.T(k[0].toUpperCase() + k.slice(1))} ${v}`).join(' · ') +
                  (mul > 1 ? ` · ×${mul.toFixed(2)} Fortuna` : '')
     }, () => { pl = null; G.Flow.afterRun(); });
   }
@@ -464,7 +478,7 @@ G.Game = (() => {
 
   // ---------------- recogida ----------------
 
-  const PICK_SFX = { xp: 'xp', xpBig: 'xp', coin: 'coin', heal: 'heal', bomb: 'break', magnet: 'confirm', ticket: 'shiny', ticket10: 'legend', item: 'legend' };
+  const PICK_SFX = { xp: 'xp', xpBig: 'xp', coin: 'coin', heal: 'heal', bomb: 'break', magnet: 'confirm', ticket: 'shiny', ticket10: 'legend', item: 'legend', orb: 'confirm' };
 
   /*
    * Cooperativo: la elección de objeto y las cartas de nivel no pueden taparse.
@@ -555,6 +569,10 @@ G.Game = (() => {
       if (mine) offerItem(p.value);
       return;
     }
+    if (p.kind === 'orb') {
+      if (mine) G.Orbs.got(pl, p.value);
+      return;
+    }
     if (p.kind === 'ticket' || p.kind === 'ticket10') {
       if (p.kind === 'ticket') pl.t1++; else pl.t10++;
       bankTickets();
@@ -624,7 +642,7 @@ G.Game = (() => {
     }
     if (G.Input.tap('escape') || G.Input.tap('keyp')) { togglePause(); return; }
     if (state !== 'playing' || !pl) return;
-    // T (X en el mando, o el botón AUTO del HUD): modo automático, también caído.
+    // T (Select en el mando, o el botón AUTO del HUD): modo automático, también caído.
     if (G.Input.tap('keyt')) G.Auto.toggle();
     // Caído: 1-4 dejan elegido el ataque para cuando te levanten (sin sonido ni
     // efectos). En grupo, Q / E / Tab (LB / RB / A en el mando) cambian a quién miras.
@@ -641,6 +659,12 @@ G.Game = (() => {
     }
     if (G.Input.tap('keyq')) pl.cycle(-1);
     if (G.Input.tap('keye') || G.Input.tap('tab')) pl.cycle(1);
+    // Esferas: 5-8; con mando, X usa la elegida e Y pasa a otra (gamepad.js).
+    for (let i = 0; i < 4; i++) {
+      if (G.Input.tap('digit' + (i + 5)) || G.Input.tap('numpad' + (i + 5))) G.Orbs.use(pl, i);
+    }
+    if (G.Input.tap('orbuse')) G.Orbs.useSelected(pl);
+    if (G.Input.tap('orbnext')) G.Orbs.step(pl);
   }
 
   // ---------------- mirar a un compañero (caído en grupo) ----------------
@@ -835,7 +859,7 @@ G.Game = (() => {
     G.EnemyMgr.update(dt, all);
     G.EnemyMgr.rebuildGrid();
     G.Combat.tick(dt, pl, time);
-    G.Projectiles.update(dt, pl, G.EnemyMgr.all());
+    G.Projectiles.update(dt, pl, G.Combat.seekable());
     G.Combat.resolve(dt, pl, time);
     G.Combat.updateFields(dt);
     G.Pickups.update(dt, all, onCollect);
@@ -902,16 +926,17 @@ G.Game = (() => {
 
   /*
    * Apuntar a mano: una mira donde está el ratón (y el cursor en cruz), o
-   * delante de tu Pokémon si apuntas con el stick derecho.
+   * delante de tu Pokémon si apuntas con el stick derecho o el segundo joystick.
    */
   function drawAimMark() {
     // Caído no se apunta (manualAim se quedaba con lo último de antes de caer).
     const on = state === 'playing' && pl && !pl.dead && pl.manualAim && !G.Judgment.cinematic;
-    const cur = on && !G.Pad.aim() ? 'crosshair' : '';
+    const held = G.Pad.aim() || G.Touch.aim();
+    const cur = on && !held ? 'crosshair' : '';
     if (cv.style.cursor !== cur) cv.style.cursor = cur;
     if (!on) return;
     let x, y;
-    if (G.Pad.aim()) {
+    if (held) {
       const k = G.Camera.scale;
       x = (pl.x - G.Camera.left() + Math.cos(pl.aim) * 90) * k;
       y = (pl.y - G.LIFT * 0.5 - G.Camera.top() + Math.sin(pl.aim) * 90) * k;

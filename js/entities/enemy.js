@@ -169,6 +169,12 @@
       this.stunT = Math.max(this.stunT || 0, dur);
     }
 
+    /** Dormido (Soporesfera, sólo en quien manda en los enemigos): quieto y con zetas encima. */
+    applySleep(dur) {
+      this.zzz = true;
+      this.stunT = Math.max(this.stunT || 0, dur);
+    }
+
     applySlow(factor, dur = 1.2) {
       if (this.remote) { G.Coop.status(this, 's', factor); return; }
       this.slow = Math.max(this.slow, factor);
@@ -205,7 +211,8 @@
         for (let i = 0; i < 10; i++) G.Pickups.drop('coin', this.x + G.U.rand(-40, 40), this.y + G.U.rand(-30, 30), 5);
         // Los jefes siempre sueltan un objeto equipable.
         G.Pickups.drop('item', this.x - 26, this.y - 10, G.Items.rollDrop());
-      }
+        G.Pickups.drop('orb', this.x + 26, this.y - 10, G.Orbs.rollDrop());
+      } else if (!this.judge && Math.random() < G.Orbs.DROP_RATE) G.Pickups.drop('orb', this.x, this.y - 8, G.Orbs.rollDrop());
       G.Pickups.dropXp(this.x, this.y, this.xp, this.boss, !!this.legend, !!this.judge);
       if (this.golden && Math.random() < 0.35) G.Pickups.drop('coin', this.x + 6, this.y - 4, 3);
       // Duende del tesoro: Meowth suelta monedas; Gholdengo, un ticket ×10.
@@ -308,7 +315,7 @@
         } else if (le.slow) terrainMul = le.slow < 0.5 ? 0.45 : 0.55;
       }
 
-      if (this.stunT > 0) { this.stunT -= dt; this.anim.loop('Idle'); return; }
+      if (this.stunT > 0) { if ((this.stunT -= dt) <= 0) this.zzz = false; this.anim.loop('Idle'); return; }
 
       const spd = this.spd * (1 - this.slow) * terrainMul * G.Weather.speedFor(this.types);
       let [dx, dy] = G.U.norm(pl.x - this.x, pl.y - this.y);
@@ -742,8 +749,23 @@
       ctx.restore();
 
       if (this.dead) return;
-      // Aturdido: estrellitas girando sobre la cabeza.
-      if (this.stunT > 0) {
+      // Dormido (Soporesfera): zetas que suben. (En una copia, lo dice el estado que manda el anfitrión.)
+      if (this.zzz || (this.net && this.net.st & 32)) {
+        const now = performance.now() / 1000;
+        ctx.save();
+        ctx.font = '800 11px Pixelify,"Segoe UI",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#efe4ff';
+        ctx.strokeStyle = 'rgba(40,16,80,.85)'; ctx.lineWidth = 2.5;
+        for (let i = 0; i < 3; i++) {
+          const k = (now * 0.7 + i / 3) % 1, zx = this.x + 6 + k * 10, zy = this.y - lift - this.bodyH - 2 - k * 16;
+          ctx.globalAlpha = Math.min(1, (1 - k) * 2);
+          G.I18n.rawCanvas(ctx, 'strokeText', 'Z', zx, zy);
+          G.I18n.rawCanvas(ctx, 'fillText', 'Z', zx, zy);
+        }
+        ctx.restore();
+      } else if (this.stunT > 0) {
+        // Aturdido: estrellitas girando sobre la cabeza.
         const now = performance.now() / 1000;
         for (let i = 0; i < 3; i++) {
           const a = now * 5 + i * 2.094;

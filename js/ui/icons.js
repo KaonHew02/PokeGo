@@ -15,7 +15,25 @@ G.Icons = (() => {
   const MEDAL = ['.kkk....kkk.', '.krk....kqk.', '..krk..kqk..', '...krkkqk...', '....kkkk....', '...kmmmmk...',
                  '..kmwmmmnk..', '.kmwmsmmmnk.', '.kmmsssmmnk.', '.kmmmsmmmnk.', '..kmmmmmnk..', '...kkkkkk...'];
 
+  // Esferas de Mundo Misterioso (systems/orbs.js): una bola de su color con su dibujo en medio.
+  const ORB_BALL = ['....kkkk....', '..kkcccckk..', '.kcwwccccck.', '.kwwwccccck.', 'kcwwccccccdk', 'kccccccccddk',
+                    'kccccccccddk', 'kcccccccdddk', '.kcccccdddk.', '.kcdddddddk.', '..kkddddkk..', '....kkkk....'];
+  const orbIcon = (c, d, w, glyph) => ({ pal: { c, d, w, g: '#f4f8ff' }, rows: ORB_BALL.map((row, y) => {
+    const g = glyph[y - 3];
+    return g ? row.slice(0, 3) + [...g].map((ch, i) => (ch === '#' ? 'g' : row[3 + i])).join('') + row.slice(9) : row;
+  }) });
+
   const UI = {
+    orbSleep: orbIcon('#8a5fd8', '#5a3aa0', '#c9a8ff', ['#####.', '...#..', '..#...', '.#....', '#####.']),
+    orbSlow:  orbIcon('#2fae6a', '#1a7a48', '#8fe8b4', ['#....#', '.#..#.', '..##..', '#....#', '.#..#.']),
+    orbBlast: orbIcon('#4f9ad8', '#2c6aa8', '#b0dcff', ['#.##.#', '.#..#.', '#....#', '.#..#.', '#.##.#']),
+    orbFocus: orbIcon('#e0702a', '#a84a14', '#ffc08a', ['..##..', '.#..#.', '##..##', '.#..#.', '..##..']),
+    orbLight: orbIcon('#d8b020', '#a07c10', '#fff0a0', ['#.##.#', '..##..', '######', '..##..', '#.##.#']),
+    orbSpeed: orbIcon('#28a8c8', '#167a98', '#a8ecff', ['#..#..', '.#..#.', '..#..#', '.#..#.', '#..#..']),
+    // Amuleto Iris (systems/gacha.js).
+    charm: { pal: { c: '#e8dcc0', w: '#fff6d0', y: '#ffd23f', r: '#ff7ab8', b: '#6fb8ff' }, rows: [
+      '..c......c..', '...c....c...', '....c..c....', '.....kk.....', '....kwyk....', '...kwyyrk...',
+      '..kwyyrrbk..', '.kwyyrrrbbk.', '..kyyrrbbk..', '...kyrrbk...', '....krbk....', '.....kk.....'] },
     // Tienda Kecleon y Mochila (20-10-2026, dibujados por TheAdro7 en el PR #236): MT, Menta, Cápsulas, Mochila y tienda.
     tm: { pal: { b: '#7f93ff', d: '#4a5bc4', w: '#e6ecff' }, rows: [
       '....kkkk....', '..kkbbbbkk..', '.kbbwwbbbbk.', '.kbwwbbbbbk.', 'kbbwbkkbbbbk', 'kbbbk..kbbbk',

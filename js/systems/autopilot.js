@@ -4,7 +4,7 @@
  * ataques ya se lanzan solos; aquí sólo se decide hacia dónde ir.
  *
  *   Se enciende con el botón AUTO del HUD (ratón o toque), la tecla T o el
- *   botón X del mando, y se recuerda en este aparato (ajuste 'auto').
+ *   botón Select del mando, y se recuerda en este aparato (ajuste 'auto').
  *   Si te mueves tú (teclas, joystick o stick), mandas tú al momento; AUTO
  *   vuelve a los MANUAL_S segundos de soltar (sigue encendido).
  *   Mientras está encendido se apunta solo, aunque esté "Apuntar a mano".
@@ -15,8 +15,8 @@
  *             embestidas a punto de salir), disparos que te van a dar, avisos
  *             en el suelo (hazards.js) que estallan antes de que salgas,
  *             paredes y objetos que cortan el paso, lava, trampas y Arceus
- *   interés   experiencia, monedas, bayas (más con poca vida), tickets y
- *             objetos; en grupo, no alejarse del grupo; si no hay nadie a
+ *   interés   experiencia, monedas, bayas (más con poca vida), tickets,
+ *             objetos y esferas; en grupo, no alejarse del grupo; si no hay nadie a
  *             tiro, acercarse a pelear
  *   objetivo  además, cada SCAN s se elige UNO de lo que hay hasta OBJ_R (casi
  *             dos pantallas): un compañero caído (lo primero; se queda a su
@@ -25,7 +25,7 @@
  *             mapa no te tocan) y, en su arena, el legendario (a la distancia
  *             a la que pega tu ataque: fightRing), cofres que romper,
  *             cofres con candado (se queda al lado hasta que se abre), altares,
- *             manantiales (con poca vida) y, del suelo, objetos, tickets e
+ *             manantiales (con poca vida) y, del suelo, objetos, esferas, tickets e
  *             imanes. Gana el que más vale para lo que cuesta llegar (lo que hay
  *             que andar, rodeando paredes con el campo de pathing.js, y los
  *             enemigos del camino) y se sigue con él hasta acabarlo: no se cambia
@@ -42,6 +42,10 @@
  * tirones); sin prisa, anda despacio (la horda no se queda atrás). Si lleva un
  * rato sin avanzar (atascado), prueba otra dirección.
  * En la Sentencia de Arceus sólo huye.
+ *
+ * Esferas (systems/orbs.js): se usan solas si hacen falta (orbPick): rodeado, con
+ * poca vida, con un jefe delante o con muchos enemigos en pantalla; la que ya
+ * tiene las 3 y no le deja coger más, en cuanto haya algo a lo que tirársela.
  *
  * Elecciones (con el juego parado, a los CHOICE_S s para que se vea qué elige, y
  * con un aviso que lo dice): cartas de nivel (cardScore), objetos (itemKeep) y
@@ -80,6 +84,7 @@ G.Auto = (() => {
   // pone el punto al que ir y a qué distancias (y con qué peso) se mira lo que falta por ver.
   const CELL = 256, SEEN_R = 760, EXP_GO = 640, EXP_D = [500, 800, 1100, 1400], EXP_W = [0.6, 1, 0.8, 0.5];
   const FAR = { mate: MATE_R, rift: RIFT_R, boss: Infinity }, BACK = { mate: 6, rift: 3 };
+  const ORB_LOOK = 0.4, ORB_WAIT = 4;   // cada cuánto se mira si toca una esfera y lo que se espera tras usar una
   const ANG = Array.from({ length: DIRS }, (_, i) => i / DIRS * Math.PI * 2);
   const CS = ANG.map(Math.cos), SN = ANG.map(Math.sin);
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -98,6 +103,7 @@ G.Auto = (() => {
   let clock = 0, crowd = null;   // s con AUTO al mando; hacia dónde estaba la horda ({ x, y })
   // Daño recibido hace poco (vida perdida, en partes de la máxima, que se olvida en ~20 s) y daño por segundo que haces.
   let hurtAcc = 0, lastHp = null, dealt = 0, lastDealt = null;
+  let orbT = 0;                  // s hasta volver a mirar si toca una esfera
 
   const on = () => !!(G.Settings && G.Settings.get('auto'));
   const inRun = () => !!G.Game.player && G.Game.state !== 'ui' && G.Game.state !== 'over';
@@ -141,7 +147,7 @@ G.Auto = (() => {
     stuck = { t: 0, x: 0, y: 0, n: 0, avoid: 0, avoidT: 0, count: 0 };
     choice = { key: null, t: 0 };
     obj = null; ban.clear(); seen.clear(); clock = 0; crowd = null;
-    hurtAcc = 0; lastHp = null; dealt = 0; lastDealt = null;
+    hurtAcc = 0; lastHp = null; dealt = 0; lastDealt = null; orbT = 0;
     if (!netOn && G.Net) { netOn = true; G.Net.on(onNet); }
     if (on()) markUsed();
   }
@@ -177,6 +183,7 @@ G.Auto = (() => {
     if ((stepT -= dt) <= 0) { stepT = STEP; want = decide(pl); }
     if (sideT > 0) sideT -= dt;
     stuckTick(pl, dt);
+    orbTick(pl, dt);
     // Giro suave hacia la dirección elegida: más rápido cuanto más urge (un disparo encima).
     if (!want.stay) {
       const ca = Math.atan2(hy, hx);
@@ -208,6 +215,49 @@ G.Auto = (() => {
         if (obj && obj.kind === 'explore') obj = null;
       }
     } else s.n = 0;
+  }
+
+  /** Usa una esfera si toca (ver orbPick). */
+  function orbTick(pl, dt) {
+    if ((orbT -= dt) > 0 || !pl.orbs || !pl.orbs.some(Boolean)) return;
+    orbT = ORB_LOOK;
+    const i = orbPick(pl.orbs, orbInfo(pl));
+    if (i >= 0 && G.Orbs.use(pl, i)) orbT = ORB_WAIT;
+  }
+
+  /** Lo que mira orbPick. Los enemigos dormidos o quietos no cuentan: ya no son un problema. */
+  function orbInfo(pl) {
+    const s = { hp: pl.hp / pl.maxHp, close: 0, screen: 0, boss: false, bossNear: false, fx: pl.orbFx };
+    for (const e of G.EnemyMgr.all()) {
+      if (e.dead || e.behavior === 'thief' || !G.Camera.sees(e.x, e.y, 0)) continue;
+      const d = Math.hypot(e.x - pl.x, e.y - pl.y) - e.r - pl.r;
+      if (e.boss) { s.boss = true; if (d < 220) s.bossNear = true; }
+      if (e.stunT > 0 || (e.net && e.net.st & 16)) continue;
+      s.screen++;
+      if (d < 70) s.close++;
+    }
+    return s;
+  }
+
+  /**
+   * Qué esfera usar ahora: su hueco o -1 (ninguna). Pura.
+   *   orbs: pl.orbs
+   *   s = { hp (0..1), close (enemigos despiertos encima), screen (en pantalla), boss (hay
+   *         un jefe a la vista), bossNear (y está cerca), fx: { id: s que le quedan } }
+   */
+  function orbPick(orbs, s) {
+    const want = [];
+    if (s.close >= 5 || (s.close >= 3 && s.hp < 0.5)) want.push('orbBlast', 'orbSleep', 'orbSlow');
+    if (s.hp < 0.35 && s.close) want.push('orbSpeed', 'orbSleep', 'orbBlast', 'orbSlow');
+    if (s.boss) want.push('orbFocus', ...(s.bossNear ? ['orbSlow', 'orbSleep'] : []));
+    if (s.screen >= 12) want.push('orbFocus', 'orbSlow', 'orbLight');
+    for (const id of want) {
+      const i = orbs.findIndex(o => o && o.id === id);
+      if (i >= 0 && !(s.fx && s.fx[id] > 0)) return i;
+    }
+    // Llena de una, mejor gastar una que dejar las siguientes en el suelo.
+    if (s.screen >= 6) return orbs.findIndex(o => o && o.n >= 3 && !(s.fx && s.fx[o.id] > 0));
+    return -1;
   }
 
   /** Qué hay alrededor y adónde ir (cada STEP s). */
@@ -373,6 +423,7 @@ G.Auto = (() => {
       case 'ticket': return 3;
       case 'ticket10': return 5;
       case 'item': return pl.item ? 0.6 : 2.4;
+      case 'orb': return G.Orbs.canTake(pl, p.value) ? 2.4 : 0;
     }
     return 0.3;
   }
@@ -427,6 +478,7 @@ G.Auto = (() => {
       }
       case 'ticket': return 2.6;
       case 'ticket10': return 4;
+      case 'orb': return G.Orbs.canTake(pl, p.value) ? 2.6 : 0;
       case 'magnet': return xpLeft >= 12 ? 2 : 0;                    // sólo si hay experiencia que traer
       case 'heal': return hp < 0.5 ? (1 - hp) * 4 : 0;
     }
@@ -1195,7 +1247,7 @@ G.Auto = (() => {
       const i = bondPick(p.list, p.opt, p.first, pl.mon), m = p.list[i];
       const group = p.opt.mode === 'add' ? [...p.opt.group, m] : p.first ? [p.first, m] : null;
       G.RunUI.pickBond(i);
-      if (group && done()) G.UI.toast('AUTO une ' + group.map(x => G.T(x.name, 'move')).join(' + '), 2400);
+      if (group && done()) G.UI.toast('AUTO une ' + group.map(x => G.T(x.name, 'move')).join(' · '), 2400);
     }
   }
 
@@ -1212,7 +1264,7 @@ G.Auto = (() => {
     /** player.js: a qué apuntar (un cofre que es el objetivo), o null. game.js: la marca del objetivo. */
     aimAt, drawMark,
     /** Para las pruebas (tests/auto.test.cjs) y para depurar. */
-    score, cardScore, cardInfo, pickCard, bestSlot, movePower, groupPower, itemValue, itemKeep, bondPick, pickObjective, breakSpot, fightRing, exploreDir,
+    score, cardScore, cardInfo, pickCard, bestSlot, movePower, groupPower, itemValue, itemKeep, bondPick, pickObjective, breakSpot, fightRing, exploreDir, orbPick,
     DIRS, MANUAL_S, CHOICE_S, STICK, REROLL_BELOW,
     get debug() {
       return { want, mag, hx, hy, side, stuck: stuck.count, goals: goals.length, stays: stays.length,

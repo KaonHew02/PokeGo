@@ -153,14 +153,14 @@ G.RunUI = (() => {
       <div><span>Nivel</span><b>${r.level}</b></div>
       <div><span>Derrotados</span><b>${r.kills}</b></div>
       <div><span>Jefes</span><b>${r.bosses}</b></div>
-      ${r.judge ? `<div style="grid-column:1/-1"><span>Ante Arceus</span><b class="gold">${G.U.mmss(r.judge.time)} · ${r.judge.bosses} ${r.judge.bosses === 1 ? 'legendario' : 'legendarios'}</b></div>` : ''}
+      ${r.judge ? `<div style="grid-column:1/-1"><span>Ante Arceus</span><b class="gold">${G.U.mmss(r.judge.time)} · ${r.judge.bosses} ${r.judge.bosses === 1 ? 'legendario' : 'legendarios'}</b></div>
+      <div style="grid-column:1/-1"><span>Daño a Arceus</span><b class="gold">${Math.round(r.judge.dmg).toLocaleString(G.I18n.locale)}</b></div>` : ''}
       <div style="grid-column:1/-1"><span>Pokémonedas ganadas</span>
         <b class="gold"><span class="coin"></span> +${r.coins}</b>
         <div style="font-size:12px;color:var(--muted)">${r.breakdown}</div></div>
       ${r.t1 || r.t10 ? `<div style="grid-column:1/-1"><span>Tickets del gacha</span><b>
         ${r.t1 ? G.Icons.html('ticket', 22) + ' +' + r.t1 + ' ' : ''}${r.t10 ? G.Icons.html('ticket10', 22) + ' +' + r.t10 + ' ×10' : ''}</b></div>` : ''}
-      <div style="grid-column:1/-1"><span>Movimientos</span><b style="font-size:15px">
-        ${r.moves.map(m => `${G.Icons.html('move:' + m.id, 16)} ${G.T(m.name, 'move')} Nv.${m.lvl}`).join(' · ') || '—'}</b></div>
+      <div id="over-sum" class="over-sum"></div>
       ${r.caught && r.caught.length ? `<div style="grid-column:1/-1" class="caught"><span>${G.Icons.html('shiny', 12)} Shinies conseguidos</span>
         <div class="caught-row" id="over-caught"></div></div>` : ''}
       ${r.record ? '<div style="grid-column:1/-1;text-align:center" class="gold">¡Nuevo récord de tiempo!</div>' : ''}
@@ -171,6 +171,7 @@ G.RunUI = (() => {
         <p>¿Te está gustando PokéGo? Lo hago yo solo y los servidores cuestan dinero. Si quieres, puedes ayudarme a mantenerlo en línea.</p>
         <a class="btn small gold" href="${G.Funding.url}" target="_blank" rel="noopener">${G.Icons.html('heart', 14)} Apoyar en Ko-fi</a>
       </div>` : ''}`;
+    overSum(r);
     const ask = $('over-ask');
     if (ask) ask.querySelector('.x').onclick = () => ask.remove();
     $('btn-again').onclick = onBack;
@@ -184,6 +185,37 @@ G.RunUI = (() => {
       }
     }
     G.UI.show('scr-over');
+  }
+
+  /*
+   * Resumen al acabar (25-10-2026): el daño de cada ataque y por segundo, el daño
+   * total y el objeto. En grupo, una pestaña por jugador (lo de los demás llega
+   * durante la partida: ver net/coop.js). El nivel es el del equipo.
+   */
+  function overSum(r) {
+    const me = { name: G.T('Tú'), dex: r.dex, item: r.item, moves: r.moves };
+    const list = [me, ...(r.mates || [])], box = $('over-sum'), body = document.createElement('div');
+    const open = i => {
+      const p = list[i], mon = G.DEX_BY[p.dex], it = p.item && G.Items.BY[p.item];
+      const total = p.moves.reduce((s, m) => s + (m.dealt || 0), 0);
+      body.innerHTML = `<p class="sum-head" translate="no">${G.I18n.f('{x} · Nv. {x} · {x} de daño en total', mon ? G.T(mon.name) : '?', r.level, fmt(total))}</p>
+        ${movesTable(p.moves.slice().sort((a, b) => (b.dealt || 0) - (a.dealt || 0)), r.time)}
+        <p class="sub">${it ? G.Icons.html(p.item, 18) + ' <b>' + it.name + '</b>: ' + it.desc : 'Sin objeto.'}</p>`;
+      box.querySelectorAll('.seg button').forEach((b, j) => b.classList.toggle('on', j === i));
+    };
+    if (list.length > 1) {
+      const seg = document.createElement('div');
+      seg.className = 'seg';
+      list.forEach((p, i) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = p.name; b.setAttribute('translate', 'no');
+        b.onclick = () => open(i);
+        seg.appendChild(b);
+      });
+      box.appendChild(seg);
+    }
+    box.appendChild(body);
+    open(0);
   }
 
   /**
@@ -251,7 +283,7 @@ G.RunUI = (() => {
 
   function renderBond() {
     const { opt, first } = bond;
-    const names = ms => ms.map(m => G.T(m.name, 'move')).join(' + ');
+    const names = ms => ms.map(m => G.T(m.name, 'move')).join(' · ');
     const step2 = opt.mode === 'pair' && first;
     $('bond-sub').textContent = opt.mode === 'add' ? 'Elige qué movimiento se une a ' + names(opt.group)
       : step2 ? '¿Con cuál unes ' + G.T(first.name, 'move') + '?' : 'Elige el primer movimiento que vas a unir';
@@ -298,6 +330,19 @@ G.RunUI = (() => {
     renderBond();
   }
 
+  const fmt = v => Math.round(v).toLocaleString(G.I18n.locale);
+
+  /** Tabla de ataques (pausa y resumen final). list: { id, name, lvl, type, cat, dealt, since }; t: segundos de partida. */
+  function movesTable(list, t) {
+    const rows = list.map(m => {
+      const secs = Math.max(5, t - (m.since || 0)), col = G.U.TYPE_COLOR[m.type];
+      const cat = m.cat ? `<span class="tag-chip" style="background:${col}">${G.Stats.NAME[m.cat]}</span>` : '<span class="sub">Mejora</span>';
+      return `<tr><td>${G.Icons.html('move:' + m.id, 18)} ${G.T(m.name, 'move')} <small>${G.T('Nv.')}${m.lvl}</small></td><td>${cat}</td>
+        <td class="num">${m.cat ? fmt(m.dealt || 0) : '—'}</td><td class="num">${m.cat ? fmt((m.dealt || 0) / secs) + '/s' : '—'}</td></tr>`;
+    }).join('');
+    return `<table class="sum-moves"><tr><th></th><th></th><th class="num">Daño</th><th class="num">Por segundo</th></tr>${rows}</table>`;
+  }
+
   /*
    * Resumen de la partida en la pausa: tus ataques (categoría, daño hecho y
    * daño por segundo), tus estadísticas con todo lo subido y el objeto y las
@@ -306,15 +351,8 @@ G.RunUI = (() => {
   function pauseSummary() {
     const pl = G.Game.player;
     if (!pl) return '';
-    const t = G.Game.st.time, n = v => Math.round(v).toLocaleString('es');
-    const k2 = v => '×' + v.toFixed(2).replace('.', ',');
+    const n = fmt, k2 = v => '×' + v.toFixed(2).replace('.', ',');
     const pct = v => Math.round(v * 100) + ' %';
-    const moves = pl.moves.map(m => {
-      const secs = Math.max(5, t - (m.since || 0)), col = G.U.TYPE_COLOR[m.type];
-      const cat = m.cat ? `<span class="tag-chip" style="background:${col}">${G.Stats.NAME[m.cat]}</span>` : '<span class="sub">Mejora</span>';
-      return `<tr><td>${G.Icons.html('move:' + m.id, 18)} ${G.T(m.name, 'move')} <small>Nv.${m.lvl}</small></td><td>${cat}</td>
-        <td class="num">${m.cat ? n(m.dealt || 0) : '—'}</td><td class="num">${m.cat ? n((m.dealt || 0) / secs) + '/s' : '—'}</td></tr>`;
-    }).join('');
     const mon = pl.mon, fis = 1 - G.Stats.taken(mon, 'physical'), esp = 1 - G.Stats.taken(mon, 'special');
     const guard = v => (v >= 0 ? '−' : '+') + Math.round(Math.abs(v) * 100) + ' %';
     const st = [
@@ -335,13 +373,24 @@ G.RunUI = (() => {
       return s ? `<span class="chip">${G.Icons.html(s.icon, 12)} ${s.title} ×${c}</span>` : '';
     }).join('');
     return `<h3>Tus ataques</h3>
-      <table class="sum-moves"><tr><th></th><th></th><th class="num">Daño</th><th class="num">Por segundo</th></tr>${moves}</table>
+      ${movesTable(pl.moves, G.Game.st.time)}
       ${bondsHtml(pl)}
       <h3>Tus estadísticas</h3><div class="sum-stats">${st}</div>
       <h3>Objeto y cartas</h3>
       <p class="sub">${it ? G.Icons.html(pl.item, 18) + ' <b>' + it.name + '</b>: ' + it.desc : 'Sin objeto.'}</p>
       ${it ? '<p><button id="pause-drop" class="btn small" type="button" data-sfx="none">Tirar objeto</button></p>' : ''}
-      <div class="chips">${cards || '<span class="sub">Aún no has cogido cartas de mejora.</span>'}</div>`;
+      <div class="chips">${cards || '<span class="sub">Aún no has cogido cartas de mejora.</span>'}</div>
+      <h3>Tus esferas</h3>${orbsHtml(pl)}`;
+  }
+
+  /** Las esferas que llevas y lo que hace cada una (en el móvil no hay otro sitio donde leerlo). */
+  function orbsHtml(pl) {
+    const list = pl.orbs.filter(Boolean);
+    if (!list.length) return '<p class="sub">Aún no llevas esferas. Salen de los cofres, de los jefes y, a veces, al derrotar a un Pokémon.</p>';
+    return list.map(s => {
+      const o = G.Orbs.BY[s.id];
+      return `<p class="sub">${G.Icons.html(s.id, 18)} <b>${o.name}</b> ×${s.n}: ${o.desc}</p>`;
+    }).join('');
   }
 
   /*
@@ -361,7 +410,7 @@ G.RunUI = (() => {
     const nm = m => G.T(m.name, 'move');
     const btn = (attr, label, gold) => `<button class="btn small${gold ? ' gold' : ''}" type="button" ${attr}>${label}</button>`;
     const rows = groups.map((g, gi) => {
-      let h = `<p class="sub">${g.map(m => G.Icons.html('move:' + m.id, 16) + ' ' + nm(m)).join(' + ')}</p>`;
+      let h = `<p class="sub">${g.map(m => G.Icons.html('move:' + m.id, 16) + ' ' + nm(m)).join(' · ')}</p>`;
       if (swap && swap.g === gi) {
         h += (swap.out
           ? `<p class="sub">${'¿Cuál pones en lugar de ' + nm(swap.out) + '?'}</p><div class="row wrap" style="gap:6px">${loose.map((m, i) => btn(`data-in="${i}"`, nm(m), true)).join('')}`

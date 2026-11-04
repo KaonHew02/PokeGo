@@ -75,6 +75,10 @@ G.Player = class Player {
     this.power = null;         // poder de altar activo: { def, t, dur }
     this.slowT = 0;            // pegado por una trampa
     this.item = null;          // objeto equipado (data/items.js), uno por run
+    this.orbs = [null, null, null, null];    // esferas (systems/orbs.js): { id, n } en cada hueco
+    this.orbSel = 0;           // la elegida con el mando
+    this.orbFx = {};           // esferas para el equipo activas: id -> s que les quedan
+    this.orbSeen = {};         // clases de esfera ya vistas en esta partida
     this.sashT = -999;         // última vez que salvó la Banda Focus
     this.bellHeal = 0;         // curación pendiente del Cascabel Concha
     this.statsTaken = {};      // mejoras de stat cogidas (condición de evolución)
@@ -398,6 +402,7 @@ G.Player = class Player {
   // ---------------- ciclo ----------------
   update(dt) {
     this.anim.update(dt);
+    G.Orbs.tick(this, dt);
     if (this.dead) return;
     if (this.invuln > 0) this.invuln -= dt;
     if (this.flash > 0) this.flash -= dt;
@@ -467,9 +472,12 @@ G.Player = class Player {
     const ranged = !!m && (m.kind === 'projectile' || m.kind === 'beam');
     const threat = G.Projectiles.nearest(all, this.x, this.y, this.r + 24);
     const boss = all.find(e => e.boss && !e.dead && G.U.dist(this.x, this.y, e.x, e.y) < 330);
+    // En la Sentencia, Arceus (no es un enemigo): cuando no hay ningún legendario a tiro.
+    const arceus = G.Judgment && G.Judgment.arceus;
     const tg = (ranged ? boss || threat : threat || boss)
             || G.Auto.aimAt(this)
             || G.Projectiles.nearest(all, this.x, this.y, 520)
+            || (arceus && G.Projectiles.nearest([arceus], this.x, this.y, 520))
             || G.World.nearestBreakable(this.x, this.y, 200);
     // Apuntar a mano (Ajustes > Accesibilidad): hacia el ratón o el stick derecho.
     // El blanco (para la cadena) es el enemigo que hay en esa dirección; si no
@@ -493,14 +501,14 @@ G.Player = class Player {
 
   /**
    * Ángulo de "Apuntar a mano", o null si toca apuntar solo. Manda lo último
-   * que se haya usado: el stick derecho mientras se empuja; si no, el ratón si
-   * se ha movido después (en PC). Soltar el stick sin tocar el ratón = solo.
+   * que se haya usado: el stick derecho mientras se empuja, el segundo joystick
+   * mientras tienes el dedo (móvil); si no, el ratón si se ha movido después
+   * (en PC). Soltar el stick o el dedo sin tocar el ratón = solo.
    * Con el modo automático encendido, siempre solo.
    */
   handAim() {
-    // En el móvil (táctil) no hay apuntado a mano: siempre apunta solo.
-    if (this.remote || G.Settings.touch || !G.Settings.get('aimManual') || G.Auto.on) return null;
-    const st = G.Pad.aim();
+    if (this.remote || !G.Settings.get('aimManual') || G.Auto.on) return null;
+    const st = G.Pad.aim() || G.Touch.aim();
     if (st) return Math.atan2(st[1], st[0]);
     if (G.Touch.active || !G.Input.mouseMovedAt || G.Input.mouseMovedAt < G.Pad.aimAt) return null;
     const w = G.Input.mouseWorld();

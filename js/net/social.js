@@ -52,6 +52,7 @@ G.Social = (() => {
   const BEAT = 30 * 60 * 1000;
   const ONLINE = 40 * 60 * 1000;        // "en línea" si el último latido es más reciente
   const PRES_TTL = 60 * 1000;           // lo leído de los amigos vale 1 min
+  const SEAT_MS = 20000;                // al reabrir la sala: lo que tiene para volver quien sigue sin conexión
 
   let fb = null, uid = null;
   let me = null;                    // { uid, name }
@@ -162,7 +163,11 @@ G.Social = (() => {
     lastBeat = Date.now();
     fb.fs.collection('pres').doc(uid).set({ on, at: fts(), room: room ? room.id : '', play: playing }).catch(() => {});
   }
-  function setPlaying(p) { if (playing !== !!p) { playing = !!p; writeStatus(); } }
+  function setPlaying(p) {
+    if (playing !== !!p) { playing = !!p; writeStatus(); }
+    // Se cerró en plena partida (closedRoom). Un momento después: que salga el último envío.
+    if (!p && room && room.closed) setTimeout(closedRoom, 500);
+  }
   // Al volver a la pestaña tras un rato, un latido; al cerrarla, "desconectado".
   function onVisible() { if (document.visibilityState === 'visible' && Date.now() - lastBeat > BEAT) writeStatus(); }
   function onHide() { writeStatus(false); }
@@ -367,17 +372,30 @@ G.Social = (() => {
     const href = fb.rtdb.ref('rooms/' + id + '/host');
     href.on('value', s => { if (room && room.id === id && !s.val()) closedRoom(); }, () => closedRoom());
     const oref = fb.rtdb.ref('rooms/' + id + '/open');
-    oref.on('value', s => { if (room && room.id === id) { room.open = s.val() === true; emit('room'); } }, () => {});
+    oref.on('value', s => {
+      if (!room || room.id !== id) return;
+      const open = s.val() === true;
+      if (open !== room.open) { room.open = open; watchRoomDisconnect(); }
+      emit('room');
+    }, () => {});
     roomRefs = [mref, href, oref];
     writeStatus();
     emit('room');
   }
 
-  /** Si se cierra el navegador, la sala (anfitrión) o tu plaza (invitado) se borran solas. */
+  /**
+   * Si se cierra el navegador, la sala (anfitrión) o tu plaza (invitado) se borran
+   * solas, pero sólo con la sala abierta. Mientras se juega no: eso pasa también con
+   * cortarse un momento tu conexión con la base de datos, y con la sala cerrada las
+   * reglas no dejan volver a escribir la plaza. Sin plaza se pierde el permiso de
+   * leer la sala y, aunque la partida fuera bien (va por el canal directo), salía
+   * "La sala se ha cerrado" (al anfitrión, a todos). Probado con el emulador.
+   * Quien se va de verdad en plena partida deja libre su plaza al reabrir (freeSeats).
+   */
   function watchRoomDisconnect() {
     if (!room) return;
     const ref = room.isHost ? fb.rtdb.ref('rooms/' + room.id) : fb.rtdb.ref('rooms/' + room.id + '/m/' + uid);
-    ref.onDisconnect().remove();
+    (room.open ? ref.onDisconnect().remove() : ref.onDisconnect().cancel()).catch(() => {});
   }
 
   function detachRoom() {
@@ -387,6 +405,8 @@ G.Social = (() => {
 
   function closedRoom() {
     if (!room) return;
+    // En plena partida no: va por el canal directo y sigue; se mira al acabar (setPlaying).
+    if (G.Coop.active) { room.closed = true; return; }
     detachRoom();
     room = null;
     retractInvites();
@@ -411,8 +431,22 @@ G.Social = (() => {
 
   /** El anfitrión cierra la sala a nuevos jugadores al empezar la partida. */
   function setOpen(open) {
-    if (room && room.isHost) fb.rtdb.ref('rooms/' + room.id + '/open').set(!!open).catch(() => {});
-    else if (!room && codeRoom) G.CodeRoom.setOpen(open);
+    if (room && room.isHost) {
+      fb.rtdb.ref('rooms/' + room.id + '/open').set(!!open).catch(() => {});
+      if (open) freeSeats();
+    } else if (!room && codeRoom) G.CodeRoom.setOpen(open);
+  }
+
+  /**
+   * Anfitrión, al reabrir la sala: quien sigue sin conexión tiene SEAT_MS para volver;
+   * si no, se le quita (con la plaza de un ausente no se podría empezar otra partida).
+   */
+  function freeSeats() {
+    const id = room.id, away = room.members.map(m => m.uid).filter(u => u !== uid && G.Net.mode(u) !== 'direct');
+    if (away.length) setTimeout(() => {
+      if (!room || room.id !== id || !room.open) return;
+      for (const u of away) if (G.Net.mode(u) !== 'direct') fb.rtdb.ref('rooms/' + id + '/m/' + u).remove().catch(() => {});
+    }, SEAT_MS);
   }
 
   /** Actualiza tu Pokémon en la sala (si cambias de compañero). */

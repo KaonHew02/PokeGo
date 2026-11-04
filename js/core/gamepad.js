@@ -6,7 +6,8 @@
  *                   LB / RB (o LT / RT)         ataque anterior / siguiente
  *                   Start                       pausa
  *                   A                           saltar la animación de Arceus
- *                   X                           modo automático (AUTO, como la tecla T)
+ *                   X / Y                       usar la esfera elegida / pasar a otra (systems/orbs.js)
+ *                   Select (View, Share, -)     modo automático (AUTO, como la tecla T)
  *                   stick derecho               apuntar (con "Apuntar a mano" en Accesibilidad)
  *   En menús, cartas y pausa:
  *                   stick o cruceta             mover la selección (recuadro dorado);
@@ -195,8 +196,9 @@ G.Pad = (() => {
 
   /** B: el botón de cerrar o volver de la ventana, si lo tiene; si no, Esc. */
   function back() {
-    const top = topScreen();
-    if (top) {
+    const top = topScreen(), fx = document.getElementById('pull-fx');
+    // La tirada del gacha va por encima de su pantalla: Esc la salta o la cierra (no "Volver", que está debajo).
+    if (top && (!fx || fx.classList.contains('hidden'))) {
       const btns = [...top.querySelectorAll('button, a')].filter(b => b.getBoundingClientRect().width > 0);
       const close = btns.find(isBack);
       if (close) { close.click(); return; }
@@ -259,9 +261,11 @@ G.Pad = (() => {
       if (Math.hypot(ax, ay) > 0.35) { aimVec = [ax, ay]; aimAt = performance.now(); } else aimVec = [0, 0];
       if (hit(BT.LB) || hit(BT.LT)) G.Input.virtual('keyq');
       if (hit(BT.RB) || hit(BT.RT)) G.Input.virtual('keye');
-      if (hit(BT.START) || hit(BT.BACK)) G.Input.virtual('escape');
+      if (hit(BT.START)) G.Input.virtual('escape');
       if (hit(BT.A)) G.Input.virtual('space');
-      if (hit(BT.X)) G.Input.virtual('keyt');
+      if (hit(BT.BACK)) G.Input.virtual('keyt');
+      if (hit(BT.X)) G.Input.virtual('orbuse');
+      if (hit(BT.Y)) G.Input.virtual('orbnext');
     }
   }
   function step(dir) { if (!slide(dir)) move(...{ r: [1, 0], l: [-1, 0], d: [0, 1], u: [0, -1] }[dir]); }

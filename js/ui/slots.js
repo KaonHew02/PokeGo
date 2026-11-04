@@ -7,6 +7,7 @@
  *   G.Icons.rarity; la estrella roja es el shiny). Si es Épica, Legendaria o shiny, el
  *   último rodillo se hace esperar y las luces se vuelven locas.
  *   La ×10 son 10 tiradas rápidas; cada premio cae como una bola a la bandeja.
+ *   La ×100, igual: 10 giros, enseñando lo mejor de cada ×10.
  *
  * Un clic acelera la animación; skip() la salta entera (botón "Saltar" del gacha).
  */
@@ -35,14 +36,17 @@ G.Slots = (() => {
     });
   }
 
-  /** Anima las tiradas. → Promise que se resuelve al terminar. */
-  async function play(canvas, results) {
+  /**
+   * Anima las tiradas. → Promise que se resuelve al terminar.
+   * @param title  lo que pone el marcador al empezar, si no es el de siempre
+   */
+  async function play(canvas, results, title = '') {
     cv = canvas; ctx = cv.getContext('2d');
     fast = false; skipped = false;
     cv.onclick = () => { fast = true; };
     st = {
       t: 0, lever: 0, reels: REEL_X.map(() => ({ off: Math.random() * 400, spin: false, sym: 'ball', bounce: 0, speed: 0 })),
-      ten: results.length === 10, tray: [], led: results.length === 10 ? 'TIRADA ×10' : '¡SUERTE!', ledCol: C.bulbOn, win: null, frenzy: 0, sparks: []
+      ten: results.length === 10, tray: [], led: title || (results.length === 10 ? 'TIRADA ×10' : '¡SUERTE!'), ledCol: C.bulbOn, win: null, frenzy: 0, sparks: []
     };
     last = performance.now();
     cancelAnimationFrame(raf);

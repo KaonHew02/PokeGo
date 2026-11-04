@@ -264,6 +264,12 @@ label { display: block; font-size: 14px; color: var(--muted); margin: 8px 0 4px;
 .sum-moves th { font-size: 12px; color: var(--muted); font-weight: 400; }
 .sum-moves .num { text-align: right; white-space: nowrap; }
 .sum-moves img { vertical-align: -4px; }
+/* Resumen al acabar la partida: dentro de .stats, y en grupo con una pestaña por jugador. */
+.over-sum { grid-column: 1 / -1; text-align: left; font-size: 14px; }
+.stats .over-sum b { font-size: inherit; }
+.over-sum .seg { flex-wrap: wrap; max-width: 100%; }
+.over-sum .sum-head { margin: 0 0 4px; color: var(--gold); font-weight: 700; }
+.over-sum .sub { margin: 6px 0 0; }
 .sum-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 14px; font-size: 14px; }
 .sum-stats div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid rgba(255,255,255,.08); padding: 2px 0; }
 .sum-stats span { color: var(--muted); }
@@ -384,6 +390,15 @@ label { display: block; font-size: 14px; color: var(--muted); margin: 8px 0 4px;
 /* Centrado vertical que no corta por arriba cuando no cabe. */
 #pull-fx::before, #pull-fx::after { content: ''; margin: auto; }
 #pull-close, #pull-skip { position: sticky; bottom: 8px; z-index: 2; flex-shrink: 0; box-shadow: 0 4px 18px rgba(0,0,0,.6); }
+/* La ×100: cartas más pequeñas y un resumen arriba. */
+.pull-results.many { gap: 6px; max-width: 1100px; }
+.pull-results.many .pcard { width: 104px; padding: 5px 3px; border-radius: 10px; border-width: 2px; box-shadow: 0 0 10px var(--rc, #fff); }
+.pull-results.many .pcard canvas { width: 88px; height: auto; }
+.pull-results.many .pcard b { font-size: 12px; }
+.pull-results.many .pcard .tag { font-size: 10px; }
+.pull-results.many .pcard .stars { font-size: 11px; }
+.pull-sum { flex: 0 0 100%; text-align: center; font-size: 16px; color: var(--gold); }
+.pull-btns .btn { min-width: 40%; }
 @media (max-height: 520px) {
   #pull-fx { gap: 10px; }
   .pull-results { gap: 6px; }
@@ -422,6 +437,12 @@ label { display: block; font-size: 14px; color: var(--muted); margin: 8px 0 4px;
 .support-ask .btn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .support-ask .x { position: absolute; top: 4px; right: 6px; background: none; border: 0; color: var(--muted); font-size: 18px; cursor: pointer; padding: 2px 6px; }
 .pull-results { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 900px; }
+/* Has conseguido un Amuleto Iris. */
+.iris-get { flex: 0 0 100%; box-sizing: border-box; display: flex; justify-content: center; gap: 12px; align-items: center; text-align: left; padding: 10px 14px;
+  border: 2px solid var(--gold); border-radius: 12px; background: rgba(255,210,63,.12); animation: pop .5s ease-out; }
+.iris-get b { color: var(--gold); font-size: 16px; }
+/* Mochila: el amuleto que aún no tienes, apagado. */
+.charm-off { filter: grayscale(1); opacity: .45; }
 .pcard {
   width: 150px; padding: 10px 6px; text-align: center; border-radius: 12px;
   background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(0,0,0,.3));
@@ -506,6 +527,10 @@ label { display: block; font-size: 14px; color: var(--muted); margin: 8px 0 4px;
 /* Físico / Especial en las cartas de nivel: aparte del tipo, oscura y con borde. */
 .tag-chip.cat { background: rgba(10,20,48,.55); color: #f4f8ff; border: 1.5px solid rgba(170,195,255,.5); padding: 1px 7px; }
 
+/* Con cartas abiertas sólo el recuadro coge los toques: fuera de él llegan al juego y se puede coger el joystick (touch.js). */
+#scr-levelup, #scr-bond, #scr-item { pointer-events: none; }
+#scr-levelup .box, #scr-bond .box, #scr-item .box { pointer-events: auto; }
+
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 18px; }
 .stats > div { background: rgba(0,0,0,.22); border-radius: 9px; padding: 8px 10px; }
 .stats > div > span:first-child { display: block; color: var(--muted); font-size: 12px; text-transform: uppercase; }
@@ -543,6 +568,14 @@ img.pix { image-rendering: pixelated; image-rendering: crisp-edges; vertical-ali
 .cell .stars-row { display: flex; justify-content: center; margin-top: 2px; }
 .badge-r { position: absolute; top: 3px; right: 4px; }
 .move-icons { display: flex; flex-wrap: wrap; gap: 3px; margin: 0 0 10px; }
+/* Ficha de la colección: recuadro de cada ataque al pasar por su icono (menu.js, moveTips). */
+#dex-moves { gap: 4px; }
+[data-mv] { cursor: help; }
+.move-tip { position: fixed; z-index: 30; max-width: 260px; padding: 8px 10px; pointer-events: none; font-size: 14px;
+  background: linear-gradient(180deg, var(--box1), var(--box2)); border: 2px solid var(--edge); border-radius: 8px;
+  box-shadow: 0 0 0 2px var(--edge-out), 0 8px 22px rgba(0,0,0,.55); }
+.move-tip-tags { display: flex; gap: 4px; margin: 5px 0; }
+.move-tip .sub { margin: 0; font-size: 12px; line-height: 1.4; }
 .card .ico img { display: block; }
 .upg-item .ic { display: flex; justify-content: center; }
 
@@ -761,7 +794,7 @@ a.plink:hover { color: var(--gold); }
 .card.bond .nm { color: #ff8ad8; }
 @media (max-height: 520px) {
   #scr-bond .bond-hint { display: none; }
-  #scr-bond .box { width: min(820px, 100%); }
+  #scr-bond .box { width: min(640px, 100%); }   /* (fuera del recuadro se coge el joystick: que quede sitio) */
   #bond-cards { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
 }
 @media (max-width: 760px) { .mission { grid-template-columns: 1fr; } .prof-marks { grid-template-columns: repeat(2, 1fr); } }

@@ -8,10 +8,15 @@
  *      (Ruinas del Juicio). Arceus baja del cielo por un pilar de luz y cae
  *      con una onda de choque. La primera vez se ve entera; después se puede
  *      saltar (en cooperativo sólo el anfitrión).
- *   2. Pelea: Arceus es INVENCIBLE (no es un enemigo: los ataques no le
- *      apuntan). Te persigue cada vez más deprisa; tocarle quita el 40 % de la
- *      vida y lanza la Sentencia (pilares de luz), rayos en cruz y ondas, todo
- *      con aviso en el suelo. Ese daño ignora tipos y defensa.
+ *   2. Pelea: Arceus es INVENCIBLE, pero se le puede pegar: sólo recibe una parte
+ *      pequeña del daño (cada vez menos) y los ataques le apuntan cuando no hay
+ *      ningún legendario a tiro. No es un enemigo: combat.js lo añade a lo que
+ *      pueden golpear tus ataques y no le afectan los estados ni los empujones.
+ *      Te persigue cada vez más deprisa; tocarle quita el 40 % de la vida y lanza
+ *      la Sentencia (pilares de luz), rayos en cruz y ondas, todo con aviso en el
+ *      suelo. Ese daño ignora tipos y defensa.
+ *      En cada partida lleva una Tabla al azar, que le da su tipo (se avisa al
+ *      llegar): así no hay un tipo de ataque que sea siempre el mejor.
  *   3. Cada 5 s acude un legendario al azar, cada uno con el DOBLE de vida y de
  *      daño que el anterior. El primero, según el daño que hacíais antes de la
  *      Sentencia a UN enemigo (unos 3 s), para que no caiga al momento.
@@ -19,14 +24,17 @@
  *   4. Sin límite de tiempo: por muy fuerte que vayas (curación sin tope,
  *      defensa...), los legendarios que se acumulan, cada uno con un 25 % más
  *      de vida y un 15 % más de daño que el anterior, acaban contigo.
+ *   5. En el minuto 35 rompe el objeto de todos (Banda Focus incluida), con aviso.
  *
  * Mientras dura no sale nada más (ni oleadas, ni eventos, ni grietas; desde
  * el 28:00 ya no se abren grietas). Si a las 30:00 estás en una grieta o
  * eligiendo una carta, empieza al terminar.
  *
  * Cooperativo: lo decide el anfitrión. Mensajes (ver coop.js):
- *   'jd' cfg (empieza) · 'jk' (salta la animación)
+ *   'jd' cfg (empieza, con la Tabla) · 'jk' (salta la animación)
  *   y en cada envío del anfitrión, ja: [x, y, animación, dirección] de Arceus.
+ * Cada uno pega a Arceus en su ordenador y lleva su cuenta; el objeto también lo
+ * rompe cada uno al llegar el minuto 35 (el reloj es el del anfitrión).
  */
 G.Judgment = (() => {
   const AT = 30 * 60;
@@ -47,19 +55,38 @@ G.Judgment = (() => {
   const capSpd = s => (s <= SPD_SOFT ? s : SPD_SOFT + (s - SPD_SOFT) * SPD_OVER);
   const touchPct = () => Math.min(1, TOUCH + Math.max(0, arenaT - 420) / 180 * (1 - TOUCH));
   const ARCEUS = 493, SCALE = 1.5;
+  /*
+   * Parte del daño que le llega a Arceus: un 5 % al empezar y cada vez menos (la
+   * mitad al minuto de pelea, una sexta parte a los 5 minutos). Ver combat.js: hit.
+   */
+  const SHARE = 0.05, SHARE_HALF = 60;
+  const shareNow = () => SHARE / (1 + arenaT / SHARE_HALF);
+  // La Tabla de cada tipo (la del tipo Normal no existe: sin Tabla, Arceus es Normal).
+  const PLATES = {
+    fire: 'Tabla Llama', water: 'Tabla Linfa', electric: 'Tabla Trueno', grass: 'Tabla Pradal', ice: 'Tabla Helada',
+    fighting: 'Tabla Fuerte', poison: 'Tabla Tóxica', ground: 'Tabla Terrax', flying: 'Tabla Cielo', psychic: 'Tabla Mental',
+    bug: 'Tabla Bicho', rock: 'Tabla Pétrea', ghost: 'Tabla Terror', dragon: 'Tabla Draco', dark: 'Tabla Oscura',
+    steel: 'Tabla Acero', fairy: 'Tabla Duende'
+  };
+  const PLATE_SAY = 4;                // segundos que dura el aviso de la Tabla
+  const BREAK_AT = 35 * 60, BREAK_WARN = 5;   // se rompen los objetos (y cuánto antes se avisa)
   // Línea de tiempo de la animación (segundos).
   const T_TITLE = 1.3, T_FLASH = 4.7, T_PORT = 5.1, T_DESC = 5.7, T_LAND = 7.9, T_BACK = 9.1, T_END = 10.1;
   const GOLD = '#ffd25e';
   const authority = () => !G.Coop.active || G.Coop.isHost;
   const TS = () => G.Tiles.T * G.Sprites.PX;
+  const NUM = new Intl.NumberFormat(G.I18n.locale);
+  const immune = () => {};            // estados: a Arceus no le afectan
 
   let phase = null;                   // null | 'cine' | 'fight'
   let ct = 0;                         // reloj de la animación
-  let cfg = null;                     // { tx, ty, q: [dex de los legendarios] }
+  let cfg = null;                     // { tx, ty, q: [dex de los legendarios], plate: tipo de la Tabla }
   let ported = false, landed = false, canSkip = false, cues = {};
   let A = null;                       // Arceus
   let center = null;                  // centro de la arena (mundo)
   let arenaT = 0, bossT = 0, bossN = 0, base = 0, downs = 0;
+  let dealt = 0;                      // lo que le has hecho tú a Arceus
+  let warned = false, broke = false;  // minuto 35
   // Daño a un solo enemigo por segundo (el que más recibe en cada segundo; con
   // ataques en área, sumar todo daría una vida enorme). Se guardan los últimos
   // 30 s y vale la media de los 6 mejores.
@@ -70,6 +97,7 @@ G.Judgment = (() => {
   function reset() {
     phase = null; ct = 0; cfg = null; ported = landed = canSkip = false; cues = {};
     A = null; center = null; arenaT = bossT = 0; bossN = 0; base = 0; downs = 0;
+    dealt = 0; warned = broke = false;
     hits = new Map(); hitT = 0; samples = []; embers = []; cam = null;
   }
 
@@ -97,7 +125,8 @@ G.Judgment = (() => {
     const pool = G.DEX.filter(p => p.leg && p.dex !== ARCEUS && G.SPRITE_META[p.dex]);
     const q = [];
     for (let i = 0; i < 40; i++) q.push(G.U.pick(pool).dex);
-    const c = { tx: -6000 - Math.floor(Math.random() * 2000), ty: -6000 - Math.floor(Math.random() * 2000), q };
+    const c = { tx: -6000 - Math.floor(Math.random() * 2000), ty: -6000 - Math.floor(Math.random() * 2000), q,
+                plate: G.U.pick(Object.keys(PLATES)) };
     if (G.Coop.isHost) G.Coop.broadcast(['jd', c]);
     begin(c);
   }
@@ -150,7 +179,11 @@ G.Judgment = (() => {
     const anim = new G.Sprites.Animator(ARCEUS, SCALE);
     A = { x: center.x, y: center.y - ts * 5, lift: 900, anim, r: G.Sprites.bodyRadius(ARCEUS, SCALE) * 0.9,
           bodyH: G.Sprites.bodyHeight(ARCEUS, SCALE), cd: 2.2, cast: null, touchCd: 0, spin: 0,
-          net: null, glow: 0 };
+          net: null, glow: 0,
+          // Lo que necesitan los ataques (combat.js) para tratarlo como a un enemigo.
+          id: 'arceus', boss: true, types: [cfg.plate], mon: G.DEX_BY[ARCEUS], hp: 1, maxHp: 1, share: SHARE, flash: 0,
+          tint: G.U.TYPE_COLOR[cfg.plate], cy: () => A.y, hurt: hurtArceus,
+          applyBurn: immune, applyPoison: immune, applySlow: immune, applyStun: immune };
     anim.dir = 0;
   }
 
@@ -180,8 +213,11 @@ G.Judgment = (() => {
     const n = G.Game.everyone().length, t = G.Game.st.time;
     const floor = (3200 + t * 9) * 0.35 * G.Coop.scaleHp(n);
     base = Math.max(floor, singleDps() * 3);
-    G.Spawner.say('¡Huye de Arceus! Es invencible', 3, true);
+    G.Spawner.say(plateText(), PLATE_SAY, true);
   }
+
+  /** El aviso de la Tabla que lleva. */
+  const plateText = () => '¡Arceus lleva la ' + PLATES[cfg.plate] + '! Ahora es de tipo ' + G.U.TYPE_NAME[cfg.plate];
 
   // ---------------- cada fotograma ----------------
 
@@ -228,6 +264,8 @@ G.Judgment = (() => {
     if (phase !== 'fight') return;
     arenaT += dt;
     A.touchCd -= dt; A.spin += dt;
+    A.share = shareNow();
+    if (A.flash > 0) A.flash -= dt;
     if (authority()) {
       arceusTick(dt);
       keepInside();
@@ -238,6 +276,7 @@ G.Judgment = (() => {
     clampIn(pl);
     A.anim.update(dt);
     touch(pl);
+    itemBreak(pl, time);
     ember(dt);
   }
 
@@ -335,6 +374,46 @@ G.Judgment = (() => {
     A.anim.loop(Math.abs(A.x - ox) + Math.abs(A.y - oy) > 0.5 ? 'Walk' : 'Idle');
   }
 
+  /**
+   * Golpe a Arceus (como Enemy.hurt; combat.js ya le ha quitado su parte): nunca
+   * cae, sólo se apunta para el resumen. Aquí sólo llegan tus ataques: los de los
+   * compañeros son fantasmas y no hacen daño (cada uno lleva su cuenta).
+   */
+  function hurtArceus(d, color = '#fff', dirX = 0, dirY = 0, knock = 0, eff = null) {
+    dealt += d;
+    A.flash = 0.09;
+    G.FX.dmgText(A.x, A.y - A.bodyH - 4, Math.max(1, Math.round(d)), eff === 'crit' ? '#ff9a3c' : eff === 'super' ? '#ffe14d' : eff === 'weak' ? '#a3abb8' : color,
+                 eff === 'super' || eff === 'crit');
+    G.FX.spark(A.x, A.y - A.bodyH * 0.5, color, dirX, dirY, 3);
+    G.Audio.sfx('hit');
+  }
+
+  /**
+   * Minuto 35: Arceus rompe el objeto de todos, con aviso unos segundos antes.
+   * Cada uno mira el suyo: el reloj es el del anfitrión y así no depende de que
+   * llegue ningún mensaje (ni de seguir conectado justo en ese momento).
+   */
+  function itemBreak(pl, time) {
+    if (broke) return;
+    if (!warned && time >= BREAK_AT - BREAK_WARN) {
+      warned = true;
+      G.Spawner.say('¡Arceus va a romper vuestros objetos!', BREAK_WARN, true);
+      G.Audio.sfx('toll');
+      G.FX.ring(A.x, A.y, A.r, A.r * 5, A.tint, 0.8, 4);
+    }
+    if (time < BREAK_AT) return;
+    broke = true;
+    G.Camera.kick(0.8);
+    G.Game.flash('#fff3c8', 0.5);
+    G.Audio.sfx('break');
+    for (let i = 0; i < 3; i++) G.FX.ring(A.x, A.y, A.r, 380 + i * 160, i % 2 ? '#fff3c8' : A.tint, 0.5 + i * 0.2, 6 - i);
+    for (const p of G.Game.everyone()) if (!p.dead) G.FX.burst(p.x, p.y - p.bodyH * 0.5, '#fff3c8', 14, 170);
+    if (!pl.item) return;
+    const name = G.Items.BY[pl.item].name;
+    pl.equip(null);
+    G.Spawner.say('¡Objeto roto: ' + name + '!', 3, true);
+  }
+
   /** Tocar a Arceus (cada uno mira el suyo). */
   function touch(pl) {
     if (!pl || pl.dead || A.touchCd > 0) return;
@@ -392,7 +471,8 @@ G.Judgment = (() => {
     G.Sprites.preload([cfg.q[(bossN + 4) % cfg.q.length]], 8000);
     G.FX.ring(x, y, 8, 120, GOLD, 0.6, 5);
     G.FX.burst(x, y - 30, '#fff3c8', 24, 200);
-    G.Spawner.say('¡' + e.name + ' acude a la Sentencia!', 1.8);
+    // (El primero sale mientras se avisa de la Tabla: no lo tapa.)
+    if (arenaT > PLATE_SAY) G.Spawner.say('¡' + e.name + ' acude a la Sentencia!', 1.8);
     G.Audio.sfx('rift');
   }
 
@@ -419,23 +499,41 @@ G.Judgment = (() => {
     // Aura dorada en el suelo.
     if (lift < 40) {
       ctx.globalAlpha = 0.22 + Math.sin(now * 3) * 0.06;
-      ctx.fillStyle = GOLD;
+      ctx.fillStyle = A.tint;
       ctx.beginPath(); ctx.ellipse(A.x, A.y, A.r * 2.2, A.r * 0.8, 0, 0, 6.2832); ctx.fill();
     }
     ctx.restore();
-    // La rueda dorada detrás de él.
-    wheel(ctx, A.x, A.y - lift - A.bodyH * 0.55, A.bodyH * 0.62, A.spin * 0.6, 0.55);
-    A.anim.draw(ctx, A.x, A.y - lift);
+    // La rueda detrás de él, del color de su Tabla.
+    wheel(ctx, A.x, A.y - lift - A.bodyH * 0.55, A.bodyH * 0.62, A.spin * 0.6, 0.55, A.tint);
+    A.anim.draw(ctx, A.x, A.y - lift, { flash: A.flash > 0 });
   }
 
-  /** La rueda de Arceus: aro dorado con 12 joyas que gira. */
-  function wheel(ctx, x, y, R, rot, alpha) {
+  /** Su tipo, a sus pies (arriba lo taparían los números de daño): para elegir el ataque durante la pelea. */
+  function typeTag(ctx) {
+    const y = A.y + A.r * 0.8 + 12, name = G.U.TYPE_NAME[cfg.plate];
+    ctx.save();
+    ctx.font = F(800, 8);
+    ctx.textAlign = 'center';
+    const tw = ctx.measureText(name).width + 10;
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillRect(A.x - tw / 2 - 1, y - 9, tw + 2, 13);
+    ctx.fillStyle = A.tint;
+    ctx.fillRect(A.x - tw / 2, y - 8, tw, 11);
+    ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(0,0,0,.7)';
+    ctx.strokeText(name, A.x, y);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(name, A.x, y);
+    ctx.restore();
+  }
+
+  /** La rueda de Arceus: aro (dorado, o del color de su Tabla) con 12 joyas que gira. */
+  function wheel(ctx, x, y, R, rot, alpha, col = GOLD) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rot);
     ctx.globalAlpha = alpha;
-    ctx.strokeStyle = GOLD; ctx.lineWidth = Math.max(2, R * 0.07);
-    ctx.shadowColor = '#ffcf4a'; ctx.shadowBlur = R * 0.3;
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, R * 0.07);
+    ctx.shadowColor = col === GOLD ? '#ffcf4a' : col; ctx.shadowBlur = R * 0.3;
     ctx.beginPath(); ctx.arc(0, 0, R, 0, 6.2832); ctx.stroke();
     ctx.lineWidth = Math.max(1, R * 0.025);
     ctx.beginPath(); ctx.arc(0, 0, R * 0.82, 0, 6.2832); ctx.stroke();
@@ -451,9 +549,10 @@ G.Judgment = (() => {
     ctx.restore();
   }
 
-  /** Por encima de todo (en el mundo): el pilar de luz por el que baja. */
+  /** Por encima de todo (en el mundo): su tipo y el pilar de luz por el que baja. */
   function drawAir(ctx) {
     if (!A || !ported) return;
+    if (phase === 'fight') typeTag(ctx);
     const cam = G.Camera;
     let a = 0;
     if (phase === 'cine') a = G.U.clamp((ct - T_PORT) / 0.6, 0, 1) * G.U.clamp((T_LAND + 0.6 - ct) / 0.6, 0, 1);
@@ -561,10 +660,15 @@ G.Judgment = (() => {
       ctx.font = F(700, Math.round(size * 0.45));
       ctx.textAlign = 'center';
       ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.8)';
-      const sub = 'Es invencible: huye y aguanta todo lo que puedas';
+      const sub = 'Es invencible: aguanta y hazle todo el daño que puedas';
       ctx.strokeText(sub, w / 2, h * 0.24 + size * 1.1);
       ctx.fillStyle = '#ffe9b0';
       ctx.fillText(sub, w / 2, h * 0.24 + size * 1.1);
+      // La Tabla (el aviso del HUD no se ve hasta que acaba la animación).
+      const lt = plateText(), ly = h * 0.24 + size * 1.7;
+      ctx.strokeText(lt, w / 2, ly);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(lt, w / 2, ly);
     }
     if (canSkip && t < T_BACK) {
       ctx.globalAlpha = 0.55 + Math.sin(t * 4) * 0.2;
@@ -639,10 +743,11 @@ G.Judgment = (() => {
     ctx.textAlign = 'center';
     ctx.font = F(800, 12);
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.7)';
-    const txt = 'SENTENCIA · ' + G.U.mmss(arenaT) + ' · JEFES ' + downs;
-    ctx.strokeText(txt, w / 2, boss ? 98 : 76);
+    // (En una línea: debajo van los avisos. Ya traducido: el lienzo traduce textos enteros, no trozos.)
+    const txt = G.I18n.f('SENTENCIA · {x} · JEFES {x}', G.U.mmss(arenaT), downs) + ' · ' + G.I18n.f('DAÑO A ARCEUS · {x}', NUM.format(Math.round(dealt)));
+    G.I18n.rawCanvas(ctx, 'strokeText', txt, w / 2, boss ? 98 : 76);
     ctx.fillStyle = GOLD;
-    ctx.fillText(txt, w / 2, boss ? 98 : 76);
+    G.I18n.rawCanvas(ctx, 'fillText', txt, w / 2, boss ? 98 : 76);
     // Flecha hacia Arceus si no se ve.
     const cam = G.Camera;
     const sx = (A.x - cam.left()) * cam.scale, sy = (A.y - A.bodyH * 0.5 - cam.top()) * cam.scale;
@@ -708,17 +813,17 @@ G.Judgment = (() => {
   }
 
   return {
-    AT, reset, noteDmg, update, cineTick, skip, bossDown, drawable, drawAir, drawOverlay, onEvent, netState, netApply,
+    AT, BREAK_AT, PLATES, reset, noteDmg, update, cineTick, skip, bossDown, drawable, drawAir, drawOverlay, onEvent, netState, netApply,
     get active() { return !!phase; }, capSpd,
     get cinematic() { return phase === 'cine'; },
-    /** Arceus en la pelea (el modo automático huye de él), o null. */
+    /** Arceus en la pelea (el modo automático huye de él y tus ataques le pegan), o null. */
     get arceus() { return phase === 'fight' && A ? A : null; },
     /** Lo que suena: nada en la animación hasta que aterriza. */
     get music() { return phase === 'cine' && ct < T_LAND ? null : 'judgment'; },
-    /** Para el resumen de la partida: { time, bosses } o null. */
-    summary() { return phase === 'fight' ? { time: arenaT, bosses: downs } : null; },
-    /** Para pruebas: vida del primer legendario y daño medido. */
-    get debug() { return { base, single: singleDps(), samples: samples.length }; },
+    /** Para el resumen de la partida: { time, bosses, dmg } o null. */
+    summary() { return phase === 'fight' ? { time: arenaT, bosses: downs, dmg: dealt } : null; },
+    /** Para pruebas: vida del primer legendario, daño medido, Tabla y daño a Arceus. */
+    get debug() { return { base, single: singleDps(), samples: samples.length, plate: cfg && cfg.plate, dealt }; },
     /** Para pruebas: la Sentencia ya. */
     debugStart() { if (!phase && authority()) start(); }
   };

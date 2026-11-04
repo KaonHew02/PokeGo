@@ -12,7 +12,7 @@
  *                                                 proporción a la pantalla); lo pone layout-ui.js
  *   gamepad     true/false                        jugar con mando (gamepad.js)
  *   padRumble   true/false                        que el mando vibre al recibir daño
- *   aimManual   true/false                        apuntar a mano (ratón o stick derecho) en vez de solo
+ *   aimManual   true/false                        apuntar a mano (ratón, stick derecho o segundo joystick en el móvil) en vez de solo
  *   auto        true/false                        modo automático (autopilot.js): tu Pokémon juega solo;
  *                                                 se recuerda el último (empieza apagado)
  *

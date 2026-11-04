@@ -309,7 +309,7 @@ test('cards: push the main attack, plan its evolution, and new moves only when t
   // Llenar un hueco libre vale algo (después salen más mejoras y menos movimientos), pero menos que subir el principal.
   assert.equal(choose(pl, [card('stat', 'mag'), card('new', 'quick-attack')]), 'new:quick-attack');
   assert.equal(choose(pl, [card('new', 'quick-attack'), card('up', 'thunder-shock')]), 'up:thunder-shock');
-  // La mejora que pide su evolución (Impactrueno → Trueno: Potencia), antes de llegar al máximo.
+  // La mejora que pide su evolución (Impactrueno +: Potencia), antes de llegar al máximo.
   const pl4 = player(pika, [[['thunder-shock', 4]]]);
   assert.equal(choose(pl4, [card('stat', 'cd'), card('stat', 'hp'), card('stat', 'atk')]), 'stat:atk');
   pl4.statsTaken.atk = 1;

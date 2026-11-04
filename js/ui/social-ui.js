@@ -164,7 +164,8 @@
         const room = G.Social.room;
         if (room) {
           G.Net.open(room.id, room.isHost, room.host, room.net);
-          G.Net.syncMembers(room.members.map(m => m.uid));
+          // En plena partida manda la partida: a los que siguen en ella no se les cuelga por lo que diga la sala.
+          G.Net.syncMembers(room.members.map(m => m.uid).concat(G.Coop.mates.filter(m => m.connected).map(m => m.uid)));
         } else if (G.Net.open_ && !G.CodeRoom.busy) G.Net.close();     // (entrando en una sala con código aún no hay sala)
         // Se ha cerrado sin que salieras tú (p. ej. se ha ido el anfitrión).
         const ended = what === 'room-closed' ? 'La sala se ha cerrado' : what && what.ended;
@@ -269,6 +270,7 @@
       btn.textContent = 'Empezar partida (' + ms.length + '/' + G.Social.MAX_PLAYERS + ')';
       $('lobby-note').textContent = !room.isHost
         ? (G.Net.mode(room.host) === 'failed' ? 'No se puede conectar con el anfitrión: su red (o la tuya) no deja jugar en grupo. Probad con otra wifi o datos móviles; se reintenta solo.'
+          : room.open === false ? 'Los demás siguen jugando: espera aquí y, cuando acaben, seguís juntos.'
           : 'Cuando el anfitrión empiece, entraréis todos a la vez.')
         : ms.length < 2 ? (room.code ? 'Pasa el código a un amigo para que entre.' : 'Necesitas al menos un amigo en la sala.')
         : failed ? 'No se puede conectar con algún amigo: su red (o la tuya) no deja jugar en grupo. Probad con otra wifi o datos móviles; se reintenta solo.'

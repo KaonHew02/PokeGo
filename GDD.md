@@ -211,7 +211,7 @@ primero, para ir aprendiendo). Los ataques "con aviso" se ven antes en el suelo.
   alejes y una flecha en el borde de la pantalla te indica dónde está.
   **Si lo derrotas, te lo quedas** (y la versión normal si no la tenías). Si ya
   tenías ese shiny, +300 monedas.
-- **Gacha:** 1 de cada 100 tiradas sale shiny. Shiny repetido = triple de monedas.
+- **Gacha:** 1 de cada 100 tiradas sale shiny (2 con el Amuleto Iris de esa región). Shiny repetido = triple de monedas.
 - **Colección:** en la ficha de un Pokémon cuyo shiny tienes hay un selector
   **Normal / Shiny**; eliges compañero en la versión que quieras.
 - 958 de los 966 Pokémon tienen sprite shiny auténtico de SpriteCollab.
@@ -241,7 +241,7 @@ puede tirar el que llevas («Tirar objeto»); lo rechazado o tirado se pierde.
 
 ### 7.2c Evolución de movimientos
 Un movimiento al nivel máximo evoluciona si en esa run has cogido su mejora de
-condición (Ascuas + Potencia → Llamarada, Burbuja + Carrera → Surf...): sale
+condición (Ascuas + Potencia → Ascuas +, Burbuja + Carrera → Burbuja +...): sale
 una **carta dorada** (siempre, si está lista). Los 47 de ataque evolucionan.
 
 ### 7.2d Misiones, logros y perfil
@@ -272,13 +272,15 @@ Kanto, Johto, Hoenn, Sinnoh, Teselia, Kalos, Alola, Galar y Paldea, cada uno con
 | Legendaria | 1,5% | 300 |
 | *Shiny* | *1% (cualquier rareza)* | *×3* |
 
-- Tirada ×1: 1 ticket · ×10: **10 tickets normales o 1 ticket ×10** (dos botones,
-  eliges con qué pagar), con **al menos una
-  Épica** garantizada. Los repetidos siguen dando monedas.
+- ×10: **10 tickets normales o 1 ticket ×10** (dos botones, eliges con qué pagar),
+  con **al menos una Épica** garantizada. ×100: **100 tickets normales o 10 tickets
+  ×10**, diez ×10 seguidas, cada una con su Épica. Ya no hay ×1. Los repetidos
+  siguen dando monedas.
 - **Animación: tragaperras pixel art** (palanca, 3 rodillos, bombillas). Los
   símbolos son la rareza: Poké, Super, Ultra, Lujo y Master Ball
   (Legendaria) y la estrella roja (shiny); con Épica o mejor el último rodillo se hace
-  esperar. La ×10 son 10 tiradas rápidas que caen a la bandeja. Clic = acelerar.
+  esperar. La ×10 son 10 tiradas rápidas que caen a la bandeja; la ×100, 10 giros con
+  lo mejor de cada ×10 y un resumen al final. Clic = acelerar; Saltar o Esc, acabar.
 - **Pity:** a las 70 tiradas sin Legendaria en un banner, la siguiente lo es.
 - Algunas regiones tienen rarezas casi vacías (Galar sólo tiene 4 Poco comunes);
   si una rareza no tiene Pokémon en ese banner, sale la más cercana.

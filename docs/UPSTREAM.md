@@ -9,7 +9,7 @@ reimplemented in PokéGo's own source from the readable material (the `novedades
 not a change to port.
 
 **Last reviewed upstream commit: `c121040` (2026-11-02, "Ajuste interno") — reviewed 2026-11-03;
-no new upstream commits on 2026-11-04 (that run worked through the `pending` backlog below).**
+no new upstream commits on 2026-11-04. The whole `pending` backlog below was ported the same day.**
 
 Previous baseline: `ce57853` (2026-10-21, "La gran actualización: Tienda Kecleon"), ported into
 PokéGo on 2026-10-22 (commit 49e3cbac, see CREDITS.md).
@@ -67,27 +67,27 @@ section are unchanged since `ce57853`.
 - Arceus damage ranking fixes, ranking upload retries — **skipped**: their ranking rewrite / servers.
 - Mobile: "Cambiar opciones" picking a card by itself; bond picking the move under the finger — **ported** 2026-11-04 (`tapCards` in `js/ui/run-ui.js`).
 - Co-op TURN fallback from either side — **skipped**: their TURN server (PokéGo has its own TURN work).
-- Co-op slow connection: wait instead of queueing minutes of lag — **pending** (PokéGo's own co-op lag fix of 10-22 may already cover it; check).
+- Co-op slow connection: wait instead of queueing minutes of lag — **ported** 2026-11-04 (host holds frames when a guest lags over `LAG_MS` (`js/net/coop.js`)).
 
 ### 2026-10-26 · Halloween se acerca
 - Halloween event and countdown — **skipped**: no event code in PokéGo, dates over.
 - Mobile login: no autocorrect/autocapitalize on the user name — **ported** 2026-11-04 (`dev.html`, also the nickname and friend fields).
 - Mobile: joystick stuck on level-up with two fingers — **ported** 2026-11-04 (`tapCards`; `js/core/touch.js` releases the stick when no finger is left).
 - Top bar fits any screen (icon-only buttons, short amounts like 10 M) — **ported** 2026-11-04 (upstream's CSS, `shortNum` in `js/ui/ui.js`). Not checked in a browser: the preview was declined during the unattended run.
-- Mobile back button pauses / goes back — **pending** (web side; the Android app already does it in `js/core/native.js`).
+- Mobile back button pauses / goes back — **ported** 2026-11-04 (`js/core/native.js`; no history entries on an iPhone Home Screen install).
 - Mobile: centre notices wrap to fit — **ported** 2026-11-04 (`js/ui/hud.js`).
 - Mobile: bottom/achievement notices no longer catch taps — **ported** 2026-11-02 (CSS `pointer-events: none`).
 - Pause screen Defense / Sp. Def decimals — **ported** 2026-11-02 (`js/ui/run-ui.js`).
 - Mobile: stray "·" on level/item cards; title phrase covering Play — **ported** (the `.splash` hidden in landscape 2026-11-02; the "·" 2026-11-04, inside `.kbd-hint` in `dev.html`).
 
 ### 2026-10-25 · Tickets y Pokémon iguales en todos tus aparatos
-- End-of-run damage summary per move (tabs per player in co-op) — **pending** (big feature).
-- Mobile "Apuntar a mano" back with a second joystick — **pending**.
+- End-of-run damage summary per move (tabs per player in co-op) — **ported** 2026-11-04 (`movesTable` in `js/ui/run-ui.js`, `rs` event in `js/net/coop.js`).
+- Mobile "Apuntar a mano" back with a second joystick — **ported** 2026-11-04 (`js/core/touch.js`, `handAim` in `js/entities/player.js`).
 - Per-Pokémon ranking 10 min, public profile 6 h — **skipped**: their ranking/servers.
-- Mobile: take the joystick outside the card box — **pending**.
+- Mobile: take the joystick outside the card box — **ported** 2026-11-04 (`js/core/touch.js`, `css/style.css`).
 - Mobile portrait top bar in two lines — **ported** 2026-11-04 (upstream's CSS).
 - Gacha with gamepad: no accidental re-rolls; Skip/Continue selectable — **ported** 2026-11-04 (`js/core/gamepad.js`, `data-nofocus`).
-- Orbs with gamepad hints — **pending** (needs Mystery Dungeon orbs first).
+- Orbs with gamepad hints — **ported** 2026-11-04 (X uses, Y switches; AUTO moved from X to Select (`js/core/gamepad.js`)).
 - Co-op weather abilities from guests — **ported** 2026-11-04 (`wq` event in `js/net/coop.js`).
 - Co-op: stuck when a "done picking" message is lost — **already in PokéGo** (`reconcile` in `js/net/coop.js` checks it in every frame).
 - Cloud-save fixes (several) — **skipped**: their cloud-save design (PokéGo keeps its own saving).
@@ -95,25 +95,25 @@ section are unchanged since `ce57853`.
 - Arceus's Judgment: leaving the arena at high speed — **ported** 2026-11-04 (`clampIn` in `js/systems/judgment.js`).
 - Co-op: disconnected teammate still chased — **ported** 2026-11-04 (`absent` after `QUIET_MS` in `js/net/coop.js`; enemies and Arceus skip them).
 - Ranking fixes (several) — **skipped**: their ranking.
-- Two tabs in the same browser share changes — **pending**.
+- Two tabs in the same browser share changes — **ported** 2026-11-04 (`storage` event and merge in `js/core/db.js`).
 
 ### 2026-10-24 · Ataques en la colección y ventanas del menú
-- Collection: bigger move icons with a tooltip — **pending** (CSS is in upstream `css/style.css`, `.move-tip`).
+- Collection: bigger move icons with a tooltip — **ported** 2026-11-04 (`js/ui/menu.js`, upstream's `.move-tip` CSS).
 - Menu windows close when clicking outside — **ported** 2026-11-04 (`js/ui/ui.js`).
 - Kecleon Shop / News windows start below the top bar — **ported** 2026-11-02 (CSS).
 
 ### 2026-10-23 · Ranking de daño a Arceus y Tablas
 - YouTube button — **skipped**: promotion.
 - Ranking split (damage to Arceus / time) — **skipped**: their ranking rewrite.
-- Arceus can be hit (tiny damage share); Plates give Arceus a random type — **pending** (big gameplay change).
-- Minute 35: Arceus breaks everyone's item — **pending**.
+- Arceus can be hit (tiny damage share); Plates give Arceus a random type — **ported** 2026-11-04 (`js/systems/judgment.js`, `js/systems/combat.js`; share 5 % falling with time, upstream's number is not published).
+- Minute 35: Arceus breaks everyone's item — **ported** 2026-11-04 (`js/systems/judgment.js`).
 - Judgment legendaries +25 % HP / +15 % damage each instead of ×2 — **ported** 2026-11-04 (`js/systems/judgment.js`); no 45-min ranking cap — **skipped**: their ranking.
-- Evolved moves keep their name with "+" — **pending** (touches every language's evolved names).
+- Evolved moves keep their name with "+" — **ported** 2026-11-04 (names derived in `js/data/moves.js` and `G.T` in `js/core/i18n.js`).
 - Meteor Mash 34 → 24 damage, smaller area — **ported** 2026-11-02 (`js/data/moves.js`; radius 54 → 48, upstream's exact radius is not published).
 - Judgment: poison/burn deal small fixed damage to legendaries — **ported** 2026-11-04 (2 per stack per tick, `js/entities/enemy.js`; upstream's number is not published).
 
 ### 2026-10-22 · Esferas, Amuletos Iris y gacha ×100
-- Mystery Dungeon Orbs (6 single-use items, keys 5-8) — **pending** (big feature).
-- Iris Charms per region (shiny rate ×2 in that banner) — **pending**.
-- Gacha ×100 — **pending** (needs the slot machine and a summary screen; upstream also removed the ×1 pull to make room, decide whether to keep it). Skip button — **already in PokéGo**.
-- Co-op: "La sala se ha cerrado" for guests mid-run; 45 s pause on host drop; waiting in the room — **pending** (PokéGo has its own 20 s reconnect from 10-22; compare first).
+- Mystery Dungeon Orbs (6 single-use items, keys 5-8) — **ported** 2026-11-04 (`js/systems/orbs.js`; drop rates are PokéGo's own, upstream's are not published).
+- Iris Charms per region (shiny rate ×2 in that banner) — **ported** 2026-11-04 (derived from `save.owned` in `js/systems/gacha.js`).
+- Gacha ×100 — **ported** 2026-11-04 (the ×1 pull is gone, as upstream (`js/systems/gacha.js`, `js/ui/gacha-ui.js`)). Skip button — **already in PokéGo**.
+- Co-op: "La sala se ha cerrado" for guests mid-run; 45 s pause on host drop; waiting in the room — **ported** 2026-11-04 (`js/net/coop.js`, `net.js`, `coderoom.js`, `social.js`; host closing the browser leaves guests a 45 s wait and a lobby note).

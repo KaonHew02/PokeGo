@@ -401,7 +401,7 @@
 <section id="scr-lobby" class="scr dim hidden">
   <div class="box wide">
     <div class="row between"><h2>Sala</h2>
-      <div class="row"><button id="lobby-menu" class="btn small ghost">Menú</button><button id="lobby-leave" class="btn small ghost">Salir de la sala</button></div></div>
+      <div class="row"><button id="lobby-menu" class="btn small ghost" data-back>Menú</button><button id="lobby-leave" class="btn small ghost">Salir de la sala</button></div></div>
     <p class="sub" id="lobby-sub"></p>
     <div id="lobby-code" class="lobby-code hidden"><span>Código de la sala</span><b id="lobby-code-val" translate="no"></b><button id="lobby-copy" class="btn small">Copiar</button></div>
     <div id="lobby-members" class="lobby-members"></div>
@@ -556,10 +556,11 @@
           <p class="sub" id="gacha-owned" style="margin:0"></p>
           <div class="feat" id="gacha-feat"></div>
         </div>
-        <div class="row" style="margin-top:14px">
-          <button id="pull-1" class="btn grow" data-sfx="none" data-nofocus>Tirar ×1 · <span id="cost-1"></span></button>
+        <div class="row wrap pull-btns" style="margin-top:14px">
           <button id="pull-10" class="btn gold grow" data-sfx="none" data-nofocus>Tirar ×10 · <span id="cost-10"></span></button>
           <button id="pull-10b" class="btn gold grow" data-sfx="none" data-nofocus>Tirar ×10 · <span id="cost-10b"></span></button>
+          <button id="pull-100" class="btn gold grow" data-sfx="none" data-nofocus>Tirar ×100 · <span id="cost-100"></span></button>
+          <button id="pull-100b" class="btn gold grow" data-sfx="none" data-nofocus>Tirar ×100 · <span id="cost-100b"></span></button>
         </div>
         <p class="note tickets-line" id="gacha-tickets"></p>
         <p class="note" id="gacha-pity"></p>
@@ -687,6 +688,7 @@
 <script defer src="js/systems/levelup.js"></script>
 <script defer src="js/systems/gacha.js"></script>
 <script defer src="js/systems/interact.js"></script>
+<script defer src="js/systems/orbs.js"></script>
 <script defer src="js/systems/rift.js"></script>
 <script defer src="js/systems/judgment.js"></script>
 <script defer src="js/systems/events.js"></script>

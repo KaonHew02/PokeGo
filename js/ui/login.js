@@ -35,7 +35,8 @@ G.LoginUI = (() => {
       G.UI.toast('¡Gmail vinculado! Si olvidas la contraseña, entra con Google.', 4500);
     };
     $('rec-later').onclick = () => $('scr-recover').classList.add('hidden');
-    $('rec-never').onclick = () => {
+    $('rec-never').onclick = e => {
+      e.preventDefault();             // (el enlace # añadiría una entrada al historial: ver native.js)
       try { localStorage.setItem('ps.recover.no.' + G.DB.fb.uid, '1'); } catch (e) { /* nada */ }
       $('scr-recover').classList.add('hidden');
     };
