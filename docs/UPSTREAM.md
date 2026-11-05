@@ -17,6 +17,14 @@ PokéGo on 2026-10-22 (commit 49e3cbac, see CREDITS.md).
 License check (2026-11-04): `LICENSE`, `LICENSE-NONCOMMERCIAL.md` and the README's license
 section are unchanged since `ce57853`.
 
+**Upstream unreachable since 2026-11-05.** `git fetch upstream` fails with "Repository not found",
+and github.com and the GitHub API both answer 404 for `JPTER78/pokesurvivor`. The account still
+exists and lists two public repos, neither of them the game: `pokesurvivor-live` (created
+2026-11-02, YouTube channel status only) and a portfolio. The repo was deleted or made private;
+GitHub would redirect a rename. `upstream/main` here is the last fetched copy (`7fdffe6`), so no
+commits after 2026-11-04 could be reviewed, and the license could not be rechecked. Nothing was
+ported on 2026-11-05. The local objects are kept: do not prune the `upstream` refs.
+
 ## Commits ce57853..90cdd94
 
 | Commit | Date | Subject | Decision |
