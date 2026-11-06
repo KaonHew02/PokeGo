@@ -23,7 +23,8 @@ exists and lists two public repos, neither of them the game: `pokesurvivor-live`
 2026-11-02, YouTube channel status only) and a portfolio. The repo was deleted or made private;
 GitHub would redirect a rename. `upstream/main` here is the last fetched copy (`7fdffe6`), so no
 commits after 2026-11-04 could be reviewed, and the license could not be rechecked. Nothing was
-ported on 2026-11-05. The local objects are kept: do not prune the `upstream` refs.
+ported on 2026-11-05. Rechecked 2026-11-06: same 404s, same two public repos, nothing to review.
+The local objects are kept: do not prune the `upstream` refs.
 
 ## Commits ce57853..90cdd94
 
