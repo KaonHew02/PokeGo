@@ -163,6 +163,18 @@ test('a double tap does not zoom: touch-action is on every element, not only on 
   assert.ok(/^\* \{ touch-action: manipulation; \}/m.test(source('css/style.css')));
 });
 
+test('a pinch does not zoom either, and maximum-scale stops iOS zooming into a small field', () => {
+  const p = pad();
+  let stopped = 0;
+  const preventDefault = () => { stopped++; };
+  p.doc.gesturestart({ preventDefault });
+  p.doc.touchmove({ touches: [1, 2], cancelable: true, preventDefault });
+  assert.equal(stopped, 2);
+  p.doc.touchmove({ touches: [1], cancelable: true, preventDefault });   // un dedo: scroll normal
+  assert.equal(stopped, 2);
+  assert.ok(source('dev.html').includes('maximum-scale=1'));
+});
+
 // ---------------- Atrás en la web (js/core/native.js) ----------------
 
 /** native.js con un historial de mentira: `prev` entradas antes de la página (fuera del juego). */

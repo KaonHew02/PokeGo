@@ -85,6 +85,13 @@ G.Touch = (() => {
     document.addEventListener('selectstart', e => {
       if (!e.target.closest || !e.target.closest('input, textarea, [contenteditable]')) e.preventDefault();
     });
+    // iPhone: al pellizcar, Safari no hace caso a user-scalable ni a maximum-scale, y
+    // touch-action: manipulation (style.css), que quita el doble toque, deja pellizcar.
+    // Hay que cortarlo aquí: un juego no se acerca, y menos con dos dedos en los joysticks.
+    if (viaTouch) {
+      for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, e => e.preventDefault());
+      document.addEventListener('touchmove', e => { if (e.touches.length > 1 && e.cancelable) e.preventDefault(); }, { passive: false });
+    }
     // Si el móvil no avisa de que has soltado el dedo, el joystick se quedaba
     // pillado: sin ningún dedo en la pantalla no puede haber joystick.
     const lifted = e => { if (!e.touches.length) reset(); };

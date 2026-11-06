@@ -802,7 +802,7 @@ a.plink:hover { color: var(--gold); }
 
 /* ================= móvil y táctil ================= */
 html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
-/* Doble toque sin zoom, en todo (pellizcar sigue funcionando). En cada elemento y
+/* Doble toque sin zoom, en todo (el pellizco lo corta touch.js). En cada elemento y
    no sólo en body: WebKit empieza de cero en cada elemento con scroll, y .box tiene
    overflow: auto, así que en el iPhone la regla de body no llegaba a ningún menú. */
 * { touch-action: manipulation; }

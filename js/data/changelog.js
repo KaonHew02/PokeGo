@@ -6,9 +6,9 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
-  { d: '2026-11-06', title: ['Sin zoom con doble toque', 'No more double-tap zoom'], fix: [
-    ['iPhone: tocar dos veces seguidas en los menús ya no acerca la pantalla. Pellizcar para ampliar sigue funcionando.',
-     'iPhone: tapping twice in the menus no longer zooms the screen in. Pinch to zoom still works.']
+  { d: '2026-11-06', title: ['Sin zoom en el móvil', 'No more zoom on phones'], fix: [
+    ['iPhone: la pantalla ya no se acerca con un doble toque ni al pellizcar, como en una app.',
+     'iPhone: the screen no longer zooms with a double tap or a pinch, just like an app.']
   ] },
   { d: '2026-11-04', title: ['Copias de seguridad entre dos cuentas', 'Backups between two accounts'], fix: [
     ['Copias de seguridad: si dos cuentas importaban la copia la una de la otra, los objetos de la Mochila y las MT se contaban dos veces (2 Mentas se convertían en 4). Ahora cada objeto se cuenta una sola vez, igual que las monedas y los tickets.',
