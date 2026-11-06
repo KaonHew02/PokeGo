@@ -158,6 +158,11 @@ test('cards let touches through outside their box, and the Accessibility tab is 
   assert.ok(!source('js/ui/settings-ui.js').includes('[data-t="a11y"]'));
 });
 
+test('a double tap does not zoom: touch-action is on every element, not only on body', () => {
+  // WebKit empieza de cero en cada elemento con scroll, y .box tiene overflow: auto.
+  assert.ok(/^\* \{ touch-action: manipulation; \}/m.test(source('css/style.css')));
+});
+
 // ---------------- Atrás en la web (js/core/native.js) ----------------
 
 /** native.js con un historial de mentira: `prev` entradas antes de la página (fuera del juego). */

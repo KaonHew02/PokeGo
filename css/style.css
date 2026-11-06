@@ -802,7 +802,10 @@ a.plink:hover { color: var(--gold); }
 
 /* ================= móvil y táctil ================= */
 html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
-body { touch-action: manipulation; }
+/* Doble toque sin zoom, en todo (pellizcar sigue funcionando). En cada elemento y
+   no sólo en body: WebKit empieza de cero en cada elemento con scroll, y .box tiene
+   overflow: auto, así que en el iPhone la regla de body no llegaba a ningún menú. */
+* { touch-action: manipulation; }
 /* iPhone: sin esto, mantener el dedo en el joystick sacaba "Copiar / Seleccionar
    todo" (Safari sólo hace caso a la versión -webkit- y no lo hereda bien). */
 body, body * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
